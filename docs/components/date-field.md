@@ -23,121 +23,27 @@ Let the parent own the current value and apply accepted changes back to the comp
 
 <ComponentExample component="date-field" scenario="controlled" title="Controlled" description="Let the parent own the current value and apply accepted changes back to the component." :index="2" />
 
-## API
+## Connect application state
 
-Vue package: `@sectile/vue/temporal/date-field`
+Keep date and time values as structured civil or wall-clock data in `v-model` instead of converting them to `Date`. Your application decides if and when a timezone conversion is appropriate for storage or transport.
 
-<div class="component-api-group">
-<strong class="component-api-label">Components</strong>
-<ul class="component-api-list">
-  <li><code class="component-api-token">DateField</code></li>
-</ul>
-</div>
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import { DateField } from '@sectile/vue/temporal/date-field'
 
-### Props
+const value = ref({ year: 2026, month: 9, day: 15 })
+</script>
 
-#### `DateFieldProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>defaultValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>DateValue | null</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Initial value used when the component owns its state.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>label</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Accessible name announced for the control.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>modelValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>DateValue | null</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Current value when state is controlled by the parent.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>native</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Whether to use the browser native date or time input UI.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>policies</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>DateFieldOptions['policies']</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Behavior policies that customize validation, movement, or selection.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>readonly</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Whether the value can be inspected but not changed.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>required</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Whether the control must contain a valid value before submission.</p>
-</dd>
-</div>
-</dl>
-
-### Other types
-
-#### `DateValue`
-
-```ts
-type DateValue = NonNullable<DateFieldOptions['value']>
+<template>
+  <DateField v-model="value" label="Release date" />
+  <pre>{{ value }}</pre>
+</template>
 ```
 
-#### `DateFieldValueChangeHandler`
+## API reference
 
-```ts
-type DateFieldValueChangeHandler = (value: DateValue | null) => void
-```
-
-## Parts
-
-Shared scope: <code class="component-scope-token">[data-scope="date-field"]</code>. Combine it with a part selector to keep styles local to this component.
-
-<div class="component-parts-table">
-<table>
-<thead>
-<tr><th scope="col">Part</th><th scope="col">Selector</th><th scope="col">Role</th><th scope="col">Extra attributes</th></tr>
-</thead>
-<tbody>
-<tr>
-  <td><code class="component-part-token">input</code></td>
-  <td><code>[data-part="input"]</code></td>
-  <td>Accepts the editable value or draft.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-</tbody>
-</table>
-</div>
-
-## Keyboard interaction
-
-| Key | Behavior |
-| --- | --- |
-| <kbd>Arrow Up</kbd> / <kbd>Arrow Down</kbd> | Increment or decrement the active value segment. |
-| <kbd>Enter</kbd> | Commit the draft value. |
-| <kbd>Escape</kbd> | Cancel the draft and restore the accepted value. |
+See [Date Field API](/api/components/date-field) for props, events, slots, public types, part selectors, and keyboard behavior.
 
 ## Accessibility
 

@@ -8,65 +8,65 @@ import DocsButton from './DocsButton.vue';
 const { isKorean } = useDocsLocale();
 
 const copy = computed(() => isKorean.value ? {
-  heroTitle: '일관된 동작을 위한 공통 상태 모델',
-  heroBody: 'Sectile은 현재 상태와 입력으로 다음 상태와 실행할 작업을 계산합니다. 탐색·선택·편집·검증·날짜·표·가상화에 필요한 동작을 조합하며, 결과와 실패 조건, 비용 상한을 하나의 계약으로 다룹니다.',
-  learnAction: '패키지 살펴보기',
-  browseAction: '핵심 개념 읽기',
-  visibleTitle: '결과·실패·비용을 아우르는 동작 계약',
-  visibleBody: '각 계약에는 정상 결과, 실패 조건, 계산 비용이 함께 들어갑니다. 구현이 달라져도 같은 입력 과정이 같은 결과를 내는지 검증할 수 있습니다.',
+  heroTitle: '예제로 시작하는 접근 가능한 UI',
+  heroBody: 'Sectile은 스타일이 비어 있는 Vue 컴포넌트와 DOM·도메인 API를 제공합니다. 필요한 컴포넌트를 고르고, 동작하는 예제를 복사한 뒤, 상태와 스타일과 애니메이션을 제품에 맞게 바꾸면 됩니다.',
+  learnAction: '바로 시작하기',
+  browseAction: '컴포넌트 보기',
+  visibleTitle: '필요한 만큼만 배우세요',
+  visibleBody: '처음에는 예제로 시작하고, 특정 동작을 바꾸거나 정확한 타입이 필요할 때 가이드와 API 레퍼런스로 내려가면 됩니다.',
   visibleItems: [
-    ['상태', '현재 위치, 선택, 펼침, 텍스트, 검증 상태처럼 동작에 필요한 사실을 값으로 표현합니다.'],
-    ['연산', '의미 있는 입력을 받아 새 상태와 순서 있는 작업을 함께 계산합니다.'],
-    ['실패', '처리할 수 없는 입력은 형식이 있는 오류가 되며 기존 상태는 그대로 유지됩니다.'],
-    ['비용', '시간, 공간, 할당, 보유 자원의 상한을 공개 계약과 검증 근거에 포함합니다.'],
+    ['컴포넌트', 'Dialog, Select, Menu, Tabs, 달력, 입력, 데이터 UI를 실행 가능한 예제와 함께 살펴봅니다.'],
+    ['예제', '기본형뿐 아니라 controlled 상태, 비활성 항목, 복합 구성, 실제 제품에 가까운 변형을 비교합니다.'],
+    ['스타일과 모션', '공개된 part와 state 속성으로 원하는 CSS와 transition을 적용합니다.'],
+    ['API', 'Props, events, slots, types와 패키지 API를 한 곳에서 정확하게 찾습니다.'],
   ],
-  scopeTitle: '문제 영역별 상태 모델',
-  scopeBody: '각 패키지는 하나의 문제 영역을 맡고, 공개된 값과 연산으로 서로 연결됩니다.',
+  scopeTitle: '무엇을 찾고 있나요?',
+  scopeBody: '저장소 구조를 알 필요 없이 지금 하려는 작업에서 시작할 수 있습니다.',
   scopes: [
-    { label: 'Core', description: '순서·범위·격자·계층 구조와 상태 전이, 명령, 실패', path: '/packages/core' },
-    { label: 'Form', description: '필드 경로, 값, 검증, 오류, 제출, 초기화', path: '/packages/form' },
-    { label: 'Temporal', description: '달력 날짜, 하루 안의 시각, 범위, 달력 연산', path: '/packages/temporal' },
-    { label: 'Tabular · Virtual · Chart', description: '표 형식 데이터, 화면 영역 배치, 측정, 차트 모델과 질의', path: '/packages/' },
+    { label: '컴포넌트', description: '필요한 UI를 골라 여러 사용 예시를 확인합니다.', path: '/components/' },
+    { label: '가이드', description: '상태 제어, 스타일, 위치, 폼, 날짜, 가상화, 표, 차트를 작업별로 봅니다.', path: '/guides/' },
+    { label: 'API', description: '컴포넌트와 패키지의 공개 API를 빠르게 찾습니다.', path: '/api/' },
+    { label: '시작하기', description: 'Vue나 DOM에서 설치하고 첫 결과를 만드는 가장 짧은 경로입니다.', path: '/getting-started/' },
   ],
-  startTitle: '목적별 문서 안내',
+  startTitle: '추천 시작점',
   starts: [
-    { label: '패키지 지도', description: '문제 영역과 패키지별 책임, 공개 경계를 확인합니다.', path: '/packages/' },
-    { label: '코어 이론', description: '상태, 전이, 조합, 실패 원칙을 설명합니다.', path: '/theory/' },
-    { label: '시작하기', description: '필요한 패키지를 설치하고 첫 공개 API를 사용합니다.', path: '/guide/getting-started' },
+    { label: '시작하기', description: '설치부터 첫 컴포넌트와 스타일 적용까지 따라갑니다.', path: '/getting-started/' },
+    { label: '컴포넌트', description: '실행 가능한 예시를 보면서 필요한 UI를 고릅니다.', path: '/components/' },
+    { label: '가이드', description: '공통 작업과 패키지별 사용법을 목적에 따라 찾습니다.', path: '/guides/' },
   ],
-  advancedTitle: '동작 계약에 포함된 성능 기준',
-  advancedBody: '각 모델은 시간·공간·자원 사용의 한도를 동작과 함께 정의합니다. 코어 이론에서 이 기준이 적용되는 범위를 확인할 수 있습니다.',
-  advancedAction: '보장 범위 보기',
+  advancedTitle: '저수준 패키지는 필요할 때만',
+  advancedBody: 'Core, Form, Temporal, Virtual, Tabular, Chart와 host API도 계속 제공됩니다. 일반적인 UI 사용 흐름 뒤에서 필요할 때 가이드와 API 레퍼런스로 접근할 수 있습니다.',
+  advancedAction: '가이드 보기',
 } : {
-  heroTitle: 'A shared state model for consistent behavior',
-  heroBody: 'Sectile derives the next state and ordered work from the current state and input. Navigation, selection, editing, validation, dates, tables, and virtualization compose through contracts that define results, failures, and cost bounds together.',
-  learnAction: 'Browse packages',
-  browseAction: 'Read the core concepts',
-  visibleTitle: 'Behavior contracts for results, failures, and cost',
-  visibleBody: 'A public contract covers successful results, failure behavior, and computational cost. The same input trace remains verifiable as implementations change.',
+  heroTitle: 'Accessible UI that starts with working examples',
+  heroBody: 'Sectile provides unstyled Vue components plus DOM and domain APIs. Pick the UI you need, copy a working example, then adapt its state, styling, and motion to your product.',
+  learnAction: 'Get started',
+  browseAction: 'Browse components',
+  visibleTitle: 'Learn only what the task requires',
+  visibleBody: 'Start from runnable examples. Move into guides when you need to change behavior, and use the API reference when you need an exact prop, event, slot, type, or package export.',
   visibleItems: [
-    ['State', 'Represent position, selection, expansion, text, and validation facts as values.'],
-    ['Operations', 'Accept semantic input and calculate a new state with ordered work.'],
-    ['Failures', 'Return typed errors for rejected input while preserving the previous state.'],
-    ['Cost', 'Include time, space, allocation, and retained-resource bounds in the public contract and evidence.'],
+    ['Components', 'Browse dialogs, selects, menus, tabs, calendars, inputs, and data UI with runnable examples.'],
+    ['Examples', 'Compare controlled state, disabled items, compositions, and product-like variants instead of one minimal demo.'],
+    ['Styling and motion', 'Use public parts and state attributes to apply your own CSS and transitions.'],
+    ['API', 'Look up component and package reference from one predictable place.'],
   ],
-  scopeTitle: 'State models by problem domain',
-  scopeBody: 'Each package owns one problem domain and connects through public values and operations.',
+  scopeTitle: 'What are you trying to do?',
+  scopeBody: 'Start from the task in front of you instead of learning the repository or package architecture first.',
   scopes: [
-    { label: 'Core', description: 'Sequence, range, grid, and tree structures with transitions, commands, and failures', path: '/packages/core' },
-    { label: 'Form', description: 'Field paths, values, validation, errors, submission, and reset', path: '/packages/form' },
-    { label: 'Temporal', description: 'Civil dates, wall-clock time, ranges, and calendar operations', path: '/packages/temporal' },
-    { label: 'Tabular · Virtual · Chart', description: 'Tabular data, viewport layout, measurement, chart models, and queries', path: '/packages/' },
+    { label: 'Components', description: 'Choose a UI pattern and compare several usage examples.', path: '/components/' },
+    { label: 'Guides', description: 'Find controlled state, styling, positioning, forms, dates, virtualization, tables, and charts by task.', path: '/guides/' },
+    { label: 'API', description: 'Find exact component and package public API.', path: '/api/' },
+    { label: 'Getting Started', description: 'Take the shortest path from install to a working Vue or DOM result.', path: '/getting-started/' },
   ],
-  startTitle: 'Documentation by purpose',
+  startTitle: 'Recommended starting points',
   starts: [
-    { label: 'Package map', description: 'See domain ownership, package responsibilities, and public boundaries.', path: '/packages/' },
-    { label: 'Core theory', description: 'Read about state, transitions, composition, and failure principles.', path: '/theory/' },
-    { label: 'Getting started', description: 'Install the package you need and call its first public API.', path: '/guide/getting-started' },
+    { label: 'Getting Started', description: 'Install Sectile, render a first component, and apply your own styles.', path: '/getting-started/' },
+    { label: 'Components', description: 'Browse runnable examples and choose the UI pattern you need.', path: '/components/' },
+    { label: 'Guides', description: 'Find common tasks and package-specific usage without internal implementation detail.', path: '/guides/' },
   ],
-  advancedTitle: 'Performance bounds in behavior contracts',
-  advancedBody: 'Each model defines its time, space, and resource limits alongside its behavior. Core theory explains where these guarantees apply.',
-  advancedAction: 'Read scope and guarantees',
+  advancedTitle: 'Low-level packages stay available when you need them',
+  advancedBody: 'Core, Form, Temporal, Virtual, Tabular, Chart, and host APIs remain available. Reach them through task guides and API reference after the ordinary UI path, not before it.',
+  advancedAction: 'Browse guides',
 });
 
 const localizedPath = (path: string): string => withBase(isKorean.value ? `/ko${path}` : path);
@@ -82,12 +82,12 @@ const localizedPath = (path: string): string => withBase(isKorean.value ? `/ko${
           <DocsButton
             appearance="primary"
             class="docs-home__cta"
-            :href="localizedPath('/packages/')"
+            :href="localizedPath('/getting-started/')"
             large
           >
             {{ copy.learnAction }}<ArrowRight :size="17" aria-hidden="true" />
           </DocsButton>
-          <DocsButton class="docs-home__cta" :href="localizedPath('/theory/')" large>
+          <DocsButton class="docs-home__cta" :href="localizedPath('/components/')" large>
             {{ copy.browseAction }}
           </DocsButton>
         </div>
@@ -136,7 +136,7 @@ const localizedPath = (path: string): string => withBase(isKorean.value ? `/ko${
         <h2>{{ copy.advancedTitle }}</h2>
         <p>{{ copy.advancedBody }}</p>
       </div>
-      <a :href="localizedPath('/theory/scope')">{{ copy.advancedAction }}<ArrowRight :size="17" aria-hidden="true" /></a>
+      <a :href="localizedPath('/guides/')">{{ copy.advancedAction }}<ArrowRight :size="17" aria-hidden="true" /></a>
     </aside>
   </main>
 </template>

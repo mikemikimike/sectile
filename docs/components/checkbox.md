@@ -23,216 +23,30 @@ Let the parent own the current value and apply accepted changes back to the comp
 
 <ComponentExample component="checkbox" scenario="controlled" title="Controlled" description="Let the parent own the current value and apply accepted changes back to the component." :index="2" />
 
-## API
+## Selection-state motion example
 
-Vue package: `@sectile/vue/checkbox`
+Selection is exposed through public ARIA or state attributes. A short color/scale transition confirms the result while remaining independent from keyboard navigation.
 
-<div class="component-api-group">
-<strong class="component-api-label">Components</strong>
-<ul class="component-api-list">
-  <li><code class="component-api-token">CheckboxRoot</code></li>
-  <li><code class="component-api-token">CheckboxIndicator</code></li>
-</ul>
-</div>
+```css
+[data-scope='checkbox'][data-part='root'] {
+  transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
 
-### Props
+[data-scope='checkbox'][data-part='root'][aria-checked='true'] {
+  transform: scale(1.025);
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
 
-#### `CheckboxRootProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">Default</span><code>'button'</code></span></div>
-<p>Element or component rendered for this part.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether to merge this part into its single child instead of rendering a wrapper.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>defaultValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>CheckboxValue</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Initial value used when the component owns its state.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>form</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>ID of the native form associated with the control.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>modelValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>CheckboxValue</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Current value when state is controlled by the parent.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>name</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Name used for native form submission.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>readonly</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether the value can be inspected but not changed.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>required</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether the control must contain a valid value before submission.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>value</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span><code>'on'</code></span></div>
-<p>Current value exposed by this contract.</p>
-</dd>
-</div>
-</dl>
-
-#### `CheckboxIndicatorProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">Default</span><code>'span'</code></span></div>
-<p>Element or component rendered for this part.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether to merge this part into its single child instead of rendering a wrapper.</p>
-</dd>
-</div>
-</dl>
-
-### Slots
-
-#### `CheckboxSlotProps`
-
-<dl class="component-api-definitions component-api-definitions--slots">
-<div class="component-api-definition">
-<dt><code>checked</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>CheckboxValue</code></span></div>
-<p>Whether the control is checked.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>isChecked</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether this checkbox value is selected.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>isIndeterminate</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether only part of a grouped value is selected.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>readonly</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether the value can be inspected but not changed.</p>
-</dd>
-</div>
-</dl>
-
-### Events
-
-#### `CheckboxRoot`
-
-<dl class="component-api-definitions component-api-definitions--events">
-<div class="component-api-definition">
-<dt><code>update:modelValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Payload</span><code>CheckboxValue</code></span></div>
-<p>Emitted when the component requests a new controlled value.</p>
-</dd>
-</div>
-</dl>
-
-### Other types
-
-#### `CheckboxValue`
-
-```ts
-type CheckboxValue = boolean | 'indeterminate'
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='checkbox'][data-part='root'] {
+    transition: none;
+  }
+}
 ```
 
-#### `CheckboxValueChangeHandler`
+## API reference
 
-```ts
-type CheckboxValueChangeHandler = (value: CheckboxValue) => void
-```
-
-## Parts
-
-Shared scope: <code class="component-scope-token">[data-scope="checkbox"]</code>. Combine it with a part selector to keep styles local to this component.
-
-<div class="component-parts-table">
-<table>
-<thead>
-<tr><th scope="col">Part</th><th scope="col">Selector</th><th scope="col">Role</th><th scope="col">Extra attributes</th></tr>
-</thead>
-<tbody>
-<tr>
-  <td><code class="component-part-token">root</code></td>
-  <td><code>[data-part="root"]</code></td>
-  <td>Defines the component boundary and owns its composed parts.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">indicator</code></td>
-  <td><code>[data-part="indicator"]</code></td>
-  <td>Shows state or position without replacing the primary content.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-</tbody>
-</table>
-</div>
-
-## Keyboard interaction
-
-| Key | Behavior |
-| --- | --- |
-| <kbd>Space</kbd> | Toggle the current value. |
-| <kbd>Tab</kbd> | Move through the normal document focus order. |
+See [Checkbox API](/api/components/checkbox) for props, events, slots, public types, part selectors, and keyboard behavior.
 
 ## Accessibility
 

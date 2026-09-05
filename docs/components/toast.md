@@ -153,326 +153,41 @@ export function useAppToast() {
 }
 ~~~
 
-## API
+## Motion example
 
-Vue package: `@sectile/vue/toast`
+Map the Toast root open/closed state to opacity and translation so entry and exit are visible without interrupting the current task.
 
-<div class="component-api-group">
-<strong class="component-api-label">Components</strong>
-<ul class="component-api-list">
-  <li><code class="component-api-token">ToastProvider</code></li>
-  <li><code class="component-api-token">ToastPortal</code></li>
-  <li><code class="component-api-token">ToastViewport</code></li>
-  <li><code class="component-api-token">ToastRoot</code></li>
-  <li><code class="component-api-token">ToastTitle</code></li>
-  <li><code class="component-api-token">ToastDescription</code></li>
-  <li><code class="component-api-token">ToastClose</code></li>
-</ul>
-</div>
+```css
+[data-scope='toast'][data-part='root'][data-state='open'] {
+  animation: toast-in 180ms cubic-bezier(.2, .8, .2, 1);
+}
 
-### Functions
+[data-scope='toast'][data-part='root'][data-state='closed'] {
+  animation: toast-out 140ms ease-in;
+}
 
-#### `useToast`
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
-```ts
-function useToast(): UseToastReturn
+@keyframes toast-out {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='toast'][data-part='root'] {
+    animation: none !important;
+  }
+}
 ```
 
-### Props
+[See the reduced-motion pattern](/guides/motion)
 
-#### `ToastProviderProps`
+## API reference
 
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>closeLabel</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span><code>'Dismiss notification'</code></span></div>
-<p>Accessible label announced for each notification close action.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>defaultDurationMs</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>number | null</code></span><span><span class="component-api-definition__label">Default</span><code>5_000</code></span></div>
-<p>Initial timer duration in milliseconds.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>dismissOnEscape</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>true</code></span></div>
-<p>Whether Escape dismisses the focused notification.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>hotkey</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>readonly string[] | false</code></span><span><span class="component-api-definition__label">Default</span><code>['F8']</code></span></div>
-<p>Document hotkey that moves focus to the notification viewport, or false to disable it.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>initialToasts</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>readonly ToastInput&lt;string&gt;[]</code></span><span><span class="component-api-definition__label">Default</span><code>[]</code></span></div>
-<p>Notifications present when the provider first mounts.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>maxVisible</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>number</code></span><span><span class="component-api-definition__label">Default</span><code>3</code></span></div>
-<p>Maximum number of notifications shown at once.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>pauseOnWindowBlur</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>true</code></span></div>
-<p>Whether automatic dismissal pauses while the browser window is inactive.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>swipeDirection</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>'up' | 'right' | 'down' | 'left'</code></span><span><span class="component-api-definition__label">Default</span><code>'right'</code></span></div>
-<p>Direction in which a pointer swipe dismisses a notification.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>swipeThreshold</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>number</code></span><span><span class="component-api-definition__label">Default</span><code>50</code></span></div>
-<p>Pointer travel in pixels required to dismiss by swiping.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>toasts</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>readonly ToastInput&lt;string&gt;[]</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Current notifications when the provider is controlled by the parent.</p>
-</dd>
-</div>
-</dl>
-
-#### `ToastPartProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">Default</span>Varies by part</span></div>
-<p>Element or component rendered for this part.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether to merge this part into its single child instead of rendering a wrapper.</p>
-</dd>
-</div>
-</dl>
-
-#### `ToastPortalProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>defer</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether Teleport target resolution waits until the end of the current mount or update tick.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>to</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string | HTMLElement</code></span><span><span class="component-api-definition__label">Default</span><code>'body'</code></span></div>
-<p>Teleport target for portalled content.</p>
-</dd>
-</div>
-</dl>
-
-#### `ToastRootProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">Default</span><code>'li'</code></span></div>
-<p>Element or component rendered for this part.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether to merge this part into its single child instead of rendering a wrapper.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>value</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span>Required</span></div>
-<p>Current value exposed by this contract.</p>
-</dd>
-</div>
-</dl>
-
-### Slots
-
-#### `ToastProviderSlotProps`
-
-<dl class="component-api-definitions component-api-definitions--slots">
-<div class="component-api-definition">
-<dt><code>dismiss</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>void</code></span></div>
-<p>Dismisses one notification.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>dismissAll</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>void</code></span></div>
-<p>Dismisses every notification.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>paused</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether automatic updates are paused.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>toast</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>void</code></span></div>
-<p>Notification represented by this item.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>toasts</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>readonly ToastItem&lt;string&gt;[]</code></span></div>
-<p>Current notification collection.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>update</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>void</code></span></div>
-<p>Updates one notification without replacing its identifier.</p>
-</dd>
-</div>
-</dl>
-
-#### `ToastRootSlotProps`
-
-<dl class="component-api-definitions component-api-definitions--slots">
-<div class="component-api-definition">
-<dt><code>open</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether the associated popup or disclosure is open.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>toast</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>ToastItem&lt;string&gt; | null</code></span></div>
-<p>Notification represented by this item.</p>
-</dd>
-</div>
-</dl>
-
-### Events
-
-#### `ToastProvider`
-
-<dl class="component-api-definitions component-api-definitions--events">
-<div class="component-api-definition">
-<dt><code>update:toasts</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Payload</span><code>readonly ToastInput&lt;string&gt;[]</code></span></div>
-<p>Emitted when the provider requests a new controlled notification collection.</p>
-</dd>
-</div>
-</dl>
-
-### Other types
-
-#### `UseToastReturn`
-
-| Name | Type | Required |
-| --- | --- | --- |
-| `toasts` | `ComputedRef<readonly ToastItem<string>[]>` | Yes |
-| `paused` | `ComputedRef<boolean>` | Yes |
-| `toast` | `void` | Yes |
-| `update` | `void` | Yes |
-| `dismiss` | `void` | Yes |
-| `dismissAll` | `void` | Yes |
-
-## Parts
-
-Shared scope: <code class="component-scope-token">[data-scope="toast"]</code>. Combine it with a part selector to keep styles local to this component.
-
-<div class="component-parts-table">
-<table>
-<thead>
-<tr><th scope="col">Part</th><th scope="col">Selector</th><th scope="col">Role</th><th scope="col">Extra attributes</th></tr>
-</thead>
-<tbody>
-<tr>
-  <td><code class="component-part-token">viewport</code></td>
-  <td><code>[data-part="viewport"]</code></td>
-  <td>Clips and positions the currently visible content.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">root</code></td>
-  <td><code>[data-part="root"]</code></td>
-  <td>Defines the component boundary and owns its composed parts.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">title</code></td>
-  <td><code>[data-part="title"]</code></td>
-  <td>Labels the associated content.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">description</code></td>
-  <td><code>[data-part="description"]</code></td>
-  <td>Describes the associated content or decision.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">close</code></td>
-  <td><code>[data-part="close"]</code></td>
-  <td>Closes or dismisses the current surface.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-</tbody>
-</table>
-</div>
-
-## Keyboard interaction
-
-| Key | Behavior |
-| --- | --- |
-| <kbd>F8</kbd> | Move focus to the notification viewport. |
-| <kbd>Tab</kbd> / <kbd>Shift+Tab</kbd> | Move between notification action controls. |
-| <kbd>Escape</kbd> | Dismiss the focused notification. |
-| <kbd>Pointer swipe</kbd> | Dismiss a notification after moving it past the configured threshold. |
+See [Toast API](/api/components/toast) for props, events, slots, public types, part selectors, and keyboard behavior.
 
 ## Accessibility
 

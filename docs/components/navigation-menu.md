@@ -23,307 +23,41 @@ Remove the control from keyboard and pointer interaction.
 
 <ComponentExample component="navigation-menu" scenario="disabled" title="Disabled" description="Remove the control from keyboard and pointer interaction." :index="2" />
 
-## API
+## Active-item motion example
 
-Vue package: `@sectile/vue/navigation-menu`
+Use each Navigation Menu item `data-state="open|closed"` to move an underline or indicator without shifting the surrounding navigation layout.
 
-<div class="component-api-group">
-<strong class="component-api-label">Components</strong>
-<ul class="component-api-list">
-  <li><code class="component-api-token">NavigationMenuRoot</code></li>
-  <li><code class="component-api-token">NavigationMenuLink</code></li>
-  <li><code class="component-api-token">NavigationMenuTrigger</code></li>
-  <li><code class="component-api-token">NavigationMenuContent</code></li>
-  <li><code class="component-api-token">NavigationMenuList</code></li>
-  <li><code class="component-api-token">NavigationMenuItem</code></li>
-  <li><code class="component-api-token">NavigationMenuViewport</code></li>
-  <li><code class="component-api-token">NavigationMenuIndicator</code></li>
-</ul>
-</div>
+```css
+[data-scope='navigation-menu'][data-part='item'] {
+  position: relative;
+}
 
-### Props
+[data-scope='navigation-menu'][data-part='item']::after {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: -0.25rem;
+  block-size: 2px;
+  content: '';
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 160ms ease;
+}
 
-#### `NavigationMenuItemProps`
+[data-scope='navigation-menu'][data-part='item'][data-state='open']::after {
+  transform: scaleX(1);
+}
 
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">Default</span><code>'li'</code></span></div>
-<p>Element or component rendered for this part.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Whether to merge this part into its single child instead of rendering a wrapper.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>value</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span>Required</span></div>
-<p>Current value exposed by this contract.</p>
-</dd>
-</div>
-</dl>
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='navigation-menu'][data-part='item']::after {
+    transition: none;
+  }
+}
+```
 
-#### `NavigationMenuRootProps`
+## API reference
 
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Element or component rendered for this part.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Whether to merge this part into its single child instead of rendering a wrapper.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>defaultHighlightedValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string | null</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Initially highlighted value for uncontrolled state.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>disabledItems</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>readonly string[]</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Item values excluded from focus and selection.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>items</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>readonly MenuItemDefinition&lt;string&gt;[]</code></span><span><span class="component-api-definition__label">Default</span>Required</span></div>
-<p>Ordered item values managed by the component.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>label</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Accessible name announced for the control.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>policies</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>MenuPolicies&lt;string&gt;</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Behavior policies that customize validation, movement, or selection.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>textValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>(id: string) =&gt; string</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Returns searchable or presentational text for an item value.</p>
-</dd>
-</div>
-</dl>
-
-#### `NavigationMenuContentProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Element or component rendered for this part.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Whether to merge this part into its single child instead of rendering a wrapper.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>for</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span>Required</span></div>
-<p>Value or ID of the related part targeted by this component.</p>
-</dd>
-</div>
-</dl>
-
-### Slots
-
-#### `NavigationMenuItemSlotProps`
-
-<dl class="component-api-definitions component-api-definitions--slots">
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>highlighted</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether this item is highlighted for interaction.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>open</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether the associated popup or disclosure is open.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>value</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span></div>
-<p>Current value exposed by this contract.</p>
-</dd>
-</div>
-</dl>
-
-#### `NavigationMenuRootSlotProps`
-
-<dl class="component-api-definitions component-api-definitions--slots">
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>highlightedValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string | null</code></span></div>
-<p>Value currently highlighted for interaction.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>open</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether the associated popup or disclosure is open.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>openPath</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>readonly string[]</code></span></div>
-<p>Ordered values in the open menu path.</p>
-</dd>
-</div>
-</dl>
-
-### Events
-
-#### `NavigationMenuRoot`
-
-<dl class="component-api-definitions component-api-definitions--events">
-<div class="component-api-definition">
-<dt><code>invoke</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Payload</span><code>string</code></span></div>
-<p>Emitted when the current action is invoked.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>update:open</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Payload</span><code>boolean</code></span></div>
-<p>Emitted when the component requests a new open state.</p>
-</dd>
-</div>
-</dl>
-
-## Parts
-
-Shared scope: <code class="component-scope-token">[data-scope="navigation-menu"]</code>. Combine it with a part selector to keep styles local to this component.
-
-<div class="component-parts-table">
-<table>
-<thead>
-<tr><th scope="col">Part</th><th scope="col">Selector</th><th scope="col">Role</th><th scope="col">Extra attributes</th></tr>
-</thead>
-<tbody>
-<tr>
-  <td><code class="component-part-token">root</code></td>
-  <td><code>[data-part="root"]</code></td>
-  <td>Defines the component boundary and owns its composed parts.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">list</code></td>
-  <td><code>[data-part="list"]</code></td>
-  <td>Groups the component items in navigation order.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">item-container</code></td>
-  <td><code>[data-part="item-container"]</code></td>
-  <td>Positions one top-level item and its nested content.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">item</code></td>
-  <td><code>[data-part="item"]</code></td>
-  <td>Menu item at any hierarchy depth; use data-level to distinguish top-level and nested items</td>
-  <td><code>data-level="&lt;depth&gt;"</code></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">sub-content</code></td>
-  <td><code>[data-part="sub-content"]</code></td>
-  <td>Popup content owned by a parent menu item</td>
-  <td><code>data-level="&lt;depth&gt;"</code></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">viewport</code></td>
-  <td><code>[data-part="viewport"]</code></td>
-  <td>Clips and positions the currently visible content.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">indicator</code></td>
-  <td><code>[data-part="indicator"]</code></td>
-  <td>Shows state or position without replacing the primary content.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-</tbody>
-</table>
-</div>
-
-## Keyboard interaction
-
-| Key | Behavior |
-| --- | --- |
-| <kbd>Arrow Left</kbd> / <kbd>Arrow Right</kbd> | Move between root menu items. |
-| <kbd>Arrow Down</kbd> / <kbd>Arrow Up</kbd> | Open a branch or move inside its vertical item list. |
-| <kbd>Home</kbd> / <kbd>End</kbd> | Move to the first or last item at the current level. |
-| <kbd>Enter</kbd> / <kbd>Space</kbd> | Open a branch or invoke the current item. |
-| <kbd>Escape</kbd> | Close the branch and return to its owner. |
+See [Navigation Menu API](/api/components/navigation-menu) for props, events, slots, public types, part selectors, and keyboard behavior.
 
 ## Accessibility
 

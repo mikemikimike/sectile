@@ -33,6 +33,8 @@ Sectile 컴포넌트의 모양은 제품이 정합니다. Sectile은 각 부분�
 
 Vue 컴포넌트에는 일반 속성과 클래스를 그대로 전달할 수 있습니다. `asChild`를 지원하는 요소는 하나뿐인 자식 요소에 동작을 직접 합칩니다.
 
-## 움직임
+## 모션
 
-움직임도 상태 속성에 맞춰 적용합니다. 나타나고 사라지는 과정을 모두 보여야 한다면 요소를 DOM에서 언제 뺄지 먼저 정합니다. `prefers-reduced-motion`에서는 같은 상태 변화를 정적으로 전달해야 합니다.
+공개 state 속성에 transition과 keyframe을 연결합니다. 팝업 콘텐츠는 exit animation이 끝날 때까지 유지할 수 있고, Drawer는 swipe 진행도를 제공하며, checked나 expanded part는 안정적인 상태 hook을 노출합니다.
+
+복사해서 쓸 수 있는 팝업 열림/닫힘, 펼침 indicator, checked 상태, Drawer swipe, `prefers-reduced-motion` 예시는 [모션](/ko/guides/motion)에서 확인합니다.

@@ -29,289 +29,39 @@ Let the parent own the current value and apply accepted changes back to the comp
 
 <ComponentExample component="accordion" scenario="controlled" title="Controlled" description="Let the parent own the current value and apply accepted changes back to the component." :index="3" />
 
-## API
+## Motion example
 
-Vue package: `@sectile/vue/accordion`
+Rotate a small indicator inside the trigger instead of forcing document-flow height animation. This communicates the state change while keeping layout stable.
 
-<div class="component-api-group">
-<strong class="component-api-label">Components</strong>
-<ul class="component-api-list">
-  <li><code class="component-api-token">AccordionRoot</code></li>
-  <li><code class="component-api-token">AccordionItem</code></li>
-  <li><code class="component-api-token">AccordionHeader</code></li>
-  <li><code class="component-api-token">AccordionTrigger</code></li>
-  <li><code class="component-api-token">AccordionContent</code></li>
-</ul>
-</div>
-
-### Props
-
-#### `AccordionRootProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">Default</span><code>'div'</code></span></div>
-<p>Element or component rendered for this part.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether to merge this part into its single child instead of rendering a wrapper.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>collapsible</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>true</code></span></div>
-<p>Whether the final expanded item may be collapsed.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>defaultValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>AccordionValue</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Initial value used when the component owns its state.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>disabledItems</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>readonly string[]</code></span><span><span class="component-api-definition__label">Default</span><code>[]</code></span></div>
-<p>Item values excluded from focus and selection.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>items</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>readonly string[]</code></span><span><span class="component-api-definition__label">Default</span>Required</span></div>
-<p>Ordered item values managed by the component.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>modelValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>AccordionValue</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Current value when state is controlled by the parent.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>readonly</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether the value can be inspected but not changed.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>type</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>AccordionType</code></span><span><span class="component-api-definition__label">Default</span><code>'single'</code></span></div>
-<p>Selection or behavior mode used by the component.</p>
-</dd>
-</div>
-</dl>
-
-#### `AccordionItemProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">Default</span><code>'div'</code></span></div>
-<p>Element or component rendered for this part.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether to merge this part into its single child instead of rendering a wrapper.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>value</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span>Required</span></div>
-<p>Current value exposed by this contract.</p>
-</dd>
-</div>
-</dl>
-
-#### `AccordionPartProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">Default</span>Varies by part</span></div>
-<p>Element or component rendered for this part.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether to merge this part into its single child instead of rendering a wrapper.</p>
-</dd>
-</div>
-</dl>
-
-### Slots
-
-#### `AccordionRootSlotProps`
-
-<dl class="component-api-definitions component-api-definitions--slots">
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>readonly</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether the value can be inspected but not changed.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>value</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>AccordionValue</code></span></div>
-<p>Current value exposed by this contract.</p>
-</dd>
-</div>
-</dl>
-
-#### `AccordionItemSlotProps`
-
-<dl class="component-api-definitions component-api-definitions--slots">
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>open</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether the associated popup or disclosure is open.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>value</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span></div>
-<p>Current value exposed by this contract.</p>
-</dd>
-</div>
-</dl>
-
-### Events
-
-#### `AccordionRoot`
-
-<dl class="component-api-definitions component-api-definitions--events">
-<div class="component-api-definition">
-<dt><code>update:modelValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Payload</span><code>AccordionValue</code></span></div>
-<p>Emitted when the component requests a new controlled value.</p>
-</dd>
-</div>
-</dl>
-
-### Other types
-
-#### `AccordionType`
-
-```ts
-type AccordionType = 'single' | 'multiple'
+```vue
+<AccordionTrigger>
+  Details
+  <span class="motion-chevron" aria-hidden="true">⌄</span>
+</AccordionTrigger>
 ```
 
-#### `AccordionValue`
+```css
+[data-scope='accordion'][data-part='trigger'] .motion-chevron {
+  display: inline-block;
+  transition: transform 160ms ease;
+}
 
-```ts
-type AccordionValue = string | readonly string[]
+[data-scope='accordion'][data-part='trigger'][data-state='open'] .motion-chevron {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='accordion'][data-part='trigger'] .motion-chevron {
+    transition: none;
+  }
+}
 ```
 
-#### `AccordionValueChangeHandler`
+[Read the shared motion guidance](/guides/motion)
 
-```ts
-type AccordionValueChangeHandler = (value: AccordionValue) => void
-```
+## API reference
 
-## Parts
-
-Shared scope: <code class="component-scope-token">[data-scope="accordion"]</code>. Combine it with a part selector to keep styles local to this component.
-
-<div class="component-parts-table">
-<table>
-<thead>
-<tr><th scope="col">Part</th><th scope="col">Selector</th><th scope="col">Role</th><th scope="col">Extra attributes</th></tr>
-</thead>
-<tbody>
-<tr>
-  <td><code class="component-part-token">root</code></td>
-  <td><code>[data-part="root"]</code></td>
-  <td>Defines the component boundary and owns its composed parts.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">item</code></td>
-  <td><code>[data-part="item"]</code></td>
-  <td>Represents one selectable or actionable item.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">header</code></td>
-  <td><code>[data-part="header"]</code></td>
-  <td>Provides the semantic heading for an expandable item.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">trigger</code></td>
-  <td><code>[data-part="trigger"]</code></td>
-  <td>Opens, closes, or activates the associated content.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">content</code></td>
-  <td><code>[data-part="content"]</code></td>
-  <td>Contains the component content shown for the active state.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-</tbody>
-</table>
-</div>
-
-## Keyboard interaction
-
-| Key | Behavior |
-| --- | --- |
-| <kbd>Enter</kbd> / <kbd>Space</kbd> | Toggle the focused section. |
-| <kbd>Arrow Up</kbd> / <kbd>Arrow Down</kbd> | Move focus between section triggers. |
-| <kbd>Home</kbd> / <kbd>End</kbd> | Move focus to the first or last section trigger. |
+See [Accordion API](/api/components/accordion) for props, events, slots, public types, part selectors, and keyboard behavior.
 
 ## Accessibility
 

@@ -23,276 +23,30 @@ Let the parent coordinate the active toolbar item without changing keyboard rule
 
 <ComponentExample component="toolbar" scenario="controlled-focus" title="Controlled focus" description="Let the parent coordinate the active toolbar item without changing keyboard rules." :index="2" />
 
-## API
+## Highlighted-item motion example
 
-Vue package: `@sectile/vue/toolbar`
+The current keyboard or pointer target is exposed with `data-highlighted`. Pair the color change with a small positional or background transition so the navigation target is easy to follow.
 
-<div class="component-api-group">
-<strong class="component-api-label">Components</strong>
-<ul class="component-api-list">
-  <li><code class="component-api-token">ToolbarRoot</code></li>
-  <li><code class="component-api-token">ToolbarItem</code></li>
-  <li><code class="component-api-token">ToolbarSeparator</code></li>
-</ul>
-</div>
+```css
+[data-scope='toolbar'][data-part='item'] {
+  transition: background-color 120ms ease, transform 120ms ease;
+}
 
-### Props
+[data-scope='toolbar'][data-part='item'][data-highlighted] {
+  transform: translateX(2px);
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
 
-#### `ToolbarRootProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">Default</span><code>'div'</code></span></div>
-<p>Element or component rendered for this part.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether to merge this part into its single child instead of rendering a wrapper.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>defaultValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string | null</code></span><span><span class="component-api-definition__label">Default</span><code>null</code></span></div>
-<p>Initial value used when the component owns its state.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>disabledItems</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>readonly string[]</code></span><span><span class="component-api-definition__label">Default</span><code>[]</code></span></div>
-<p>Item values excluded from focus and selection.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>items</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>readonly string[]</code></span><span><span class="component-api-definition__label">Default</span>Required</span></div>
-<p>Ordered item values managed by the component.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>label</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Accessible name announced for the control.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>modelValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string | null</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Current value when state is controlled by the parent.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>orientation</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>'horizontal' | 'vertical'</code></span><span><span class="component-api-definition__label">Default</span><code>'horizontal'</code></span></div>
-<p>Axis used for layout and keyboard movement.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>policies</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>ToolbarPolicies&lt;string&gt;</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Behavior policies that customize validation, movement, or selection.</p>
-</dd>
-</div>
-</dl>
-
-#### `ToolbarItemProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">Default</span><code>'button'</code></span></div>
-<p>Element or component rendered for this part.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether to merge this part into its single child instead of rendering a wrapper.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>value</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span>Required</span></div>
-<p>Current value exposed by this contract.</p>
-</dd>
-</div>
-</dl>
-
-#### `ToolbarPartProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">Default</span>Varies by part</span></div>
-<p>Element or component rendered for this part.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether to merge this part into its single child instead of rendering a wrapper.</p>
-</dd>
-</div>
-</dl>
-
-### Slots
-
-#### `ToolbarRootSlotProps`
-
-<dl class="component-api-definitions component-api-definitions--slots">
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>highlightedValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string | null</code></span></div>
-<p>Value currently highlighted for interaction.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>orientation</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>'horizontal' | 'vertical'</code></span></div>
-<p>Current layout and movement axis.</p>
-</dd>
-</div>
-</dl>
-
-#### `ToolbarItemSlotProps`
-
-<dl class="component-api-definitions component-api-definitions--slots">
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>highlighted</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether this item is highlighted for interaction.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>value</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span></div>
-<p>Current value exposed by this contract.</p>
-</dd>
-</div>
-</dl>
-
-### Events
-
-#### `ToolbarRoot`
-
-<dl class="component-api-definitions component-api-definitions--events">
-<div class="component-api-definition">
-<dt><code>invoke</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Payload</span><code>string</code></span></div>
-<p>Emitted when the current action is invoked.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>update:modelValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Payload</span><code>string | null</code></span></div>
-<p>Emitted when the component requests a new controlled value.</p>
-</dd>
-</div>
-</dl>
-
-### Other types
-
-#### `ToolbarValueChangeHandler`
-
-```ts
-type ToolbarValueChangeHandler = (value: string | null) => void
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='toolbar'][data-part='item'] {
+    transition: none;
+  }
+}
 ```
 
-#### `ToolbarInvokeHandler`
+## API reference
 
-```ts
-type ToolbarInvokeHandler = (value: string) => void
-```
-
-## Parts
-
-Shared scope: <code class="component-scope-token">[data-scope="toolbar"]</code>. Combine it with a part selector to keep styles local to this component.
-
-<div class="component-parts-table">
-<table>
-<thead>
-<tr><th scope="col">Part</th><th scope="col">Selector</th><th scope="col">Role</th><th scope="col">Extra attributes</th></tr>
-</thead>
-<tbody>
-<tr>
-  <td><code class="component-part-token">root</code></td>
-  <td><code>[data-part="root"]</code></td>
-  <td>Defines the component boundary and owns its composed parts.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">item</code></td>
-  <td><code>[data-part="item"]</code></td>
-  <td>Represents one selectable or actionable item.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">separator</code></td>
-  <td><code>[data-part="separator"]</code></td>
-  <td>Separates related groups without becoming an action.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-</tbody>
-</table>
-</div>
-
-## Keyboard interaction
-
-| Key | Behavior |
-| --- | --- |
-| <kbd>Arrow keys</kbd> | Move between toolbar items in the configured orientation. |
-| <kbd>Home</kbd> / <kbd>End</kbd> | Move to the first or last enabled item. |
-| <kbd>Enter</kbd> / <kbd>Space</kbd> | Invoke the focused tool. |
+See [Toolbar API](/api/components/toolbar) for props, events, slots, public types, part selectors, and keyboard behavior.
 
 ## Accessibility
 

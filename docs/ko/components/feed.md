@@ -25,304 +25,60 @@
 
 <ComponentExample component="feed" scenario="load-before" title="이전 항목 불러오기" description="현재 활동 순서를 유지하면서 이전 릴리스 기록을 이어 붙입니다." :index="2" />
 
-## API
+## 비동기 feed window 연결
 
-Vue 패키지: `@sectile/vue/feed`
+`requestWindow`에는 요청 방향과 anchor, revision, request generation이 함께 옵니다. 비동기 응답을 적용할 때 generation을 그대로 돌려주면 오래된 응답과 최신 window 요청을 구분할 수 있습니다.
 
-<div class="component-api-group">
-<strong class="component-api-label">컴포넌트</strong>
-<ul class="component-api-list">
-  <li><code class="component-api-token">FeedRoot</code></li>
-  <li><code class="component-api-token">FeedItem</code></li>
-  <li><code class="component-api-token">FeedLoadEarlier</code></li>
-  <li><code class="component-api-token">FeedLoadNewer</code></li>
-</ul>
-</div>
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import {
+  FeedRoot,
+  FeedItem,
+  FeedLoadEarlier,
+  FeedLoadNewer,
+  type FeedDirection,
+} from '@sectile/vue/feed'
 
-### Props
+const items = ref<Array<{ id: string; title: string }>>([])
+const revision = ref(0)
+const resolvedGeneration = ref<number>()
 
-#### `FeedRootProps`
+async function loadWindow(
+  direction: FeedDirection,
+  anchor: string | null,
+  _revision: number,
+  generation: number,
+) {
+  const query = new URLSearchParams({ direction, anchor: anchor ?? '' })
+  const response = await fetch('/api/activity?' + query).then(r => r.json())
+  items.value = response.items
+  resolvedGeneration.value = generation
+  revision.value += 1
+}
+</script>
 
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">타입</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">기본값</span><code>'div'</code></span></div>
-<p>이 파트가 렌더링할 요소 또는 컴포넌트입니다.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">타입</span><code>boolean</code></span><span><span class="component-api-definition__label">기본값</span><code>false</code></span></div>
-<p>하나뿐인 자식 요소에 파트 속성을 직접 합칠지 여부입니다.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>defaultHighlightedValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">타입</span><code>string | null</code></span><span><span class="component-api-definition__label">기본값</span><code>null</code></span></div>
-<p>컴포넌트가 관리하는 처음 강조 값입니다.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">타입</span><code>boolean</code></span><span><span class="component-api-definition__label">기본값</span><code>false</code></span></div>
-<p>사용자 조작을 막을지 여부입니다.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>getPosition</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">타입</span><code>(id: string) =&gt; number</code></span><span><span class="component-api-definition__label">기본값</span><code>undefined</code></span></div>
-<p>항목이 나타내는 수치 위치를 반환하는 함수입니다.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>items</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">타입</span><code>readonly string[]</code></span><span><span class="component-api-definition__label">기본값</span>필수</span></div>
-<p>컴포넌트가 관리할 순서 있는 항목 값입니다.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>label</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">타입</span><code>string</code></span><span><span class="component-api-definition__label">기본값</span><code>undefined</code></span></div>
-<p>보조 기술이 읽는 컨트롤 이름입니다.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>requestGeneration</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">타입</span><code>number</code></span><span><span class="component-api-definition__label">기본값</span><code>undefined</code></span></div>
-<p>완료할 구간 요청이 발급한 generation 토큰입니다.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>revision</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">타입</span><code>number</code></span><span><span class="component-api-definition__label">기본값</span><code>0</code></span></div>
-<p>파생 콘텐츠를 다시 계산할 때 사용할 애플리케이션 변경 차수입니다.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>setSize</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">타입</span><code>number</code></span><span><span class="component-api-definition__label">기본값</span><code>undefined</code></span></div>
-<p>현재 피드 구간이 나타내는 전체 항목 수입니다.</p>
-</dd>
-</div>
-</dl>
-
-#### `FeedPartProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">타입</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">기본값</span>파트별로 다름</span></div>
-<p>이 파트가 렌더링할 요소 또는 컴포넌트입니다.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">타입</span><code>boolean</code></span><span><span class="component-api-definition__label">기본값</span><code>false</code></span></div>
-<p>하나뿐인 자식 요소에 파트 속성을 직접 합칠지 여부입니다.</p>
-</dd>
-</div>
-</dl>
-
-### 슬롯
-
-#### `FeedRootSlotProps`
-
-<dl class="component-api-definitions component-api-definitions--slots">
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">타입</span><code>boolean</code></span></div>
-<p>사용자 조작을 막을지 여부입니다.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>highlightedValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">타입</span><code>string | null</code></span></div>
-<p>조작 대상으로 강조된 현재 값입니다.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>pending</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">타입</span><code>FeedDirection | null</code></span></div>
-<p>요청 처리 중인지 여부입니다.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>requestGeneration</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">타입</span><code>number</code></span></div>
-<p>현재 또는 가장 최근에 발급한 구간 요청의 generation입니다.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>revision</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">타입</span><code>number</code></span></div>
-<p>현재 상태 스냅샷의 변경 차수입니다.</p>
-</dd>
-</div>
-</dl>
-
-#### `FeedItemSlotProps`
-
-<dl class="component-api-definitions component-api-definitions--slots">
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">타입</span><code>boolean</code></span></div>
-<p>사용자 조작을 막을지 여부입니다.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>highlighted</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">타입</span><code>boolean</code></span></div>
-<p>조작 대상으로 강조된 항목인지 여부입니다.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>highlightedValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">타입</span><code>string | null</code></span></div>
-<p>조작 대상으로 강조된 현재 값입니다.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>pending</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">타입</span><code>FeedDirection | null</code></span></div>
-<p>요청 처리 중인지 여부입니다.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>requestGeneration</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">타입</span><code>number</code></span></div>
-<p>현재 또는 가장 최근에 발급한 구간 요청의 generation입니다.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>revision</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">타입</span><code>number</code></span></div>
-<p>현재 상태 스냅샷의 변경 차수입니다.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>value</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">타입</span><code>string</code></span></div>
-<p>이 계약이 노출하는 현재 값입니다.</p>
-</dd>
-</div>
-</dl>
-
-### 이벤트
-
-#### `FeedRoot`
-
-<dl class="component-api-definitions component-api-definitions--events">
-<div class="component-api-definition">
-<dt><code>highlight</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">페이로드</span><code>string | null</code></span></div>
-<p>강조된 항목이 바뀔 때 발생합니다.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>requestWindow</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">페이로드</span><code>CollectionWindowDirection, string | null, number, number</code></span></div>
-<p>피드가 현재 구간 밖의 항목을 요청할 때 발생합니다.</p>
-</dd>
-</div>
-</dl>
-
-### 기타 타입
-
-#### `FeedPositionResolver`
-
-```ts
-type FeedPositionResolver = NonNullable<FeedRootProps['getPosition']>
+<template>
+  <FeedRoot
+    :items="items.map(item => item.id)"
+    :revision="revision"
+    :request-generation="resolvedGeneration"
+    @request-window="loadWindow"
+  >
+    <FeedLoadEarlier>Load earlier</FeedLoadEarlier>
+    <FeedItem v-for="item in items" :key="item.id" :value="item.id">
+      {{ item.title }}
+    </FeedItem>
+    <FeedLoadNewer>Load newer</FeedLoadNewer>
+  </FeedRoot>
+</template>
 ```
 
-#### `FeedHighlightHandler`
+기존 실행 예시의 **Load earlier / Load newer** 변형에서 요청 중 상태와 읽기 위치 유지까지 함께 확인할 수 있습니다.
 
-```ts
-type FeedHighlightHandler = (value: string | null) => void
-```
+## API 레퍼런스
 
-#### `FeedRequestWindowHandler`
-
-```ts
-type FeedRequestWindowHandler = (direction: FeedDirection, anchor: string | null, revision: number, requestGeneration: number) => void
-```
-
-#### `FeedDirection`
-
-```ts
-type FeedDirection = CollectionWindowDirection
-```
-
-## 파트
-
-공통 범위: <code class="component-scope-token">[data-scope="feed"]</code>. 컴포넌트 내부로 스타일을 제한할 때 파트 선택자와 함께 사용합니다.
-
-<div class="component-parts-table">
-<table>
-<thead>
-<tr><th scope="col">파트</th><th scope="col">선택자</th><th scope="col">역할</th><th scope="col">추가 속성</th></tr>
-</thead>
-<tbody>
-<tr>
-  <td><code class="component-part-token">root</code></td>
-  <td><code>[data-part="root"]</code></td>
-  <td>컴포넌트 경계와 내부 파트를 묶습니다.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">item</code></td>
-  <td><code>[data-part="item"]</code></td>
-  <td>선택하거나 실행할 수 있는 항목 하나입니다.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">load-earlier</code></td>
-  <td><code>[data-part="load-earlier"]</code></td>
-  <td>현재 피드보다 이전 항목을 요청합니다.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">load-newer</code></td>
-  <td><code>[data-part="load-newer"]</code></td>
-  <td>현재 피드보다 이후 항목을 요청합니다.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-</tbody>
-</table>
-</div>
-
-## 키보드 동작
-
-| 키 | 동작 |
-| --- | --- |
-| <kbd>Arrow Down</kbd> / <kbd>Page Down</kbd> | 다음 글로 이동합니다. |
-| <kbd>Arrow Up</kbd> / <kbd>Page Up</kbd> | 이전 글로 이동합니다. |
-| <kbd>Tab</kbd> | 현재 글 안의 상호작용 컨트롤로 이동합니다. |
+Prop, event, slot, 공개 type, part selector와 키보드 동작은 [Feed API](/ko/api/components/feed)에서 확인합니다.
 
 ## 접근성
 

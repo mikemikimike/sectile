@@ -23,274 +23,28 @@ Let the parent own the slider value while pointer and keyboard input emit reques
 
 <ComponentExample component="slider" scenario="controlled-value" title="Controlled value" description="Let the parent own the slider value while pointer and keyboard input emit requests." :index="2" />
 
-## API
+## Interaction-feedback example
 
-Vue package: `@sectile/vue/slider`
+Do not transition the position that follows a drag; that makes the control lag behind the pointer. Transition only supporting focus/hover feedback so value tracking remains immediate.
 
-<div class="component-api-group">
-<strong class="component-api-label">Components</strong>
-<ul class="component-api-list">
-  <li><code class="component-api-token">SliderRoot</code></li>
-  <li><code class="component-api-token">SliderTrack</code></li>
-  <li><code class="component-api-token">SliderRange</code></li>
-  <li><code class="component-api-token">SliderThumb</code></li>
-</ul>
-</div>
+```css
+[data-scope='slider'][data-part='thumb'] {
+  transition: box-shadow 120ms ease, scale 120ms ease;
+}
 
-### Props
+[data-scope='slider'][data-part='thumb']:focus-visible {
+  scale: 1.08;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 30%, transparent);
+}
 
-#### `SliderRootProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">Default</span><code>'div'</code></span></div>
-<p>Element or component rendered for this part.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether to merge this part into its single child instead of rendering a wrapper.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>defaultValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>number | string</code></span><span><span class="component-api-definition__label">Default</span><code>0</code></span></div>
-<p>Initial value used when the component owns its state.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>form</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>ID of the native form associated with the control.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>formatValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>(value: string) =&gt; string</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Formats a value for visible text.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>label</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Accessible name announced for the control.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>max</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>number | string</code></span><span><span class="component-api-definition__label">Default</span><code>100</code></span></div>
-<p>Largest value accepted by the component.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>min</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>number | string</code></span><span><span class="component-api-definition__label">Default</span><code>0</code></span></div>
-<p>Smallest value accepted by the component.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>modelValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>number | string</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Current value when state is controlled by the parent.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>name</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Name used for native form submission.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>orientation</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>'horizontal' | 'vertical'</code></span><span><span class="component-api-definition__label">Default</span><code>'horizontal'</code></span></div>
-<p>Axis used for layout and keyboard movement.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>pageStep</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>number</code></span><span><span class="component-api-definition__label">Default</span><code>10</code></span></div>
-<p>Larger increment used by Page Up and Page Down.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>readonly</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether the value can be inspected but not changed.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>required</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether the control must contain a valid value before submission.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>role</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>'slider' | 'separator'</code></span><span><span class="component-api-definition__label">Default</span><code>'slider'</code></span></div>
-<p>ARIA role applied to the rendered control.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>step</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>number | string</code></span><span><span class="component-api-definition__label">Default</span><code>1</code></span></div>
-<p>Smallest value increment accepted by the component.</p>
-</dd>
-</div>
-</dl>
-
-#### `SliderPartProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">Default</span>Varies by part</span></div>
-<p>Element or component rendered for this part.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether to merge this part into its single child instead of rendering a wrapper.</p>
-</dd>
-</div>
-</dl>
-
-### Slots
-
-#### `SliderSlotProps`
-
-<dl class="component-api-definitions component-api-definitions--slots">
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>percentage</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>number</code></span></div>
-<p>Current value expressed as a percentage of its range.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>readonly</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether the value can be inspected but not changed.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>value</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span></div>
-<p>Current value exposed by this contract.</p>
-</dd>
-</div>
-</dl>
-
-### Events
-
-#### `SliderRoot`
-
-<dl class="component-api-definitions component-api-definitions--events">
-<div class="component-api-definition">
-<dt><code>update:modelValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Payload</span><code>string</code></span></div>
-<p>Emitted when the component requests a new controlled value.</p>
-</dd>
-</div>
-</dl>
-
-### Other types
-
-#### `SliderValueFormatter`
-
-```ts
-type SliderValueFormatter = NonNullable<SliderRootProps['formatValue']>
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='slider'][data-part='thumb'] { transition: none; }
+}
 ```
 
-#### `SliderValueChangeHandler`
+## API reference
 
-```ts
-type SliderValueChangeHandler = (value: string) => void
-```
-
-## Parts
-
-Shared scope: <code class="component-scope-token">[data-scope="slider"]</code>. Combine it with a part selector to keep styles local to this component.
-
-<div class="component-parts-table">
-<table>
-<thead>
-<tr><th scope="col">Part</th><th scope="col">Selector</th><th scope="col">Role</th><th scope="col">Extra attributes</th></tr>
-</thead>
-<tbody>
-<tr>
-  <td><code class="component-part-token">root</code></td>
-  <td><code>[data-part="root"]</code></td>
-  <td>Defines the component boundary and owns its composed parts.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">track</code></td>
-  <td><code>[data-part="track"]</code></td>
-  <td>Defines the measurable path used by one or more thumbs.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">range</code></td>
-  <td><code>[data-part="range"]</code></td>
-  <td>Shows the active interval on the track.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">thumb</code></td>
-  <td><code>[data-part="thumb"]</code></td>
-  <td>Controls one value along the track.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-</tbody>
-</table>
-</div>
-
-## Keyboard interaction
-
-| Key | Behavior |
-| --- | --- |
-| <kbd>Arrow Right</kbd> / <kbd>Arrow Up</kbd> | Increase the value by one step. |
-| <kbd>Arrow Left</kbd> / <kbd>Arrow Down</kbd> | Decrease the value by one step. |
-| <kbd>Home</kbd> / <kbd>End</kbd> | Move to the minimum or maximum value. |
-| <kbd>Page Up</kbd> / <kbd>Page Down</kbd> | Change the value by the configured page step when supported. |
+See [Slider API](/api/components/slider) for props, events, slots, public types, part selectors, and keyboard behavior.
 
 ## Accessibility
 

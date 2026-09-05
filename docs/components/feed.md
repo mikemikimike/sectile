@@ -25,304 +25,60 @@ Append older release events while preserving the current activity order.
 
 <ComponentExample component="feed" scenario="load-before" title="Load earlier items" description="Append older release events while preserving the current activity order." :index="2" />
 
-## API
+## Connect an async feed window
 
-Vue package: `@sectile/vue/feed`
+`requestWindow` supplies the direction, anchor, revision, and request generation together. Preserve that generation when applying an async response so an older response can be distinguished from the latest window request.
 
-<div class="component-api-group">
-<strong class="component-api-label">Components</strong>
-<ul class="component-api-list">
-  <li><code class="component-api-token">FeedRoot</code></li>
-  <li><code class="component-api-token">FeedItem</code></li>
-  <li><code class="component-api-token">FeedLoadEarlier</code></li>
-  <li><code class="component-api-token">FeedLoadNewer</code></li>
-</ul>
-</div>
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import {
+  FeedRoot,
+  FeedItem,
+  FeedLoadEarlier,
+  FeedLoadNewer,
+  type FeedDirection,
+} from '@sectile/vue/feed'
 
-### Props
+const items = ref<Array<{ id: string; title: string }>>([])
+const revision = ref(0)
+const resolvedGeneration = ref<number>()
 
-#### `FeedRootProps`
+async function loadWindow(
+  direction: FeedDirection,
+  anchor: string | null,
+  _revision: number,
+  generation: number,
+) {
+  const query = new URLSearchParams({ direction, anchor: anchor ?? '' })
+  const response = await fetch('/api/activity?' + query).then(r => r.json())
+  items.value = response.items
+  resolvedGeneration.value = generation
+  revision.value += 1
+}
+</script>
 
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">Default</span><code>'div'</code></span></div>
-<p>Element or component rendered for this part.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether to merge this part into its single child instead of rendering a wrapper.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>defaultHighlightedValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string | null</code></span><span><span class="component-api-definition__label">Default</span><code>null</code></span></div>
-<p>Initially highlighted value for uncontrolled state.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>getPosition</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>(id: string) =&gt; number</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Returns the numeric position represented by an item.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>items</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>readonly string[]</code></span><span><span class="component-api-definition__label">Default</span>Required</span></div>
-<p>Ordered item values managed by the component.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>label</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Accessible name announced for the control.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>requestGeneration</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>number</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Generation token returned by the window request being resolved.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>revision</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>number</code></span><span><span class="component-api-definition__label">Default</span><code>0</code></span></div>
-<p>Application revision used to refresh derived content.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>setSize</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>number</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Total number of items represented by the current feed window.</p>
-</dd>
-</div>
-</dl>
-
-#### `FeedPartProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">Default</span>Varies by part</span></div>
-<p>Element or component rendered for this part.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether to merge this part into its single child instead of rendering a wrapper.</p>
-</dd>
-</div>
-</dl>
-
-### Slots
-
-#### `FeedRootSlotProps`
-
-<dl class="component-api-definitions component-api-definitions--slots">
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>highlightedValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string | null</code></span></div>
-<p>Value currently highlighted for interaction.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>pending</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>FeedDirection | null</code></span></div>
-<p>Whether a request is currently pending.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>requestGeneration</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>number</code></span></div>
-<p>Generation of the current or most recently issued window request.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>revision</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>number</code></span></div>
-<p>Revision of the current state snapshot.</p>
-</dd>
-</div>
-</dl>
-
-#### `FeedItemSlotProps`
-
-<dl class="component-api-definitions component-api-definitions--slots">
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>highlighted</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether this item is highlighted for interaction.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>highlightedValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string | null</code></span></div>
-<p>Value currently highlighted for interaction.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>pending</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>FeedDirection | null</code></span></div>
-<p>Whether a request is currently pending.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>requestGeneration</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>number</code></span></div>
-<p>Generation of the current or most recently issued window request.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>revision</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>number</code></span></div>
-<p>Revision of the current state snapshot.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>value</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span></div>
-<p>Current value exposed by this contract.</p>
-</dd>
-</div>
-</dl>
-
-### Events
-
-#### `FeedRoot`
-
-<dl class="component-api-definitions component-api-definitions--events">
-<div class="component-api-definition">
-<dt><code>highlight</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Payload</span><code>string | null</code></span></div>
-<p>Emitted when the highlighted item changes.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>requestWindow</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Payload</span><code>CollectionWindowDirection, string | null, number, number</code></span></div>
-<p>Emitted when the feed needs items outside the current window.</p>
-</dd>
-</div>
-</dl>
-
-### Other types
-
-#### `FeedPositionResolver`
-
-```ts
-type FeedPositionResolver = NonNullable<FeedRootProps['getPosition']>
+<template>
+  <FeedRoot
+    :items="items.map(item => item.id)"
+    :revision="revision"
+    :request-generation="resolvedGeneration"
+    @request-window="loadWindow"
+  >
+    <FeedLoadEarlier>Load earlier</FeedLoadEarlier>
+    <FeedItem v-for="item in items" :key="item.id" :value="item.id">
+      {{ item.title }}
+    </FeedItem>
+    <FeedLoadNewer>Load newer</FeedLoadNewer>
+  </FeedRoot>
+</template>
 ```
 
-#### `FeedHighlightHandler`
+Use the existing **Load earlier / Load newer** runnable examples to inspect pending state and reading-position preservation.
 
-```ts
-type FeedHighlightHandler = (value: string | null) => void
-```
+## API reference
 
-#### `FeedRequestWindowHandler`
-
-```ts
-type FeedRequestWindowHandler = (direction: FeedDirection, anchor: string | null, revision: number, requestGeneration: number) => void
-```
-
-#### `FeedDirection`
-
-```ts
-type FeedDirection = CollectionWindowDirection
-```
-
-## Parts
-
-Shared scope: <code class="component-scope-token">[data-scope="feed"]</code>. Combine it with a part selector to keep styles local to this component.
-
-<div class="component-parts-table">
-<table>
-<thead>
-<tr><th scope="col">Part</th><th scope="col">Selector</th><th scope="col">Role</th><th scope="col">Extra attributes</th></tr>
-</thead>
-<tbody>
-<tr>
-  <td><code class="component-part-token">root</code></td>
-  <td><code>[data-part="root"]</code></td>
-  <td>Defines the component boundary and owns its composed parts.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">item</code></td>
-  <td><code>[data-part="item"]</code></td>
-  <td>Represents one selectable or actionable item.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">load-earlier</code></td>
-  <td><code>[data-part="load-earlier"]</code></td>
-  <td>Requests items before the visible feed window.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">load-newer</code></td>
-  <td><code>[data-part="load-newer"]</code></td>
-  <td>Requests items after the visible feed window.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-</tbody>
-</table>
-</div>
-
-## Keyboard interaction
-
-| Key | Behavior |
-| --- | --- |
-| <kbd>Arrow Down</kbd> / <kbd>Page Down</kbd> | Move to the next article. |
-| <kbd>Arrow Up</kbd> / <kbd>Page Up</kbd> | Move to the previous article. |
-| <kbd>Tab</kbd> | Move into interactive controls inside the current article. |
+See [Feed API](/api/components/feed) for props, events, slots, public types, part selectors, and keyboard behavior.
 
 ## Accessibility
 

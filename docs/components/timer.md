@@ -23,265 +23,28 @@ Set an elapsed-time goal and track progress until completion.
 
 <ComponentExample component="timer" scenario="target" title="Target" description="Set an elapsed-time goal and track progress until completion." :index="2" />
 
-## API
+## Completion-feedback example
 
-Vue package: `@sectile/vue/timer`
+Timer exposes `idle`, `running`, and `complete` states. A one-time color/scale change at completion communicates the transition without a continuous animation.
 
-<div class="component-api-group">
-<strong class="component-api-label">Components</strong>
-<ul class="component-api-list">
-  <li><code class="component-api-token">TimerRoot</code></li>
-  <li><code class="component-api-token">TimerArea</code></li>
-  <li><code class="component-api-token">TimerSeparator</code></li>
-  <li><code class="component-api-token">TimerControl</code></li>
-  <li><code class="component-api-token">TimerItem</code></li>
-  <li><code class="component-api-token">TimerActionTrigger</code></li>
-</ul>
-</div>
+```css
+[data-scope='timer'][data-part='root'] {
+  transition: color 140ms ease, transform 140ms ease;
+}
 
-### Props
+[data-scope='timer'][data-part='root'][data-state='complete'] {
+  color: var(--status-success, currentColor);
+  transform: scale(1.03);
+}
 
-#### `TimerRootProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">Default</span><code>'div'</code></span></div>
-<p>Element or component rendered for this part.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether to merge this part into its single child instead of rendering a wrapper.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>autoStart</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether the timer starts immediately after mounting.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>countdown</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether the timer counts down instead of measuring elapsed time.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>intervalMs</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>number</code></span><span><span class="component-api-definition__label">Default</span><code>100</code></span></div>
-<p>Delay in milliseconds between automatic updates.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>startMs</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>number</code></span><span><span class="component-api-definition__label">Default</span><code>0</code></span></div>
-<p>Initial elapsed time in milliseconds.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>targetMs</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>number | null</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Elapsed-time target in milliseconds.</p>
-</dd>
-</div>
-</dl>
-
-#### `TimerPartProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">Default</span>Varies by part</span></div>
-<p>Element or component rendered for this part.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether to merge this part into its single child instead of rendering a wrapper.</p>
-</dd>
-</div>
-</dl>
-
-### Slots
-
-#### `TimerSlotProps`
-
-<dl class="component-api-definitions component-api-definitions--slots">
-<div class="component-api-definition">
-<dt><code>completed</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether the timer reached its target.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>parts</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>Readonly&lt;Record&lt;TimerItemType, number&gt;&gt;</code></span></div>
-<p>Formatted segments of the current value.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>pause</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>void</code></span></div>
-<p>Pauses timer updates.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>progress</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>number | null</code></span></div>
-<p>Completion progress from 0 to 1.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>reset</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>void</code></span></div>
-<p>Restores the initial value and interaction state.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>restart</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>void</code></span></div>
-<p>Restarts timing from the configured initial value.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>resume</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>void</code></span></div>
-<p>Resumes a paused timer.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>running</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether the timer is currently running.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>start</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>void</code></span></div>
-<p>Starts timer updates.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>valueMs</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>number</code></span></div>
-<p>Current timer value in milliseconds.</p>
-</dd>
-</div>
-</dl>
-
-### Events
-
-#### `TimerRoot`
-
-<dl class="component-api-definitions component-api-definitions--events">
-<div class="component-api-definition">
-<dt><code>complete</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Payload</span><code>number</code></span></div>
-<p>Emitted when every required segment is filled.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>tick</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Payload</span><code>number</code></span></div>
-<p>Emitted when a timer interval produces a new value.</p>
-</dd>
-</div>
-</dl>
-
-### Other types
-
-#### `TimerTickHandler`
-
-```ts
-type TimerTickHandler = (valueMs: number) => void
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='timer'][data-part='root'] { transition: none; }
+}
 ```
 
-#### `TimerCompleteHandler`
+## API reference
 
-```ts
-type TimerCompleteHandler = (valueMs: number) => void
-```
-
-## Parts
-
-Shared scope: <code class="component-scope-token">[data-scope="timer"]</code>. Combine it with a part selector to keep styles local to this component.
-
-<div class="component-parts-table">
-<table>
-<thead>
-<tr><th scope="col">Part</th><th scope="col">Selector</th><th scope="col">Role</th><th scope="col">Extra attributes</th></tr>
-</thead>
-<tbody>
-<tr>
-  <td><code class="component-part-token">root</code></td>
-  <td><code>[data-part="root"]</code></td>
-  <td>Defines the component boundary and owns its composed parts.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">area</code></td>
-  <td><code>[data-part="area"]</code></td>
-  <td>Provides the two-dimensional interaction surface.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">item</code></td>
-  <td><code>[data-part="item"]</code></td>
-  <td>Represents one selectable or actionable item.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">separator</code></td>
-  <td><code>[data-part="separator"]</code></td>
-  <td>Separates related groups without becoming an action.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">control</code></td>
-  <td><code>[data-part="control"]</code></td>
-  <td>Groups the primary interactive controls.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">action-trigger</code></td>
-  <td><code>[data-part="action-trigger"]</code></td>
-  <td>Invokes a timer action.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-</tbody>
-</table>
-</div>
-
-## Keyboard interaction
-
-| Key | Behavior |
-| --- | --- |
-| <kbd>Tab</kbd> | Move between the component's native action controls. |
-| <kbd>Enter</kbd> / <kbd>Space</kbd> | Invoke the focused action. |
+See [Timer API](/api/components/timer) for props, events, slots, public types, part selectors, and keyboard behavior.
 
 ## Accessibility
 

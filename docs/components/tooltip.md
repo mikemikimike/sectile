@@ -27,245 +27,41 @@ Let the parent own the current value and apply accepted changes back to the comp
 
 This component uses the shared positioning engine. Use the [live positioning example](/guide/positioning) to change `side`, `align`, offsets, collision boundaries, strategy, and tracking while inspecting the resolved placement.
 
-## API
+## Motion example
 
-Vue package: `@sectile/vue/tooltip`
+Use `[data-scope='tooltip'][data-part='content']` with its `data-state` to animate both entry and exit without an animation library. Use this component's `unmountOnExit` when the element should be removed after the exit motion.
 
-<div class="component-api-group">
-<strong class="component-api-label">Components</strong>
-<ul class="component-api-list">
-  <li><code class="component-api-token">TooltipRoot</code></li>
-  <li><code class="component-api-token">TooltipTrigger</code></li>
-  <li><code class="component-api-token">TooltipPortal</code></li>
-  <li><code class="component-api-token">TooltipContent</code></li>
-  <li><code class="component-api-token">TooltipArrow</code></li>
-</ul>
-</div>
+```css
+[data-scope='tooltip'][data-part='content'][data-state='open'] {
+  animation: tooltip-in 180ms cubic-bezier(.2, .8, .2, 1);
+}
 
-### Props
+[data-scope='tooltip'][data-part='content'][data-state='closed'] {
+  animation: tooltip-out 140ms ease-in;
+}
 
-#### `TooltipRootProps`
+@keyframes tooltip-in {
+  from { opacity: 0; transform: translateY(6px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>align</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PositionAlign</code></span><span><span class="component-api-definition__label">Default</span><code>'center'</code></span></div>
-<p>Alignment of positioned content relative to its anchor.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>arrowPadding</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>number</code></span><span><span class="component-api-definition__label">Default</span><code>8</code></span></div>
-<p>Minimum space kept between an arrow and the edge of positioned content.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>avoidCollisions</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>true</code></span></div>
-<p>Whether positioned content may flip or shift to remain visible.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>collisionBoundary</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PositionBoundary</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Boundary used to keep positioned content visible.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>collisionPadding</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PositionPadding</code></span><span><span class="component-api-definition__label">Default</span><code>8</code></span></div>
-<p>Space kept between positioned content and its collision boundary.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>defaultOpen</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Initial uncontrolled open state.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>hideWhenDetached</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether positioned content hides when its anchor leaves the layout.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>open</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Whether the associated popup or disclosure is open.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>position</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Whether the popup is positioned relative to its trigger.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>side</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PositionSide</code></span><span><span class="component-api-definition__label">Default</span><code>'bottom'</code></span></div>
-<p>Preferred side of the anchor for positioned content.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>sideOffset</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>number</code></span><span><span class="component-api-definition__label">Default</span><code>8</code></span></div>
-<p>Distance between positioned content and its anchor.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>strategy</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PositionStrategy</code></span><span><span class="component-api-definition__label">Default</span><code>'absolute'</code></span></div>
-<p>CSS positioning strategy used for anchored content.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>tracking</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PositionTracking</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Update strategy used while anchored content is open.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>unmountOnExit</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether presence-managed content is removed from the DOM after its exit motion completes.</p>
-</dd>
-</div>
-</dl>
+@keyframes tooltip-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(4px) scale(.985); }
+}
 
-#### `TooltipPartProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">Default</span>Varies by part</span></div>
-<p>Element or component rendered for this part.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether to merge this part into its single child instead of rendering a wrapper.</p>
-</dd>
-</div>
-</dl>
-
-#### `TooltipPortalProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>defer</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether Teleport target resolution waits until the end of the current mount or update tick.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>to</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string | HTMLElement</code></span><span><span class="component-api-definition__label">Default</span><code>'body'</code></span></div>
-<p>Teleport target for portalled content.</p>
-</dd>
-</div>
-</dl>
-
-### Slots
-
-#### `TooltipRootSlotProps`
-
-<dl class="component-api-definitions component-api-definitions--slots">
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>open</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether the associated popup or disclosure is open.</p>
-</dd>
-</div>
-</dl>
-
-### Other types
-
-#### `TooltipOpenChangeHandler`
-
-```ts
-type TooltipOpenChangeHandler = PopupFactoryOptions['onOpenChange']
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='tooltip'][data-part='content'] {
+    animation: none !important;
+  }
+}
 ```
 
-## Parts
+[See the shared motion patterns](/guides/motion)
 
-Shared scope: <code class="component-scope-token">[data-scope="tooltip"]</code>. Combine it with a part selector to keep styles local to this component.
+## API reference
 
-<div class="component-parts-table">
-<table>
-<thead>
-<tr><th scope="col">Part</th><th scope="col">Selector</th><th scope="col">Role</th><th scope="col">Extra attributes</th></tr>
-</thead>
-<tbody>
-<tr>
-  <td><code class="component-part-token">trigger</code></td>
-  <td><code>[data-part="trigger"]</code></td>
-  <td>Opens, closes, or activates the associated content.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">content</code></td>
-  <td><code>[data-part="content"]</code></td>
-  <td>Contains the component content shown for the active state.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">arrow</code></td>
-  <td><code>[data-part="arrow"]</code></td>
-  <td>Visually connects floating content to its anchor.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-</tbody>
-</table>
-</div>
-
-## Keyboard interaction
-
-| Key | Behavior |
-| --- | --- |
-| <kbd>Tab</kbd> | Reveal the tooltip when its trigger receives keyboard focus. |
-| <kbd>Escape</kbd> | Dismiss the visible tooltip. |
+See [Tooltip API](/api/components/tooltip) for props, events, slots, public types, part selectors, and keyboard behavior.
 
 ## Accessibility
 

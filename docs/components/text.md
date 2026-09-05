@@ -31,164 +31,28 @@ Type Korean text in a parent-controlled field, then press Tab during the final c
 
 <ComponentExample component="text" scenario="ime-mixed" title="Controlled IME" description="Type Korean text in a parent-controlled field, then press Tab during the final composition. The committed value updates once without duplicating the last syllable." :index="3" />
 
-## API
+## Input-feedback styling example
 
-Vue package: `@sectile/vue/text`
+Instead of animating the input value itself, transition the root `:focus-within` state. This keeps caret and IME behavior immediate while making the active editing region visible.
 
-<div class="component-api-group">
-<strong class="component-api-label">Components</strong>
-<ul class="component-api-list">
-  <li><code class="component-api-token">TextField</code></li>
-</ul>
-</div>
+```css
+[data-scope='text'][data-part='root'] {
+  transition: background-color 120ms ease, box-shadow 120ms ease;
+}
 
-### Props
+[data-scope='text'][data-part='root']:focus-within {
+  background: color-mix(in srgb, currentColor 5%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 30%, transparent);
+}
 
-#### `TextFieldProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>autocomplete</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Native autocomplete hint forwarded to the editable input.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>defaultValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string | number</code></span><span><span class="component-api-definition__label">Default</span><code>''</code></span></div>
-<p>Initial value used when the component owns its state.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>form</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>ID of the native form associated with the control.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>modelModifiers</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>TextFieldModelModifiers</code></span><span><span class="component-api-definition__label">Default</span><code>{}</code></span></div>
-<p>Vue v-model modifiers applied to text updates.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>modelValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string | number</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Current value when state is controlled by the parent.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>multiline</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether the text field renders a textarea.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>name</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Name used for native form submission.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>placeholder</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Text shown when no value has been entered.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>readonly</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether the value can be inspected but not changed.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>required</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether the control must contain a valid value before submission.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>type</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span><code>'text'</code></span></div>
-<p>Selection or behavior mode used by the component.</p>
-</dd>
-</div>
-</dl>
-
-### Events
-
-#### `TextField`
-
-<dl class="component-api-definitions component-api-definitions--events">
-<div class="component-api-definition">
-<dt><code>update:modelValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Payload</span><code>string | number</code></span></div>
-<p>Emitted when the component requests a new controlled value.</p>
-</dd>
-</div>
-</dl>
-
-### Other types
-
-#### `TextFieldModelModifiers`
-
-| Name | Type | Required |
-| --- | --- | --- |
-| `lazy` | `boolean` | — |
-| `number` | `boolean` | — |
-| `trim` | `boolean` | — |
-
-#### `TextFieldValueChangeHandler`
-
-```ts
-type TextFieldValueChangeHandler = (value: string | number) => void
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='text'][data-part='root'] { transition: none; }
+}
 ```
 
-## Parts
+## API reference
 
-Shared scope: <code class="component-scope-token">[data-scope="text"]</code>. Combine it with a part selector to keep styles local to this component.
-
-<div class="component-parts-table">
-<table>
-<thead>
-<tr><th scope="col">Part</th><th scope="col">Selector</th><th scope="col">Role</th><th scope="col">Extra attributes</th></tr>
-</thead>
-<tbody>
-<tr>
-  <td><code class="component-part-token">input</code></td>
-  <td><code>[data-part="input"]</code></td>
-  <td>Accepts the editable value or draft.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-</tbody>
-</table>
-</div>
-
-## Keyboard interaction
-
-| Key | Behavior |
-| --- | --- |
-| <kbd>Standard editing keys</kbd> | Edit and select text with the host input conventions. |
-| <kbd>Tab</kbd> | Commit focus movement without replacing native text behavior. |
+See [Text API](/api/components/text) for props, events, slots, public types, part selectors, and keyboard behavior.
 
 ## Accessibility
 

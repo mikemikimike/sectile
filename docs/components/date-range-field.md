@@ -23,213 +23,31 @@ Let the parent own the current value and apply accepted changes back to the comp
 
 <ComponentExample component="date-range-field" scenario="controlled" title="Controlled" description="Let the parent own the current value and apply accepted changes back to the component." :index="2" />
 
-## API
+## Connect application state
 
-Vue package: `@sectile/vue/temporal/date-range-field`
+Keep date and time values as structured civil or wall-clock data in `v-model` instead of converting them to `Date`. Your application decides if and when a timezone conversion is appropriate for storage or transport.
 
-<div class="component-api-group">
-<strong class="component-api-label">Components</strong>
-<ul class="component-api-list">
-  <li><code class="component-api-token">DateRangeFieldRoot</code></li>
-  <li><code class="component-api-token">DateRangeFieldStartInput</code></li>
-  <li><code class="component-api-token">DateRangeFieldEndInput</code></li>
-</ul>
-</div>
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import { DateRangeFieldRoot, DateRangeFieldStartInput, DateRangeFieldEndInput } from '@sectile/vue/temporal/date-range-field'
 
-### Props
+const value = ref({ start: { year: 2026, month: 9, day: 15 }, end: { year: 2026, month: 9, day: 18 } })
+</script>
 
-#### `DateRangeFieldRootProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">Default</span><code>'div'</code></span></div>
-<p>Element or component rendered for this part.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether to merge this part into its single child instead of rendering a wrapper.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>defaultValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>DateRange | null</code></span><span><span class="component-api-definition__label">Default</span><code>null</code></span></div>
-<p>Initial value used when the component owns its state.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>endLabel</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Accessible label for the range end input.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>modelValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>DateRange | null</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Current value when state is controlled by the parent.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>policies</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>DateRangeFieldPolicies</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Behavior policies that customize validation, movement, or selection.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>readonly</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether the value can be inspected but not changed.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>required</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether the control must contain a valid value before submission.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>startLabel</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Accessible label for the range start input.</p>
-</dd>
-</div>
-</dl>
-
-### Slots
-
-#### `DateRangeFieldRootSlotProps`
-
-<dl class="component-api-definitions component-api-definitions--slots">
-<div class="component-api-definition">
-<dt><code>active</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>'start' | 'end'</code></span></div>
-<p>Whether this item is currently active.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>endText</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span></div>
-<p>Formatted text for the range end value.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>readonly</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether the value can be inspected but not changed.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>startText</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span></div>
-<p>Formatted text for the range start value.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>value</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>DateRange | null</code></span></div>
-<p>Current value exposed by this contract.</p>
-</dd>
-</div>
-</dl>
-
-### Events
-
-#### `DateRangeFieldRoot`
-
-<dl class="component-api-definitions component-api-definitions--events">
-<div class="component-api-definition">
-<dt><code>update:modelValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Payload</span><code>DateRange | null</code></span></div>
-<p>Emitted when the component requests a new controlled value.</p>
-</dd>
-</div>
-</dl>
-
-### Other types
-
-#### `DateRangeFieldValueChangeHandler`
-
-```ts
-type DateRangeFieldValueChangeHandler = (value: DateRange | null) => void
+<template>
+  <DateRangeFieldRoot v-model="value">
+    <DateRangeFieldStartInput aria-label="Start date" />
+    <span aria-hidden="true">–</span>
+    <DateRangeFieldEndInput aria-label="End date" />
+  </DateRangeFieldRoot>
+  <pre>{{ value }}</pre>
+</template>
 ```
 
-#### `DateRange`
+## API reference
 
-| Name | Type | Required |
-| --- | --- | --- |
-| `start` | `DateValue` | Yes |
-| `end` | `DateValue` | Yes |
-
-## Parts
-
-Shared scope: <code class="component-scope-token">[data-scope="date-range-field"]</code>. Combine it with a part selector to keep styles local to this component.
-
-<div class="component-parts-table">
-<table>
-<thead>
-<tr><th scope="col">Part</th><th scope="col">Selector</th><th scope="col">Role</th><th scope="col">Extra attributes</th></tr>
-</thead>
-<tbody>
-<tr>
-  <td><code class="component-part-token">root</code></td>
-  <td><code>[data-part="root"]</code></td>
-  <td>Defines the component boundary and owns its composed parts.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">start-input</code></td>
-  <td><code>[data-part="start-input"]</code></td>
-  <td>Edits the start value.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">end-input</code></td>
-  <td><code>[data-part="end-input"]</code></td>
-  <td>Edits the end value.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-</tbody>
-</table>
-</div>
-
-## Keyboard interaction
-
-| Key | Behavior |
-| --- | --- |
-| <kbd>Arrow Up</kbd> / <kbd>Arrow Down</kbd> | Increment or decrement the active value segment. |
-| <kbd>Enter</kbd> | Commit the draft value. |
-| <kbd>Escape</kbd> | Cancel the draft and restore the accepted value. |
+See [Date Range Field API](/api/components/date-range-field) for props, events, slots, public types, part selectors, and keyboard behavior.
 
 ## Accessibility
 

@@ -23,259 +23,28 @@ Let the parent own the current value and apply accepted changes back to the comp
 
 <ComponentExample component="editable" scenario="controlled" title="Controlled" description="Let the parent own the current value and apply accepted changes back to the component." :index="2" />
 
-## API
+## Editing-state styling example
 
-Vue package: `@sectile/vue/editable`
+Editable exposes `data-state="idle|editing"` on its root. Show entry into editing with outline/background transitions instead of moving the text layout.
 
-<div class="component-api-group">
-<strong class="component-api-label">Components</strong>
-<ul class="component-api-list">
-  <li><code class="component-api-token">EditableRoot</code></li>
-  <li><code class="component-api-token">EditableArea</code></li>
-  <li><code class="component-api-token">EditablePreview</code></li>
-  <li><code class="component-api-token">EditableInput</code></li>
-  <li><code class="component-api-token">EditableEditTrigger</code></li>
-  <li><code class="component-api-token">EditableSubmitTrigger</code></li>
-  <li><code class="component-api-token">EditableCancelTrigger</code></li>
-</ul>
-</div>
+```css
+[data-scope='editable'][data-part='root'] {
+  transition: background-color 120ms ease, box-shadow 120ms ease;
+}
 
-### Props
+[data-scope='editable'][data-part='root'][data-state='editing'] {
+  background: color-mix(in srgb, currentColor 6%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 35%, transparent);
+}
 
-#### `EditableRootProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Element or component rendered for this part.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Whether to merge this part into its single child instead of rendering a wrapper.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>defaultValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span><code>''</code></span></div>
-<p>Initial value used when the component owns its state.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>label</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Accessible name announced for the control.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>modelValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Current value when state is controlled by the parent.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>name</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Name used for native form submission.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>policies</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>EditablePolicies</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Behavior policies that customize validation, movement, or selection.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>readonly</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether the value can be inspected but not changed.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>submitOnBlur</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether leaving the editor commits the current draft.</p>
-</dd>
-</div>
-</dl>
-
-#### `EditablePartProps`
-
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>as</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>PrimitiveAs</code></span><span><span class="component-api-definition__label">Default</span>Varies by part</span></div>
-<p>Element or component rendered for this part.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>asChild</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>false</code></span></div>
-<p>Whether to merge this part into its single child instead of rendering a wrapper.</p>
-</dd>
-</div>
-</dl>
-
-### Slots
-
-#### `EditableRootSlotProps`
-
-<dl class="component-api-definitions component-api-definitions--slots">
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>draft</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span></div>
-<p>Current uncommitted input text.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>editing</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether editing is active.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>readonly</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span></div>
-<p>Whether the value can be inspected but not changed.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>value</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span></div>
-<p>Current value exposed by this contract.</p>
-</dd>
-</div>
-</dl>
-
-### Events
-
-#### `EditableRoot`
-
-<dl class="component-api-definitions component-api-definitions--events">
-<div class="component-api-definition">
-<dt><code>update:editing</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Payload</span><code>boolean</code></span></div>
-<p>Emitted when editing starts or stops.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>update:modelValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Payload</span><code>string</code></span></div>
-<p>Emitted when the component requests a new controlled value.</p>
-</dd>
-</div>
-</dl>
-
-### Other types
-
-#### `EditableValueChangeHandler`
-
-```ts
-type EditableValueChangeHandler = (value: string) => void
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='editable'][data-part='root'] { transition: none; }
+}
 ```
 
-#### `EditableEditingChangeHandler`
+## API reference
 
-```ts
-type EditableEditingChangeHandler = (editing: boolean) => void
-```
-
-## Parts
-
-Shared scope: <code class="component-scope-token">[data-scope="editable"]</code>. Combine it with a part selector to keep styles local to this component.
-
-<div class="component-parts-table">
-<table>
-<thead>
-<tr><th scope="col">Part</th><th scope="col">Selector</th><th scope="col">Role</th><th scope="col">Extra attributes</th></tr>
-</thead>
-<tbody>
-<tr>
-  <td><code class="component-part-token">root</code></td>
-  <td><code>[data-part="root"]</code></td>
-  <td>Defines the component boundary and owns its composed parts.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">area</code></td>
-  <td><code>[data-part="area"]</code></td>
-  <td>Provides the two-dimensional interaction surface.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">preview</code></td>
-  <td><code>[data-part="preview"]</code></td>
-  <td>Shows the committed value outside editing mode.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">input</code></td>
-  <td><code>[data-part="input"]</code></td>
-  <td>Accepts the editable value or draft.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">edit-trigger</code></td>
-  <td><code>[data-part="edit-trigger"]</code></td>
-  <td>Enters editing mode.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">submit-trigger</code></td>
-  <td><code>[data-part="submit-trigger"]</code></td>
-  <td>Commits the current draft.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-<tr>
-  <td><code class="component-part-token">cancel-trigger</code></td>
-  <td><code>[data-part="cancel-trigger"]</code></td>
-  <td>Discards the current draft.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-</tbody>
-</table>
-</div>
-
-## Keyboard interaction
-
-| Key | Behavior |
-| --- | --- |
-| <kbd>Enter</kbd> | Start editing from the preview, or commit a single-line draft. |
-| <kbd>Escape</kbd> | Cancel editing and restore the accepted value. |
-| <kbd>Tab</kbd> | Move through the preview, input, and explicit action controls. |
+See [Editable API](/api/components/editable) for props, events, slots, public types, part selectors, and keyboard behavior.
 
 ## Accessibility
 

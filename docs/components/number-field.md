@@ -29,106 +29,28 @@ Reject values outside the configured minimum and maximum.
 
 <ComponentExample component="number-field" scenario="bounded" title="Bounded" description="Reject values outside the configured minimum and maximum." :index="3" />
 
-## API
+## Input-feedback styling example
 
-Vue package: `@sectile/vue/number-field`
+Instead of animating the input value itself, transition the root `:focus-within` state. This keeps caret and IME behavior immediate while making the active editing region visible.
 
-<div class="component-api-group">
-<strong class="component-api-label">Components</strong>
-<ul class="component-api-list">
-  <li><code class="component-api-token">NumberField</code></li>
-</ul>
-</div>
+```css
+[data-scope='number-field'][data-part='root'] {
+  transition: background-color 120ms ease, box-shadow 120ms ease;
+}
 
-### Props
+[data-scope='number-field'][data-part='root']:focus-within {
+  background: color-mix(in srgb, currentColor 5%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 30%, transparent);
+}
 
-#### `NumberFieldProps`
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='number-field'][data-part='root'] { transition: none; }
+}
+```
 
-<dl class="component-api-definitions component-api-definitions--props">
-<div class="component-api-definition">
-<dt><code>defaultValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string | null</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Initial value used when the component owns its state.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>disabled</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Whether interaction is unavailable.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>label</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Accessible name announced for the control.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>modelValue</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>string | null</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Current value when state is controlled by the parent.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>native</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Whether to use the browser native date or time input UI.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>policies</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>NumberFieldOptions['policies']</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Behavior policies that customize validation, movement, or selection.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>readonly</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Whether the value can be inspected but not changed.</p>
-</dd>
-</div>
-<div class="component-api-definition">
-<dt><code>required</code></dt>
-<dd>
-<div class="component-api-definition__metadata"><span><span class="component-api-definition__label">Type</span><code>boolean</code></span><span><span class="component-api-definition__label">Default</span><code>undefined</code></span></div>
-<p>Whether the control must contain a valid value before submission.</p>
-</dd>
-</div>
-</dl>
+## API reference
 
-## Parts
-
-Shared scope: <code class="component-scope-token">[data-scope="number-field"]</code>. Combine it with a part selector to keep styles local to this component.
-
-<div class="component-parts-table">
-<table>
-<thead>
-<tr><th scope="col">Part</th><th scope="col">Selector</th><th scope="col">Role</th><th scope="col">Extra attributes</th></tr>
-</thead>
-<tbody>
-<tr>
-  <td><code class="component-part-token">input</code></td>
-  <td><code>[data-part="input"]</code></td>
-  <td>Accepts the editable value or draft.</td>
-  <td><span aria-label="None">—</span></td>
-</tr>
-</tbody>
-</table>
-</div>
-
-## Keyboard interaction
-
-| Key | Behavior |
-| --- | --- |
-| <kbd>Standard editing keys</kbd> | Edit and select text with the host input conventions. |
-| <kbd>Tab</kbd> | Commit focus movement without replacing native text behavior. |
+See [Number Field API](/api/components/number-field) for props, events, slots, public types, part selectors, and keyboard behavior.
 
 ## Accessibility
 

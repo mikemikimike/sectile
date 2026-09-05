@@ -27,4 +27,6 @@ Vue parts accept normal attributes and classes. Parts that support `asChild` can
 
 ## Motion
 
-Use state attributes to drive transitions. Keep DOM presence explicit when an animation needs both entering and leaving states, and provide a motion-free equivalent under `prefers-reduced-motion`.
+Use public state attributes to drive transitions and keyframes. Popup content can remain present through its exit animation, Drawer exposes swipe progress, and checked or expanded parts expose stable state hooks.
+
+See [Motion](/guides/motion) for copyable popup enter/exit, expansion indicator, checked-state, Drawer swipe, and `prefers-reduced-motion` patterns.

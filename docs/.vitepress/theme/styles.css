@@ -455,6 +455,16 @@ html[lang='ko-KR'] .vp-doc :where(h1, h2, h3, h4, p, li, dt, dd, strong, small, 
   background: var(--vp-code-block-bg);
 }
 
+.sectile-example__source-note {
+  margin: 0;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-2);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
 .sectile-example__preview[hidden],
 .sectile-example__code[hidden] {
   display: none;

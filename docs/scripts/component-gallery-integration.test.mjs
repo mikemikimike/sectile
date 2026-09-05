@@ -58,3 +58,29 @@ test('component example cards round their own surfaces without clipping floating
   assert.match(source, /\.sectile-example__preview > \.component-example-stage,[\s\S]*?border-radius:\s*0 0 13px 13px;/u);
   assert.match(source, /\.sectile-example__code\s*\{[^}]*border-radius:\s*0 0 13px 13px;/u);
 });
+
+test('component examples distinguish behavior previews from scoped usage code', async () => {
+  const frame = await readFile(
+    new URL('.vitepress/theme/components/ExampleFrame.vue', docsRoot),
+    'utf8',
+  );
+  const componentExample = await readFile(
+    new URL('.vitepress/theme/components/ComponentExample.vue', docsRoot),
+    'utf8',
+  );
+  const sourceFormat = await readFile(
+    new URL('.vitepress/theme/example-source-format.ts', docsRoot),
+    'utf8',
+  );
+
+  assert.match(frame, /sourceRelationship\?: 'exact' \| 'usage'/u);
+  assert.match(frame, /'동작 미리보기' : 'Behavior preview'/u);
+  assert.match(frame, /'사용 코드' : 'Usage code'/u);
+  assert.match(componentExample, /source-relationship="usage"/u);
+  assert.match(componentExample, /DOM에 Sectile 동작을 연결하는 부분만/u);
+  assert.match(componentExample, /update\.state가 다음 상태/u);
+  assert.match(sourceFormat, /vue: 'Vue composition snippet'/u);
+  assert.match(sourceFormat, /dom: 'DOM connection snippet'/u);
+  assert.match(sourceFormat, /core: 'Core state-transition snippet'/u);
+  assert.match(sourceFormat, /terminal: 'Terminal integration snippet'/u);
+});

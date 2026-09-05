@@ -110,6 +110,10 @@ const resetExample = async (reinitialize: () => void): Promise<void> => {
     fixed-host="vue"
     :sources="formPackageExampleSources"
     :ko-sources="koFormPackageExampleSources"
+    source-relationship="usage"
+    :source-note="isKorean
+      ? '미리보기에는 문서용 레이아웃과 표현 스타일이 적용되어 있습니다. 사용 코드는 폼 상태, 필드 연결, 제출과 초기화 흐름에 필요한 공개 API만 담습니다.'
+      : 'The preview uses documentation layout and presentation styles. The usage code focuses on the public Form APIs for field state, submission, and reinitialization.'"
   >
     <FormRoot
       v-slot="{ dirty, touched, valid, submission, reinitialize }"

@@ -1,14 +1,14 @@
 # API 레퍼런스
 
-무엇을 만들지 이미 알고 있고 정확한 공개 식별자, 입력, event, slot, type, package export를 확인해야 할 때 이 영역을 사용합니다.
+구현할 대상이 정해졌고 정확한 공개 식별자, 입력값, 이벤트, 슬롯, 타입 또는 패키지 내보내기를 확인할 때 이 영역을 사용합니다.
 
 ## 컴포넌트
 
-[컴포넌트 API](/ko/api/components/)에서 prop, event, slot, 공개 type, part selector와 키보드 동작을 확인합니다. 실행 가능한 예시부터 보고 싶다면 [컴포넌트 목록](/ko/components/)에서 시작합니다. 두 문서는 같은 체크인된 공개 계약에서 생성되므로 package surface의 이름과 타입에 맞춰 유지됩니다.
+[컴포넌트 API](/ko/api/components/)에서 속성, 이벤트, 슬롯, 공개 타입, 파트 선택자와 키보드 동작을 확인합니다. [컴포넌트 목록](/ko/components/)에서는 상호작용 미리보기와 연결 방식별 사용 코드를 함께 볼 수 있습니다. 두 영역은 같은 공개 계약을 기준으로 유지됩니다.
 
 ## 패키지 API
 
-공개 import 영역별로 찾아볼 수 있습니다.
+가져오는 패키지별로 찾아볼 수 있습니다.
 
 - [`@sectile/core`](/ko/api/core)
 - [`@sectile/form`](/ko/api/form)

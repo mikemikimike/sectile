@@ -148,4 +148,4 @@ The component's state and accessibility semantics remain the same with motion di
 
 ## Component-specific examples
 
-The component pages build on these patterns with runnable examples. Start with [Dialog](/components/dialog), [Drawer](/components/drawer), [Accordion](/components/accordion), [Checkbox](/components/checkbox), and [Toast](/components/toast), then use the [API reference](/api/components/) to confirm the exact public parts and attributes for another component.
+The component pages build on these patterns with interaction previews and host-specific usage code. Start with [Dialog](/components/dialog), [Drawer](/components/drawer), [Accordion](/components/accordion), [Checkbox](/components/checkbox), and [Toast](/components/toast), then use the [API reference](/api/components/) to confirm the exact public parts and attributes for another component.

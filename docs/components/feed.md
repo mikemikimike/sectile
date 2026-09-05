@@ -74,7 +74,7 @@ async function loadWindow(
 </template>
 ```
 
-Use the existing **Load earlier / Load newer** runnable examples to inspect pending state and reading-position preservation.
+Use the component page's **Load earlier / Load newer** interaction preview to inspect pending state and reading-position preservation.
 
 ## API reference
 

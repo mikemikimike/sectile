@@ -74,7 +74,7 @@ async function loadWindow(
 </template>
 ```
 
-기존 실행 예시의 **Load earlier / Load newer** 변형에서 요청 중 상태와 읽기 위치 유지까지 함께 확인할 수 있습니다.
+컴포넌트 페이지의 **Load earlier / Load newer** 상호작용 미리보기에서 요청 중 상태와 읽기 위치 유지까지 함께 확인할 수 있습니다.
 
 ## API 레퍼런스
 

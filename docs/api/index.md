@@ -4,7 +4,7 @@ Use this area when you know what you want to build and need an exact public iden
 
 ## Components
 
-Open [Component API](/api/components/) to look up props, events, slots, public types, part selectors, and keyboard behavior. Use the [component catalog](/components/) when you want runnable examples first. Both surfaces are generated from the same checked-in public contracts, so names and types stay aligned with the package surface.
+Open [Component API](/api/components/) to look up props, events, slots, public types, part selectors, and keyboard behavior. Use the [component catalog](/components/) for interaction previews and host-specific usage code. Both surfaces are generated from the same checked-in public contracts, so names and types stay aligned with the package surface.
 
 ## Package APIs
 

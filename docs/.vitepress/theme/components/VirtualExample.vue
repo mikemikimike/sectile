@@ -325,7 +325,13 @@ function gridLabel(id: string): string {
 </script>
 
 <template>
-  <ExampleFrame :sources="sources">
+  <ExampleFrame
+    :sources="sources"
+    source-relationship="usage"
+    :source-note="isKorean
+      ? '미리보기에는 가상화 범위와 추가 렌더링 영역을 설명하는 문서용 시각화가 포함됩니다. 사용 코드는 선택한 실행 환경에서 가상화 계획을 만들고 화면과 연결하는 공개 API 흐름에 초점을 둡니다.'
+      : 'The preview includes documentation visualization for the virtual range and overscan. The usage code focuses on the public API flow that builds a virtual plan and connects it to the selected host.'"
+  >
     <template #toolbar>
       <div class="virtual-example-controls">
         <SliderRoot

@@ -82,7 +82,7 @@ For Vue examples, a complete single-file component includes the script and templ
 
 Use explicit labels such as "snippet", "pattern", or "fragment" for intentionally partial source. Never describe a partial source as copyable or complete.
 
-The View and Code modes of an example must describe the same artifact. If the preview uses additional hidden implementation or presentation that materially changes what the reader sees, either expose that source or simplify the preview until the shown code reproduces it.
+Reserve **View / Code** labels for examples where the shown source reproduces the displayed artifact. When a documentation preview intentionally adds presentation or scaffolding that is not part of the public usage source, label the relationship **Behavior preview / Usage code** instead. State what the usage source includes and what the documentation preview adds; host-specific snippets must identify their scope, such as Vue composition, DOM connection, Core state transition, or Terminal integration. Never let a partial source appear to be the implementation behind a richer preview.
 
 Product overview sections are descriptive, not instructional. Do not tell the reader to copy code, choose components, or customize styling there.
 

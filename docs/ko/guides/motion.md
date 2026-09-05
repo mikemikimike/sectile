@@ -148,4 +148,4 @@ Drawer는 현재 swipe 이동량을 CSS custom property로 제공하고 gesture 
 
 ## 컴포넌트별 예시
 
-이 패턴은 각 컴포넌트 페이지의 실행 가능한 예시에서 더 구체적으로 사용합니다. [Dialog](/ko/components/dialog), [Drawer](/ko/components/drawer), [Accordion](/ko/components/accordion), [Checkbox](/ko/components/checkbox), [Toast](/ko/components/toast)부터 보고, 다른 컴포넌트의 정확한 공개 part와 속성은 [컴포넌트 API](/ko/api/components/)에서 확인하세요.
+각 컴포넌트 페이지에서는 이 패턴을 상호작용 미리보기와 연결 방식별 사용 코드로 구체화합니다. [Dialog](/ko/components/dialog), [Drawer](/ko/components/drawer), [Accordion](/ko/components/accordion), [Checkbox](/ko/components/checkbox), [Toast](/ko/components/toast)에서 예를 확인할 수 있으며, 다른 컴포넌트의 정확한 공개 파트와 속성은 [컴포넌트 API](/ko/api/components/)에 정리되어 있습니다.

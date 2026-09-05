@@ -359,6 +359,18 @@ if (!result.ok) {
 }`,
 });
 
+const sourceKinds = Object.freeze({
+  vue: 'Vue composition snippet',
+  dom: 'DOM connection snippet',
+  core: 'Tabular state and projection snippet',
+} as const);
+
+function labelSource(host: keyof TabularExampleSources, source: string): string {
+  const label = `Tabular — ${sourceKinds[host]}`;
+  const prefix = host === 'vue' ? `<!-- ${label} -->` : `// ${label}`;
+  return `${prefix}\n${source}`;
+}
+
 const examples: Readonly<Record<TabularExampleKind, TabularExampleSources>> = Object.freeze({
   'table-overview': tableOverview,
   'table-query': tableQuery,
@@ -377,5 +389,10 @@ const examples: Readonly<Record<TabularExampleKind, TabularExampleSources>> = Ob
 });
 
 export function tabularExampleSources(kind: TabularExampleKind): TabularExampleSources {
-  return examples[kind];
+  const sources = examples[kind];
+  return Object.freeze({
+    vue: labelSource('vue', sources.vue),
+    dom: labelSource('dom', sources.dom),
+    core: labelSource('core', sources.core),
+  });
 }

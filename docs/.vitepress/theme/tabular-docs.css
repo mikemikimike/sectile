@@ -91,6 +91,16 @@
   border-radius: 0;
 }
 
+.tabular-example__source-note {
+  margin: 0;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-2);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
 .tabular-example__unavailable {
   margin: 0;
   padding: 28px 20px;

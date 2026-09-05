@@ -81,6 +81,7 @@ test('Chart examples use public APIs and cover every built-in profile', async ()
   assert.match(englishVue, /host="vue"/u);
   assert.match(koreanVue, /host="vue"/u);
   assert.match(component, /prefers-reduced-motion/u);
+  assert.match(component, /unmount-preview-when-hidden/u);
   assert.match(sources, /vue: vueSource/u);
   assert.match(sources, /dom: domSource/u);
 });

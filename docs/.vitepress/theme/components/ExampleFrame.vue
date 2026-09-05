@@ -6,12 +6,19 @@ import { type Host, useHostPreference } from '../host-preference.js';
 import { useDocsLocale } from '../locale.js';
 import HighlightedCode from './HighlightedCode.vue';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   sources: Partial<Record<Host, string>>;
   koSources?: Partial<Record<Host, string>>;
   languages?: Partial<Record<Host, string>>;
   fixedHost?: Host;
-}>();
+  sourceRelationship?: 'exact' | 'usage';
+  sourceNote?: string;
+  unmountPreviewWhenHidden?: boolean;
+}>(), {
+  sourceRelationship: 'exact',
+  sourceNote: '',
+  unmountPreviewWhenHidden: false,
+});
 
 const modes = ['view', 'code'] as const;
 const mode = ref('view');
@@ -26,6 +33,13 @@ const source = computed(() => {
   return value;
 });
 const language = computed(() => props.languages?.[activeHost.value] ?? (activeHost.value === 'vue' ? 'vue' : 'ts'));
+const isExactSource = computed(() => props.sourceRelationship === 'exact');
+const viewLabel = computed(() => isExactSource.value
+  ? (isKorean.value ? '실행 화면' : 'View')
+  : (isKorean.value ? '동작 미리보기' : 'Behavior preview'));
+const codeLabel = computed(() => isExactSource.value
+  ? (isKorean.value ? '코드' : 'Code')
+  : (isKorean.value ? '사용 코드' : 'Usage code'));
 </script>
 
 <template>
@@ -40,14 +54,14 @@ const language = computed(() => props.languages?.[activeHost.value] ?? (activeHo
           value="view"
         >
           <Eye :size="15" aria-hidden="true" />
-          {{ isKorean ? '실행 화면' : 'View' }}
+          {{ viewLabel }}
         </TabsTrigger>
         <TabsTrigger
           class="sectile-example__tab"
           value="code"
         >
           <CodeXml :size="15" aria-hidden="true" />
-          {{ isKorean ? '코드' : 'Code' }}
+          {{ codeLabel }}
         </TabsTrigger>
       </TabsList>
     </header>
@@ -55,13 +69,18 @@ const language = computed(() => props.languages?.[activeHost.value] ?? (activeHo
       class="sectile-example__preview"
       value="view"
     >
-      <slot v-if="activeHost !== 'terminal' || !$slots['terminal']" />
-      <slot v-else name="terminal" />
+      <template v-if="!unmountPreviewWhenHidden || mode === 'view'">
+        <slot v-if="activeHost !== 'terminal' || !$slots['terminal']" />
+        <slot v-else name="terminal" />
+      </template>
     </TabsContent>
     <TabsContent
       class="sectile-example__code"
       value="code"
     >
+      <p v-if="!isExactSource && sourceNote" class="sectile-example__source-note">
+        {{ sourceNote }}
+      </p>
       <HighlightedCode :source="source" :language="language" />
     </TabsContent>
   </TabsRoot>

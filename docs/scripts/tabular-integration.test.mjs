@@ -130,8 +130,18 @@ test('Tabular Vue examples use automatic Body rows and concise public props', as
   }
 });
 
-test('Tabular examples follow the page-level host preference', async () => {
-  const source = await read('.vitepress/theme/components/TabularExampleFrame.vue');
-  assert.match(source, /useHostPreference\(\)/u);
-  assert.doesNotMatch(source, /사용 환경|Code host|tabular-example__host-tabs/u);
+test('Tabular examples follow the page-level host preference and label scoped usage code', async () => {
+  const [frame, exampleCode] = await Promise.all([
+    read('.vitepress/theme/components/TabularExampleFrame.vue'),
+    read('.vitepress/theme/tabular-example-code.ts'),
+  ]);
+  assert.match(frame, /useHostPreference\(\)/u);
+  assert.doesNotMatch(frame, /사용 환경|Code host|tabular-example__host-tabs/u);
+  assert.match(frame, /'동작 미리보기' : 'Behavior preview'/u);
+  assert.match(frame, /'사용 코드' : 'Usage code'/u);
+  assert.match(frame, /미리보기의 마크업, 데이터 준비와 문서용 표현 스타일은 포함하지 않습니다/u);
+  assert.match(frame, /실제 마크업과 화면 출력은 애플리케이션이나 실행 환경이 맡습니다/u);
+  assert.match(exampleCode, /Vue composition snippet/u);
+  assert.match(exampleCode, /DOM connection snippet/u);
+  assert.match(exampleCode, /Tabular state and projection snippet/u);
 });

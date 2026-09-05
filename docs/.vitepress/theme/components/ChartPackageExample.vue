@@ -147,6 +147,11 @@ const datumLabel = (id: string | number): string => String(id).replaceAll('-', '
     v-bind="frameHostProps"
     :sources="sources"
     :ko-sources="koSources"
+    source-relationship="usage"
+    unmount-preview-when-hidden
+    :source-note="isKorean
+      ? '미리보기에는 차트 상태를 읽기 쉽게 보여 주는 문서용 레이아웃과 표현 스타일이 적용되어 있습니다. 사용 코드는 데이터, 투영, 상호작용을 선택한 실행 환경에 연결하는 공개 API 흐름만 담습니다.'
+      : 'The preview uses documentation layout and presentation styles to make chart state easy to inspect. The usage code focuses on the public API flow for data, projection, interaction, and the selected host.'"
   >
     <section class="chart-workbench" :aria-label="copy.chart">
       <header class="chart-workbench__header">

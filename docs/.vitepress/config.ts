@@ -237,50 +237,80 @@ const koPackageSidebar: DefaultTheme.SidebarItem[] = [
   },
 ];
 
+const guideSidebar: DefaultTheme.SidebarItem[] = [
+  { text: 'Getting Started', link: '/getting-started/' },
+  { text: 'Guides', link: '/guides/' },
+  {
+    text: 'UI basics',
+    items: [
+      { text: 'Styling', link: '/guide/styling' },
+      { text: 'Motion', link: '/guides/motion' },
+      { text: 'Floating elements', link: '/guide/positioning' },
+      { text: 'Controlled state', link: '/guide/state-ownership' },
+    ],
+  },
+  {
+    text: 'By task',
+    items: [
+      { text: 'Forms', link: '/packages/form' },
+      { text: 'Dates and time', link: '/packages/temporal' },
+      { text: 'Virtual lists', link: '/packages/virtual' },
+      { text: 'Tables and grids', link: '/packages/tabular' },
+      { text: 'Charts', link: '/packages/chart' },
+    ],
+  },
+  {
+    text: 'Host integrations',
+    items: [
+      { text: 'Vue', link: '/packages/vue' },
+      { text: 'DOM', link: '/packages/dom' },
+      { text: 'Terminal', link: '/packages/terminal' },
+    ],
+  },
+];
+
+const koGuideSidebar: DefaultTheme.SidebarItem[] = [
+  { text: '시작하기', link: '/ko/getting-started/' },
+  { text: '가이드', link: '/ko/guides/' },
+  {
+    text: 'UI 기본',
+    items: [
+      { text: '스타일 적용', link: '/ko/guide/styling' },
+      { text: '모션', link: '/ko/guides/motion' },
+      { text: '위치 지정', link: '/ko/guide/positioning' },
+      { text: '상태 제어', link: '/ko/guide/state-ownership' },
+    ],
+  },
+  {
+    text: '작업별',
+    items: [
+      { text: '폼', link: '/ko/packages/form' },
+      { text: '날짜와 시간', link: '/ko/packages/temporal' },
+      { text: '가상 목록', link: '/ko/packages/virtual' },
+      { text: '표와 그리드', link: '/ko/packages/tabular' },
+      { text: '차트', link: '/ko/packages/chart' },
+    ],
+  },
+  {
+    text: '실행 환경',
+    items: [
+      { text: 'Vue', link: '/ko/packages/vue' },
+      { text: 'DOM', link: '/ko/packages/dom' },
+      { text: '터미널', link: '/ko/packages/terminal' },
+    ],
+  },
+];
+
 const rootLocaleTheme: DefaultTheme.Config = {
   nav: [
     { text: 'Getting Started', link: '/getting-started/', activeMatch: '^/getting-started/' },
     { text: 'Components', link: '/components/', activeMatch: '^/components/' },
-    { text: 'Guides', link: '/guides/', activeMatch: '^/guides/' },
+    { text: 'Guides', link: '/guides/', activeMatch: '^/(?:guides|guide)/' },
     { text: 'API', link: '/api/', activeMatch: '^/api/' },
   ],
   sidebar: {
-    '/getting-started/': [
-      { text: 'Getting Started', link: '/getting-started/' },
-      { text: 'Styling', link: '/guide/styling' },
-      { text: 'Motion', link: '/guides/motion' },
-      { text: 'Controlled state', link: '/guide/state-ownership' },
-    ],
-    '/guides/': [
-      { text: 'Guides', link: '/guides/' },
-      {
-        text: 'UI basics',
-        items: [
-          { text: 'Styling', link: '/guide/styling' },
-          { text: 'Motion', link: '/guides/motion' },
-          { text: 'Floating elements', link: '/guide/positioning' },
-          { text: 'Controlled state', link: '/guide/state-ownership' },
-        ],
-      },
-      {
-        text: 'By task',
-        items: [
-          { text: 'Forms', link: '/packages/form' },
-          { text: 'Dates and time', link: '/packages/temporal' },
-          { text: 'Virtual lists', link: '/packages/virtual' },
-          { text: 'Tables and grids', link: '/packages/tabular' },
-          { text: 'Charts', link: '/packages/chart' },
-        ],
-      },
-      {
-        text: 'Host integrations',
-        items: [
-          { text: 'Vue', link: '/packages/vue' },
-          { text: 'DOM', link: '/packages/dom' },
-          { text: 'Terminal', link: '/packages/terminal' },
-        ],
-      },
-    ],
+    '/getting-started/': guideSidebar,
+    '/guides/': guideSidebar,
     '/api/': [
       { text: 'API Reference', link: '/api/' },
       { text: 'Component API', link: '/api/components/' },
@@ -299,15 +329,7 @@ const rootLocaleTheme: DefaultTheme.Config = {
         ],
       },
     ],
-    '/guide/': [
-      { text: 'Introduction', link: '/guide/introduction' },
-      { text: 'Getting started', link: '/guide/getting-started' },
-      { text: 'Styling', link: '/guide/styling' },
-      { text: 'Floating positioning', link: '/guide/positioning' },
-      { text: 'State ownership', link: '/guide/state-ownership' },
-      { text: 'Host model', link: '/guide/host-model' },
-      { text: 'Adapter authoring', link: '/guide/adapter-authoring' },
-    ],
+    '/guide/': guideSidebar,
     '/components/': componentSidebar,
     '/packages/': packageSidebar,
     '/theory/': theorySidebar,
@@ -321,46 +343,12 @@ const koLocaleTheme: DefaultTheme.Config = {
   nav: [
     { text: '시작하기', link: '/ko/getting-started/', activeMatch: '^/ko/getting-started/' },
     { text: '컴포넌트', link: '/ko/components/', activeMatch: '^/ko/components/' },
-    { text: '가이드', link: '/ko/guides/', activeMatch: '^/ko/guides/' },
+    { text: '가이드', link: '/ko/guides/', activeMatch: '^/ko/(?:guides|guide)/' },
     { text: 'API', link: '/ko/api/', activeMatch: '^/ko/api/' },
   ],
   sidebar: {
-    '/ko/getting-started/': [
-      { text: '시작하기', link: '/ko/getting-started/' },
-      { text: '스타일 적용', link: '/ko/guide/styling' },
-      { text: '모션', link: '/ko/guides/motion' },
-      { text: '상태 제어', link: '/ko/guide/state-ownership' },
-    ],
-    '/ko/guides/': [
-      { text: '가이드', link: '/ko/guides/' },
-      {
-        text: 'UI 기본',
-        items: [
-          { text: '스타일 적용', link: '/ko/guide/styling' },
-          { text: '모션', link: '/ko/guides/motion' },
-          { text: 'Floating 요소', link: '/ko/guide/positioning' },
-          { text: '상태 제어', link: '/ko/guide/state-ownership' },
-        ],
-      },
-      {
-        text: '작업별',
-        items: [
-          { text: '폼', link: '/ko/packages/form' },
-          { text: '날짜와 시간', link: '/ko/packages/temporal' },
-          { text: '가상 목록', link: '/ko/packages/virtual' },
-          { text: '표와 그리드', link: '/ko/packages/tabular' },
-          { text: '차트', link: '/ko/packages/chart' },
-        ],
-      },
-      {
-        text: '실행 환경',
-        items: [
-          { text: 'Vue', link: '/ko/packages/vue' },
-          { text: 'DOM', link: '/ko/packages/dom' },
-          { text: '터미널', link: '/ko/packages/terminal' },
-        ],
-      },
-    ],
+    '/ko/getting-started/': koGuideSidebar,
+    '/ko/guides/': koGuideSidebar,
     '/ko/api/': [
       { text: 'API 레퍼런스', link: '/ko/api/' },
       { text: '컴포넌트 API', link: '/ko/api/components/' },
@@ -379,15 +367,7 @@ const koLocaleTheme: DefaultTheme.Config = {
         ],
       },
     ],
-    '/ko/guide/': [
-      { text: '소개', link: '/ko/guide/introduction' },
-      { text: '시작하기', link: '/ko/guide/getting-started' },
-      { text: '스타일 적용', link: '/ko/guide/styling' },
-      { text: 'Floating 위치', link: '/ko/guide/positioning' },
-      { text: '상태 관리 방식', link: '/ko/guide/state-ownership' },
-      { text: '실행 환경', link: '/ko/guide/host-model' },
-      { text: 'Adapter 작성', link: '/ko/guide/adapter-authoring' },
-    ],
+    '/ko/guide/': koGuideSidebar,
     '/ko/components/': koComponentSidebar,
     '/ko/packages/': koPackageSidebar,
     '/ko/theory/': koTheorySidebar,
@@ -405,7 +385,7 @@ const koLocaleTheme: DefaultTheme.Config = {
 
 export default defineConfig({
   title: 'Sectile',
-  description: 'Accessible, unstyled UI components and public APIs with practical examples for Vue, DOM, and custom hosts.',
+  description: 'Renderer-neutral interaction semantics for consistent interface behavior across Vue, DOM, terminal, and other supported hosts.',
   base,
   cleanUrls: true,
   lastUpdated: true,
@@ -422,7 +402,7 @@ export default defineConfig({
       lang: 'ko-KR',
       link: '/ko/',
       title: 'Sectile',
-      description: 'Vue와 DOM에서 실제 예시로 시작하는 접근 가능한 unstyled UI 컴포넌트와 공개 API',
+      description: '인터페이스의 상태와 상호작용 규칙을 화면 표현과 분리해 Vue, DOM, 터미널 등 지원되는 실행 환경에서 일관되게 사용하는 Sectile 문서',
       themeConfig: koLocaleTheme,
     },
   },

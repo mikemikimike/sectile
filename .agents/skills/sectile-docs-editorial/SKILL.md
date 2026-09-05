@@ -56,6 +56,12 @@ Use headings to name the subject or task, not to advertise the documentation met
 
 Labels may be concise nouns or task phrases. Do not force every heading into the same grammatical pattern.
 
+## Navigation consistency
+
+Pages in the same public documentation area share one sidebar definition. Moving between Getting Started and common guide pages must not replace the sidebar with a different legacy or internal menu. Legacy routes that remain reachable inherit the current canonical sidebar instead of exposing superseded navigation.
+
+Keep one canonical destination for each reader task. Do not surface old introduction, host-model, adapter-authoring, implementation, or theory navigation merely because the route still exists for compatibility.
+
 ## Host-selection consistency
 
 The top navigation `HostSelector` is the single host/integration selection control for public docs. Host-aware installation commands, imports, examples, and package snippets read the shared host preference and update from that selection.

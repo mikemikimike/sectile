@@ -1,7 +1,7 @@
 ---
 layout: home
-title: Sectile
-description: Build accessible, unstyled UI from practical examples, then adapt state, styling, motion, and public APIs to your product.
+title: Renderer-neutral interaction semantics
+description: Renderer-neutral interaction semantics for consistent interface behavior across Vue, DOM, terminal, and other supported hosts.
 ---
 
 <DocsHome />

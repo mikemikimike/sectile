@@ -1,7 +1,7 @@
 ---
 layout: home
-title: Sectile
-description: 실제 예시에서 시작해 상태, 스타일, 애니메이션, 공개 API를 제품에 맞게 적용하는 접근 가능한 UI 문서입니다.
+title: 화면 표현과 분리된 상호작용 규칙
+description: Sectile은 인터페이스의 상태와 상호작용 규칙을 화면 표현과 분리해 Vue, DOM, 터미널 등 지원되는 실행 환경에서 일관되게 사용할 수 있게 합니다.
 ---
 
 <DocsHome />

@@ -121,13 +121,28 @@ const dom = String.raw`<!doctype html>
 const core = String.raw`import { applyCheckboxEvent, createCheckboxState } from '@sectile/core/checkbox'
 
 let state = createCheckboxState(false)
-console.log('before:', state.checked)
 
-const toggled = applyCheckboxEvent(state, 'toggle')
-if (!toggled.ok) throw new Error(toggled.error.message)
+function render() {
+  console.log(state.checked === true ? '[x] Include analytics' : '[ ] Include analytics')
+}
 
-state = toggled.value.state
-console.log('after:', state.checked)`;
+function dispatch(event) {
+  const result = applyCheckboxEvent(state, event)
+  if (!result.ok) throw new Error(result.error.message)
+
+  state = result.value.state
+
+  for (const command of result.value.commands) {
+    if (command.type === 'checked-changed') {
+      console.log('checked changed to', command.checked)
+    }
+  }
+
+  render()
+}
+
+render()
+dispatch('toggle')`;
 
 const terminal = String.raw`import { createCheckbox } from '@sectile/terminal/checkbox'
 

@@ -72,6 +72,8 @@ Do not add local Core/DOM/Terminal/Vue tabs, segmented controls, radio groups, o
 
 Task guides may be instructional. Keep instructions next to the task they help complete. Explain the intended result before the API details, and keep complete examples small enough to understand.
 
+Describe examples in terms of the developer's environment and public package APIs, not the Sectile repository layout. Do not invent filenames such as `main.mjs`, `Example.vue`, or `index.html` unless the filename itself is required by the documented tool or framework. A reader should not need to infer a checkout path, docs fixture, or arbitrary file placement before understanding what the example demonstrates.
+
 Call an example **complete** only when the code shown to the reader is sufficient to reproduce the visible result in the stated host with the documented dependencies. A complete example includes the required imports, state/setup, rendered markup, lifecycle/cleanup when the host requires it, and every example-specific style needed to reproduce the preview. Do not rely on docs-only CSS, hidden preview components, fixtures, or markup that is absent from the shown source.
 
 For DOM examples, include the HTML elements that connection code queries or mutates. A JavaScript or TypeScript fragment containing `querySelector()` calls without the corresponding markup is a snippet, not a complete example.

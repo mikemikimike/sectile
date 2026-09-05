@@ -18,11 +18,11 @@ Every component has a focused public subpath. The selector below follows the hos
 
 ## 3. Run one example end to end
 
-The installation command, import, and example on this page all follow the **Integration** selector in the top navigation. The source shown for the selected host is self-contained: Vue includes state, markup, and styling; DOM includes the queried HTML and cleanup; Core and Terminal run as `main.mjs` with Node.js 24 or newer.
+The installation command, import, and example on this page all follow the **Integration** selector in the top navigation. Each source shows the context needed to understand the selected host: Vue includes state, markup, and styling; DOM includes markup, styling, connection, and cleanup; Core shows the state transition and its result; Terminal shows input handling and rendering.
 
 <GettingStartedCheckboxExample />
 
-Use the Vue source as a component in an existing Vue application. The DOM source assumes a bundler such as Vite so its bare package import is resolved. After installing the selected package above, the Core and Terminal sources run with `node main.mjs`.
+The note below the source explains how state moves through that host. Every example uses the installed package's public API and is independent of the Sectile repository layout.
 
 ## 4. Add product styles
 

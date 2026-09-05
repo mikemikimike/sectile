@@ -56,6 +56,12 @@ Use headings to name the subject or task, not to advertise the documentation met
 
 Labels may be concise nouns or task phrases. Do not force every heading into the same grammatical pattern.
 
+## Host-selection consistency
+
+The top navigation `HostSelector` is the single host/integration selection control for public docs. Host-aware installation commands, imports, examples, and package snippets read the shared host preference and update from that selection.
+
+Do not add local Core/DOM/Terminal/Vue tabs, segmented controls, radio groups, or selectors to host-aware content. Tabs may still represent an orthogonal mode such as View versus Code. When a route supports only a subset of hosts, scope the top selector options for that route instead of adding another selector in the page body.
+
 ## Examples and instructions
 
 Task guides may be instructional. Keep instructions next to the task they help complete. Explain the intended result before the API details, and keep complete examples small enough to understand.

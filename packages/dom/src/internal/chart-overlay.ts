@@ -93,7 +93,11 @@ function appendInteraction<ID extends StableID>(
     return;
   }
   let emitted = 0;
-  for (const batch of projection.batches) {
+  for (let batchIndex = 0; batchIndex < projection.batches.length; batchIndex += 1) {
+    const batch = projection.batches[batchIndex];
+    if (batch === undefined) continue;
+    const dataBatch = projection.dataBatches?.[batchIndex];
+    const colors = batch.colors ?? (dataBatch?.layerIndex === batch.layerIndex ? dataBatch.colors : undefined);
     for (let index = 0; index < batch.identityIndices.length && emitted < MAXIMUM_INTERACTION_MARKS; index += 1) {
       const representative = batch.representatives?.[index];
       const id = representative?.kind === 'datum'
@@ -102,22 +106,111 @@ function appendInteraction<ID extends StableID>(
       if (id === undefined) continue;
       const kind = id === state.activeDatum ? 'active' : id === state.cursor ? 'cursor' : selected.has(id) ? 'selection' : null;
       if (kind === null) continue;
-      const point = primitiveCenter(batch, index);
-      if (point === null) continue;
-      const marker = document.createElementNS(SVG_NAMESPACE, 'circle');
-      marker.setAttribute('cx', String(point.x));
-      marker.setAttribute('cy', String(point.y));
-      marker.setAttribute('r', kind === 'selection' ? '5' : '7');
-      marker.setAttribute('fill', 'none');
-      marker.setAttribute('stroke', 'currentColor');
-      marker.setAttribute('stroke-width', kind === 'active' ? '3' : '2');
-      marker.setAttribute('data-chart-overlay', `interaction-${kind}`);
+      const marker = interactionMarker(document, batch, index, kind, colors);
+      if (marker === null) continue;
       group.append(marker);
       emitted += 1;
     }
     if (emitted >= MAXIMUM_INTERACTION_MARKS) break;
   }
   if (group.childNodes.length > 0) fragment.append(group);
+}
+
+type InteractionKind = 'active' | 'cursor' | 'selection';
+
+function interactionMarker(
+  document: Document,
+  batch: ChartProjection['batches'][number],
+  index: number,
+  kind: InteractionKind,
+  colors: Uint8Array | undefined,
+): SVGElement | null {
+  const color = interactionColor(colors, index);
+  let marker: SVGElement;
+  const pointLike = batch.type === 'point' || batch.type === 'polyline';
+  if (pointLike) {
+    const point = primitiveCenter(batch, index);
+    if (point === null) return null;
+    const circle = document.createElementNS(SVG_NAMESPACE, 'circle');
+    circle.setAttribute('cx', String(point.x));
+    circle.setAttribute('cy', String(point.y));
+    circle.setAttribute('r', kind === 'selection' ? '4' : '3.5');
+    marker = circle;
+  } else if (batch.type === 'rectangle' || batch.type === 'cell') {
+    const values = batch.type === 'rectangle' ? batch.rectangles : batch.cells;
+    const stride = batch.type === 'rectangle' ? 4 : 5;
+    const offset = index * stride;
+    const rect = document.createElementNS(SVG_NAMESPACE, 'rect');
+    rect.setAttribute('x', String(values[offset] as number));
+    rect.setAttribute('y', String(values[offset + 1] as number));
+    rect.setAttribute('width', String(values[offset + 2] as number));
+    rect.setAttribute('height', String(values[offset + 3] as number));
+    marker = rect;
+  } else {
+    const pathData = interactionArcPath(batch.arcs, index);
+    if (pathData === null) return null;
+    const path = document.createElementNS(SVG_NAMESPACE, 'path');
+    path.setAttribute('d', pathData);
+    marker = path;
+  }
+  if (pointLike) {
+    marker.setAttribute('fill', color);
+    marker.setAttribute('stroke', color);
+    marker.setAttribute('stroke-width', kind === 'selection' ? '1.5' : '1');
+  } else {
+    marker.setAttribute('fill', kind === 'selection' ? 'none' : color);
+    if (kind !== 'selection') marker.setAttribute('fill-opacity', kind === 'active' ? '0.16' : '0.1');
+    marker.setAttribute('stroke', color);
+    marker.setAttribute('stroke-width', kind === 'active' ? '2.5' : '2');
+  }
+  marker.setAttribute('vector-effect', 'non-scaling-stroke');
+  marker.setAttribute('data-chart-overlay', `interaction-${kind}`);
+  return marker;
+}
+
+function interactionColor(colors: Uint8Array | undefined, index: number): string {
+  if (colors === undefined || colors.length < 4) return 'currentColor';
+  const offset = (index + 1) * 4 <= colors.length ? index * 4 : 0;
+  return `rgba(${colors[offset]}, ${colors[offset + 1]}, ${colors[offset + 2]}, ${(colors[offset + 3] as number) / 255})`;
+}
+
+function interactionArcPath(arcs: Float32Array, index: number): string | null {
+  const offset = index * 6;
+  const x = arcs[offset] as number;
+  const y = arcs[offset + 1] as number;
+  const inner = arcs[offset + 2] as number;
+  const outer = arcs[offset + 3] as number;
+  const start = arcs[offset + 4] as number;
+  const end = arcs[offset + 5] as number;
+  if (!(outer > 0)) return null;
+  const sweep = end - start;
+  const sweepFlag = sweep >= 0 ? 1 : 0;
+  const reverseSweepFlag = sweepFlag === 1 ? 0 : 1;
+  const point = (angle: number, radius: number): readonly [number, number] => [
+    x + Math.cos(angle) * radius,
+    y + Math.sin(angle) * radius,
+  ];
+  const outerStart = point(start, outer);
+  const outerEnd = point(end, outer);
+  const full = Math.abs(sweep) >= Math.PI * 2 - 1e-6;
+  if (full) {
+    const middle = start + sweep / 2;
+    const outerMiddle = point(middle, outer);
+    if (inner <= 0) {
+      return `M ${outerStart[0]} ${outerStart[1]} A ${outer} ${outer} 0 0 ${sweepFlag} ${outerMiddle[0]} ${outerMiddle[1]} A ${outer} ${outer} 0 0 ${sweepFlag} ${outerEnd[0]} ${outerEnd[1]} Z`;
+    }
+    const innerStart = point(start, inner);
+    const innerMiddle = point(middle, inner);
+    const innerEnd = point(end, inner);
+    return `M ${outerStart[0]} ${outerStart[1]} A ${outer} ${outer} 0 0 ${sweepFlag} ${outerMiddle[0]} ${outerMiddle[1]} A ${outer} ${outer} 0 0 ${sweepFlag} ${outerEnd[0]} ${outerEnd[1]} L ${innerEnd[0]} ${innerEnd[1]} A ${inner} ${inner} 0 0 ${reverseSweepFlag} ${innerMiddle[0]} ${innerMiddle[1]} A ${inner} ${inner} 0 0 ${reverseSweepFlag} ${innerStart[0]} ${innerStart[1]} Z`;
+  }
+  const largeArc = Math.abs(sweep) > Math.PI ? 1 : 0;
+  if (inner <= 0) {
+    return `M ${x} ${y} L ${outerStart[0]} ${outerStart[1]} A ${outer} ${outer} 0 ${largeArc} ${sweepFlag} ${outerEnd[0]} ${outerEnd[1]} Z`;
+  }
+  const innerStart = point(start, inner);
+  const innerEnd = point(end, inner);
+  return `M ${outerStart[0]} ${outerStart[1]} A ${outer} ${outer} 0 ${largeArc} ${sweepFlag} ${outerEnd[0]} ${outerEnd[1]} L ${innerEnd[0]} ${innerEnd[1]} A ${inner} ${inner} 0 ${largeArc} ${reverseSweepFlag} ${innerStart[0]} ${innerStart[1]} Z`;
 }
 
 function appendInterval(

@@ -43,6 +43,42 @@ void main() {
   vColor = aColor;
 }`;
 
+const VERTEX_LINE = `#version 300 es
+in vec2 aCorner;
+in vec2 aStart;
+in vec2 aEnd;
+in vec4 aColor;
+uniform vec2 uViewport;
+uniform vec2 uXDomain;
+uniform vec2 uXRange;
+uniform vec2 uYDomain;
+uniform vec2 uYRange;
+uniform float uXLogarithmic;
+uniform float uYLogarithmic;
+uniform float uLineWidth;
+out vec4 vColor;
+${SCALE_FUNCTION}
+void main() {
+  vec2 first = vec2(
+    chartMap(aStart.x, uXDomain, uXRange, uXLogarithmic),
+    chartMap(aStart.y, uYDomain, uYRange, uYLogarithmic)
+  );
+  vec2 second = vec2(
+    chartMap(aEnd.x, uXDomain, uXRange, uXLogarithmic),
+    chartMap(aEnd.y, uYDomain, uYRange, uYLogarithmic)
+  );
+  vec2 delta = second - first;
+  float segmentLength = max(length(delta), 0.0001);
+  vec2 direction = delta / segmentLength;
+  vec2 normal = vec2(-direction.y, direction.x);
+  float halfWidth = uLineWidth * 0.5;
+  float along = mix(-halfWidth, segmentLength + halfWidth, aCorner.x);
+  vec2 position = first + direction * along + normal * mix(-halfWidth, halfWidth, aCorner.y);
+  vec2 clip = vec2((position.x / uViewport.x) * 2.0 - 1.0, 1.0 - (position.y / uViewport.y) * 2.0);
+  gl_Position = vec4(clip, 0.0, 1.0);
+  vColor = aColor;
+}`;
+
 const VERTEX_RECTANGLE = `#version 300 es
 in vec2 aCorner;
 in vec4 aRectangle;
@@ -390,16 +426,18 @@ export class WebGL2ChartRenderer implements ChartRenderer {
     const gl = this.#gl;
     gl.useProgram(this.#lineProgram);
     bindProjection(gl, this.#lineProgram, projection, x, y);
-    bindPositions(gl, this.#lineProgram, layer.buffer, 2);
-    bindColors(gl, this.#lineProgram, layer, this.#style.color, 0);
-    gl.lineWidth(this.#style.lineWidth * (projection.viewport.devicePixelRatio ?? 1));
+    bindCorners(gl, this.#lineProgram, this.#quadBuffer);
+    gl.uniform1f(gl.getUniformLocation(this.#lineProgram, 'uLineWidth'), this.#style.lineWidth);
     const spans = offsets ?? Uint32Array.of(0, layer.data.length / 2);
     let calls = 0;
     for (let index = 0; index + 1 < spans.length; index += 1) {
       const start = spans[index] as number;
       const count = (spans[index + 1] as number) - start;
-      if (count <= 0) continue;
-      gl.drawArrays(gl.LINE_STRIP, start, count);
+      const segments = count - 1;
+      if (segments <= 0) continue;
+      bindLineEndpoints(gl, this.#lineProgram, layer.buffer, start);
+      bindColors(gl, this.#lineProgram, layer, this.#style.color, 1, start * 4);
+      gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, segments);
       calls += 1;
     }
     return calls;
@@ -536,7 +574,7 @@ function createBaseResources(gl: WebGL2RenderingContext): WebGLBaseResources {
   let quadBuffer: WebGLBuffer | undefined;
   try {
     pointProgram = createProgram(gl, VERTEX_POINT, FRAGMENT_POINT);
-    lineProgram = createProgram(gl, VERTEX_POINT, FRAGMENT_COLOR);
+    lineProgram = createProgram(gl, VERTEX_LINE, FRAGMENT_COLOR);
     rectangleProgram = createProgram(gl, VERTEX_RECTANGLE, FRAGMENT_COLOR);
     arcProgram = createProgram(gl, VERTEX_ARC, FRAGMENT_ARC);
     quadBuffer = requiredBuffer(gl);
@@ -630,12 +668,30 @@ function bindPositions(gl: WebGL2RenderingContext, program: WebGLProgram, buffer
   gl.vertexAttribDivisor(location, 0);
 }
 
+function bindLineEndpoints(
+  gl: WebGL2RenderingContext,
+  program: WebGLProgram,
+  buffer: WebGLBuffer,
+  start: number,
+): void {
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  const first = gl.getAttribLocation(program, 'aStart');
+  gl.enableVertexAttribArray(first);
+  gl.vertexAttribPointer(first, 2, gl.FLOAT, false, 8, start * 8);
+  gl.vertexAttribDivisor(first, 1);
+  const second = gl.getAttribLocation(program, 'aEnd');
+  gl.enableVertexAttribArray(second);
+  gl.vertexAttribPointer(second, 2, gl.FLOAT, false, 8, (start + 1) * 8);
+  gl.vertexAttribDivisor(second, 1);
+}
+
 function bindColors(
   gl: WebGL2RenderingContext,
   program: WebGLProgram,
   layer: RetainedLayer,
   fallback: readonly number[],
   divisor: number,
+  byteOffset = 0,
 ): void {
   const location = gl.getAttribLocation(program, 'aColor');
   if (layer.colorBuffer === undefined) {
@@ -645,7 +701,7 @@ function bindColors(
   }
   gl.bindBuffer(gl.ARRAY_BUFFER, layer.colorBuffer);
   gl.enableVertexAttribArray(location);
-  gl.vertexAttribPointer(location, 4, gl.UNSIGNED_BYTE, true, 4, 0);
+  gl.vertexAttribPointer(location, 4, gl.UNSIGNED_BYTE, true, 4, byteOffset);
   gl.vertexAttribDivisor(location, divisor);
 }
 

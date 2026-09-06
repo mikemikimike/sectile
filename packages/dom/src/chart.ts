@@ -130,7 +130,7 @@ function normalizeRenderStyle(style: ChartRenderStyle = {}): Result<NormalizedCh
   if (style === null || typeof style !== 'object') return invalidRenderer('Chart renderer style must be an object.');
   const color = style.color ?? [0.12, 0.34, 0.92, 1];
   const pointRadius = style.pointRadius ?? 3;
-  const lineWidth = style.lineWidth ?? 1.5;
+  const lineWidth = style.lineWidth ?? 2.5;
   if (!Array.isArray(color) || color.length !== 4 || color.some((channel) => !Number.isFinite(channel) || channel < 0 || channel > 1)
     || !Number.isFinite(pointRadius) || pointRadius <= 0 || !Number.isFinite(lineWidth) || lineWidth <= 0) {
     return invalidRenderer('Chart renderer style is invalid.');

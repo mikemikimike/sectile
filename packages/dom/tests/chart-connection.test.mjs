@@ -493,10 +493,72 @@ test('connection-owned overlay renders bounded axes, grid, values, labels, units
   assert.deepEqual([...value.root.querySelectorAll('[data-chart-overlay="axis-value"]')].map((node) => node.getAttribute('text-anchor')), ['start', 'end', 'end', 'end', 'end', 'end']);
   assert.deepEqual([...value.root.querySelectorAll('[data-chart-overlay="axis-label"]')].map((node) => node.textContent), ['Month', 'Revenue (USD)']);
   assert.equal(value.root.querySelector('[data-chart-overlay="legend-label"]').textContent, 'revenue');
-  assert.equal(value.root.querySelectorAll('[data-chart-overlay="interaction-active"]').length, 1);
-  assert.equal(value.root.querySelectorAll('[data-chart-overlay="interaction-selection"]').length, 1);
+  const active = value.root.querySelector('[data-chart-overlay="interaction-active"]');
+  const selected = value.root.querySelector('[data-chart-overlay="interaction-selection"]');
+  assert.equal(active?.tagName, 'circle');
+  assert.equal(active?.getAttribute('r'), '3.5');
+  assert.equal(active?.getAttribute('fill'), 'rgba(255, 0, 0, 1)');
+  assert.equal(active?.getAttribute('stroke'), 'rgba(255, 0, 0, 1)');
+  assert.equal(selected?.tagName, 'circle');
+  assert.equal(selected?.getAttribute('r'), '4');
+  assert.equal(selected?.getAttribute('fill'), 'rgba(255, 0, 0, 1)');
+  assert.equal(selected?.getAttribute('stroke'), 'rgba(255, 0, 0, 1)');
   connection.disconnect();
   assert.equal(value.root.querySelector('svg'), null);
+});
+
+test('interaction overlay follows primitive geometry and projected colors', () => {
+  const value = fixture();
+  const green = new Uint8Array([0, 180, 90, 255]);
+  const semanticProjection = {
+    generation: 0,
+    profile: 'layered',
+    coordinate: 'cartesian',
+    viewport: { width: 100, height: 100, devicePixelRatio: 1 },
+    identities: ['bar', 'cell', 'slice'],
+    diagnostics: { sourceDatums: 3, representedDatums: 3, emittedPrimitives: 3 },
+    batches: [
+      { type: 'rectangle', layerIndex: 0, rectangles: new Float32Array([10, 20, 30, 40]), identityIndices: new Uint32Array([0]) },
+      { type: 'cell', layerIndex: 1, cells: new Float32Array([50, 10, 20, 20, 7]), identityIndices: new Uint32Array([1]) },
+      { type: 'arc', layerIndex: 2, arcs: new Float32Array([50, 50, 10, 30, 0, Math.PI / 2]), identityIndices: new Uint32Array([2]) },
+    ],
+    dataBatches: [
+      { layerIndex: 0, colors: new Uint8Array([255, 0, 0, 255]) },
+      { layerIndex: 1, colors: new Uint8Array([0, 0, 255, 255]) },
+      { layerIndex: 2, colors: green },
+    ],
+  };
+  const snapshot = value.controller.getSnapshot();
+  const controller = new Proxy(value.controller, {
+    get(target, property) {
+      if (property === 'project') return () => ({ ok: true, value: semanticProjection });
+      if (property === 'getSnapshot') return () => ({
+        ...snapshot,
+        state: {
+          ...snapshot.state,
+          activeDatum: 'bar',
+          cursor: 'cell',
+          selection: { type: 'points', ids: ['slice'] },
+        },
+      });
+      const result = Reflect.get(target, property, target);
+      return typeof result === 'function' ? result.bind(target) : result;
+    },
+  });
+  const connection = createDOMChart({ root: value.root, canvas: value.canvas, controller, renderer: value.renderer });
+  const active = value.root.querySelector('[data-chart-overlay="interaction-active"]');
+  const cursor = value.root.querySelector('[data-chart-overlay="interaction-cursor"]');
+  const selected = value.root.querySelector('[data-chart-overlay="interaction-selection"]');
+  assert.equal(active?.tagName, 'rect');
+  assert.deepEqual(['x', 'y', 'width', 'height'].map((name) => active?.getAttribute(name)), ['10', '20', '30', '40']);
+  assert.equal(active?.getAttribute('stroke'), 'rgba(255, 0, 0, 1)');
+  assert.equal(cursor?.tagName, 'rect');
+  assert.deepEqual(['x', 'y', 'width', 'height'].map((name) => cursor?.getAttribute(name)), ['50', '10', '20', '20']);
+  assert.equal(cursor?.getAttribute('stroke'), 'rgba(0, 0, 255, 1)');
+  assert.equal(selected?.tagName, 'path');
+  assert.match(selected?.getAttribute('d') ?? '', /A 30 30/u);
+  assert.equal(selected?.getAttribute('stroke'), 'rgba(0, 180, 90, 1)');
+  connection.disconnect();
 });
 
 test('model generations rebuild accessibility within the declared ceiling', () => {

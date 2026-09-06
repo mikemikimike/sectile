@@ -87,10 +87,11 @@ function webglFixture() {
     },
     bufferSubData: (_target, offset, data) => calls.push(['bufferSubData', offset, data.byteLength]),
     viewport() {}, clearColor() {}, clear() {}, enable() {}, blendFunc() {},
-    useProgram() {}, getUniformLocation: () => ({}), uniform1f() {}, uniform2f() {},
-    getAttribLocation: (_program, name) => ({ aPosition: 0, aCorner: 1, aRectangle: 2, aArc: 3, aColor: 4 })[name],
+    useProgram() {}, getUniformLocation: (_program, name) => name,
+    uniform1f: (...args) => calls.push(['uniform1f', ...args]), uniform2f() {},
+    getAttribLocation: (_program, name) => ({ aPosition: 0, aCorner: 1, aRectangle: 2, aArc: 3, aColor: 4, aStart: 5, aEnd: 6 })[name],
     enableVertexAttribArray() {}, disableVertexAttribArray() {}, vertexAttrib4f() {},
-    vertexAttribPointer() {}, vertexAttribDivisor() {}, lineWidth() {},
+    vertexAttribPointer() {}, vertexAttribDivisor() {}, lineWidth: (...args) => calls.push(['lineWidth', ...args]),
     drawArrays: (...args) => calls.push(['drawArrays', ...args]),
     drawArraysInstanced: (...args) => calls.push(['drawArraysInstanced', ...args]),
     flush: () => calls.push(['flush']),
@@ -179,6 +180,7 @@ test('Canvas2D consumes all six semantic profiles in data space with per-primiti
   assert.equal(diagnostics.drawCalls, 6);
   assert.equal(calls.some(([name]) => name === 'fillRect'), true);
   assert.equal(calls.some(([name]) => name === 'lineTo'), true);
+  assert.equal(calls.some(([name, value]) => name === 'set:lineWidth' && value === 2.5), true);
   assert.equal(calls.filter(([name]) => name === 'arc').length >= 4, true);
   assert.equal(calls.some(([name, value]) => name === 'set:fillStyle' && String(value).includes('255, 0, 0')), true);
 });
@@ -197,6 +199,9 @@ test('WebGL2 retains layer buffers across compatible view changes and uploads on
   renderer.render(first);
   assert.equal(renderer.getDiagnostics().drawCalls, 6);
   assert.equal(renderer.getDiagnostics().uploadedBytes > 0, true);
+  assert.equal(calls.some(([name, location, value]) => name === 'uniform1f' && location === 'uLineWidth' && value === 2.5), true);
+  assert.equal(calls.some(([name]) => name === 'lineWidth'), false);
+  assert.equal(calls.filter(([name, mode]) => name === 'drawArrays' && mode === 15).length, 0);
   const uploadsAfterFirst = calls.filter(([name]) => name === 'bufferData').length;
 
   first.viewport = { width: 120, height: 90, devicePixelRatio: 2 };

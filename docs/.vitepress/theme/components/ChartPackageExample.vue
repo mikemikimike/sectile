@@ -410,7 +410,7 @@ const datumLabel = (id: string | number): string => detailFor(id);
   stroke-opacity: 0.08;
 }
 
-.chart-example__plot :deep([data-chart-overlay='legend']) {
+.chart-example__surface :deep([data-chart-overlay='legend']) {
   display: none;
 }
 

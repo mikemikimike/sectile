@@ -85,7 +85,7 @@ test('Chart examples use public APIs and cover every built-in profile', async ()
   assert.match(component, /class="chart-example__detail"/u);
   assert.match(component, /source-relationship="usage"/u);
   assert.doesNotMatch(component, /ChartLegend|chart-workbench__selector|const chartKinds/u);
-  assert.match(component, /data-chart-overlay='legend'[^}]*display:\s*none/su);
+  assert.match(component, /\.chart-example__surface :deep\(\[data-chart-overlay='legend'\]\)[^}]*display:\s*none/su);
   assert.match(component, /getAccessibleDatumLabel/u);
   assert.match(sources, /getAccessibleDatumLabel/u);
   assert.match(sources, /viewCapabilities: \[\{ axisID: 'x', minimumSpan: 4, update: 'preserve' \}\]/u);

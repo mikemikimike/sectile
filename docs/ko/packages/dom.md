@@ -1,47 +1,57 @@
-# 브라우저
+---
+title: DOM
+description: Sectile 상호작용을 애플리케이션이 소유한 브라우저 요소, 폼, 팝업, 대규모 화면에 연결합니다.
+---
 
-`@sectile/dom`은 Sectile의 상호작용 규칙을 실제 브라우저 요소에 연결합니다. 키보드와 포인터 입력, 포커스, 조합 입력, 폼, ARIA 속성, 요소 수명 주기를 처리합니다. 마크업과 시각 스타일은 응용 프로그램이 정합니다.
+# DOM
+
+`@sectile/dom`은 애플리케이션이 이미 렌더링한 브라우저 요소에 Sectile 상호작용을 연결합니다. 키보드, 포인터, 포커스, 조합 입력을 해석하고 접근성·상태 속성을 요소에 반영하며, 연결에 필요한 브라우저 리스너와 자원을 관리합니다. 마크업, 애플리케이션 데이터, 시각 스타일은 애플리케이션이 결정합니다.
+
+HTML을 애플리케이션이 직접 소유하거나 프레임워크 연결 계층이 필요하지 않을 때 이 패키지를 사용합니다. Vue가 렌더링과 컴포넌트 수명 주기를 맡는다면 [`@sectile/vue`](/ko/packages/vue)를 사용합니다.
+
+## 설치
 
 ```sh
 pnpm add @sectile/dom
 ```
 
-어떤 컴포넌트에 의존하는지 분명하도록 컴포넌트별 공개 경로에서 가져옵니다.
+기능별 공개 경로에서 가져오면 어떤 DOM 기능을 쓰는지 가져오기 구문만 봐도 드러납니다.
 
 ```ts
 import { createCheckbox } from '@sectile/dom/checkbox'
+import { createPopover } from '@sectile/dom/popover'
 ```
 
-## 기존 요소에 연결하기
+지원하는 공개 경로 전체는 [DOM API 참조](/ko/api/dom)에 정리되어 있습니다. Form, Temporal, Virtual, Tabular, Chart 연결은 해당 기능을 사용할 때만 각각의 선택 패키지가 필요합니다.
 
-응용 프로그램에 필요한 마크업을 만든 다음 상호작용할 요소를 DOM 생성 함수에 전달합니다.
+## 기존 마크업에 동작 연결하기
+
+직접 `create*` 생성 함수는 애플리케이션이 소유한 요소를 받아 바로 사용할 수 있는 연결 객체를 만듭니다. 다음 체크박스는 버튼을 상호작용 요소로 사용하고, 확정된 상태를 별도 문구에 표시합니다.
 
 ```html
-<button id="newsletter" type="button">
-  제품 소식 받기: <span id="newsletter-state"></span>
+<button class="newsletter-toggle" type="button" data-newsletter-toggle>
+  제품 소식 받기
 </button>
+<p>현재 설정: <strong data-newsletter-state>끔</strong></p>
 ```
 
 ```ts
 import { createCheckbox } from '@sectile/dom/checkbox'
 
-const element = document.querySelector<HTMLElement>('#newsletter')
-const stateLabel = document.querySelector<HTMLElement>('#newsletter-state')
+const element = document.querySelector<HTMLElement>('[data-newsletter-toggle]')
+const stateLabel = document.querySelector<HTMLElement>('[data-newsletter-state]')
 
 if (element === null || stateLabel === null) {
-  throw new Error('체크박스 마크업이 필요합니다.')
+  throw new Error('제품 소식 설정 요소를 찾을 수 없습니다')
 }
 
 const checkbox = createCheckbox({
   element,
   defaultValue: false,
-  onValueChange(value) {
-    console.log('newsletter', value)
-  },
 })
 
 const render = () => {
-  stateLabel.textContent = checkbox.state.checked ? '켬' : '끔'
+  stateLabel.textContent = checkbox.state.checked === true ? '켬' : '끔'
 }
 
 const unsubscribe = checkbox.subscribe(render)
@@ -53,209 +63,154 @@ window.addEventListener('pagehide', () => {
 }, { once: true })
 ```
 
-생성 함수는 필요한 이벤트 리스너를 등록하고 의미 상태를 요소에 즉시 반영합니다. 위 체크박스의 상태가 바뀌면 `role`, `aria-checked`, `data-state`, 비활성 상태, 읽기 전용 상태도 함께 갱신됩니다.
+연결 객체는 브라우저 입력을 처리하고 요소의 접근성·상태 속성을 현재 상태와 맞춥니다. 위 예제에서는 값이 바뀔 때 체크박스 역할, `aria-checked`, 상태 데이터 속성이 함께 갱신됩니다. 별도의 상태 문구는 애플리케이션이 필요에 따라 렌더링합니다.
 
-## 연결 객체 규약
+직접 연결 객체는 공통 수명 주기 API를 가집니다. `state`로 확정된 상태를 읽고, `send()`로 의미 입력을 보내며, 지원하는 컴포넌트에서는 `update()`로 외부 소유 값을 동기화합니다. `subscribe()`는 확정된 변경을 구독하고 `destroy()`는 연결 객체가 소유한 자원을 해제합니다. 컬렉션 등록이나 위치 갱신처럼 컴포넌트 고유 동작이 필요하면 같은 객체에 전용 메서드가 추가됩니다.
 
-모든 직접 `create*` 생성 함수는 같은 수명 주기 API를 가진 연결 객체를 반환합니다.
+## 애플리케이션 상태로 값 제어하기
 
-| 항목 | 역할 |
-| --- | --- |
-| `state` | 현재 의미 상태를 읽습니다. |
-| `send(input)` | 컴포넌트에 정규화된 상호작용 입력을 보냅니다. |
-| `update(value)` | 외부에서 소유하는 제어 상태를 동기화합니다. |
-| `subscribe(listener)` | 적용된 변경을 구독하고 구독 해제 함수를 받습니다. |
-| `destroy()` | DOM 리스너와 연결 객체가 소유한 자원을 해제합니다. |
-
-같은 객체에서 컴포넌트별 메서드도 사용할 수 있습니다. 포커스 이동, 컬렉션 변경, 팝업 배치처럼 더 복잡한 동작이 필요할 때 사용합니다.
-
-## 상태 소유권
-
-연결 객체가 현재 값을 소유해야 하면 `defaultValue`를 전달합니다. 응용 프로그램 상태가 값을 소유하면 `value`와 `onValueChange`를 함께 전달합니다.
+연결 객체가 초기 값부터 직접 소유하게 하려면 `defaultValue`를 사용합니다. 최종 값을 애플리케이션 상태가 결정한다면 `value`와 변경 콜백을 함께 전달합니다.
 
 ```ts
+const settings = {
+  newsletter: false,
+}
+
 const checkbox = createCheckbox({
   element,
   value: settings.newsletter,
   onValueChange(nextValue) {
     settings.newsletter = nextValue
-    checkbox.update(nextValue)
+    checkbox.update(settings.newsletter)
   },
 })
 ```
 
-제어 상태의 상호작용은 제안된 값을 알립니다. 소유자가 값을 수락한 뒤 `update`를 호출해 응용 프로그램 상태와 연결 객체를 동기화합니다. 공통 규칙은 [상태 소유권](/ko/guide/state-ownership)에서 확인할 수 있습니다.
+제어 상태에서는 상호작용 결과가 `onValueChange`로 제안됩니다. 애플리케이션이 그 값을 받아들인 뒤 `update()`를 호출하면 연결 객체도 확정된 값으로 맞춰집니다. Sectile 컴포넌트가 공유하는 상태 소유 규칙은 [상태 소유권](/ko/guide/state-ownership)에서 다룹니다.
 
-## 컨트롤러와 속성 반영
+## 마크업을 유지한 채 팝업 연결하기
 
-상태와 렌더링의 수명 주기를 따로 관리해야 하면 `create*Controller`를 사용합니다. 컨트롤러는 상태만으로 동작하며, `get*Attributes`가 스냅숏을 원하는 DOM 구조에 반영합니다.
+팝업 연결 객체도 애플리케이션이 만든 트리거와 콘텐츠 요소를 그대로 사용합니다. 열림 상태, 닫기 동작, 포커스, 접근성 속성, 위치 계산은 연결 객체가 맞추고 콘텐츠 구조와 스타일은 그대로 유지됩니다.
 
-```ts
-import {
-  createCheckboxController,
-  getCheckboxAttributes,
-} from '@sectile/dom/checkbox'
-
-const result = createCheckboxController({ defaultValue: 'mixed' })
-if (!result.ok) throw new TypeError(result.error.message)
-
-const snapshot = result.value.getSnapshot()
-const attributes = getCheckboxAttributes(snapshot.state, { required: true })
-```
-
-복합 컴포넌트는 전용 이벤트 변환 함수와 효과 반영 함수도 제공합니다. 사용자 정의 렌더러, 이벤트 위임 시스템, 요소 소유권을 상위 계층에서 관리하는 실행 환경에서 이 하위 API를 사용합니다.
-
-## 브라우저 기본 동작
-
-HTML이 이미 올바른 의미를 제공하는 영역에서는 브라우저 기본 동작을 유지합니다.
-
-- 텍스트 필드는 기본 편집, 선택 영역, 한글을 포함한 IME 조합 입력을 유지합니다.
-- 폼 컨트롤은 지원 범위 안에서 `name`, `value`, `required`, `disabled`, 소속 폼을 반영합니다.
-- 키보드 동작의 우선권은 포커스된 요소에 둡니다.
-- 포커스 효과는 실제 요소를 직접 대상으로 합니다.
-
-해당 컴포넌트에 맞는 HTML 기본 요소를 우선 사용합니다. 제품 구조가 다른 요소를 요구하면 반환된 ARIA와 데이터 속성을 모두 적용합니다.
-
-## 떠 있는 화면
-
-Popover와 Tooltip 연결 객체는 Floating UI를 사용합니다. 기본 오프셋, 충돌 시 뒤집기와 이동, 사용 가능한 크기, 화살표 배치, 분리된 앵커 숨김, 열린 동안의 자동 갱신을 지원합니다. 경계, 여백, 배치 전략, 관찰자, 미들웨어는 바꿀 수 있으며 관련 공개 경로에서 Floating UI 미들웨어도 다시 내보냅니다.
-
-트리거가 있는 모든 팝업은 문서별 레이어 스택에도 참여합니다. Dialog, Popover, Select, Combobox, Menu, Cascade Select, Date Picker가 섞여 중첩돼도 최상위 Escape, 바깥 상호작용 닫기, 하위 레이어 전파, 포커스 복귀가 같은 규칙을 따릅니다.
-
-## Presence와 표시 상태 소유권
-
-`@sectile/dom/presence`는 CSS 닫힘 모션 동안 surface를 DOM에 유지하는 renderer를 위한 브라우저 모션 관찰자입니다. 이 API는 `hidden`, ARIA 속성, `inert`, style을 직접 쓰지 않습니다. 해당 DOM 반영은 renderer가 소유하며, 닫힌 상태의 DOM을 먼저 반영한 뒤 `update(false, element)`를 호출해야 실제 exit style을 기준으로 모션을 측정할 수 있습니다.
-
-```ts
-import { createPresence } from '@sectile/dom/presence'
-
-const presence = createPresence({
-  open: true,
-  element: content,
-  onPresentChange(present) {
-    if (!present) content.hidden = true
-  },
-})
-
-// 의미상 닫힌 상태를 먼저 렌더링한 뒤 exit 관찰을 시작합니다.
-content.dataset.state = 'closed'
-presence.update(false, content)
-```
-
-다시 열면 대기 중인 exit가 즉시 취소됩니다. 요소가 교체되거나 `disconnect()`가 호출되면 이전 listener와 timer를 먼저 해제하므로 오래된 generation이 상태를 반영할 수 없습니다. 관찰자는 소유 요소의 유한한 transition과 animation 중 가장 긴 모션을 기다리며 fallback 대기 시간에는 상한이 있습니다. 자식 요소의 모션은 부모 surface의 수명을 결정하지 않습니다.
-
-직접 DOM transient surface 연결은 기본적으로 기능적 `hidden` 표시 상태를 동기적으로 관리하므로 imperative 사용자는 기존 focus, layer, positioning 계약을 그대로 유지합니다. 공개 `manageVisibility: false`는 이미 렌더러 소유 visibility를 지원하던 popup, Select, Toast API에 그대로 유지됩니다. Vue는 Menu 계열 transient surface, Combobox, Cascade Select, popup picker에도 DOM presence 관찰자를 조합하지만, 이 연결은 내부 renderer handoff로 처리하며 direct DOM API에 새 visibility 옵션을 추가하지 않습니다. 연결 객체가 `hidden`을 소유하는 기본 모드에서는 Sectile이 마지막으로 쓴 값이 그대로 남아 있을 때만 연결 전 attribute 값을 복원하므로, 연결 중 소비자가 바꾼 상태를 덮어쓰지 않습니다.
-
-## 순서 변경
-
-`@sectile/dom/reorder`는 sequence와 tree 순서 변경을 Alt 조합 이동 키와 포인터 배치로 연결합니다. 포인터 캡처와 위치 판정은 DOM 어댑터가 담당하고 Core에는 안정 식별자와 before/after 또는 부모 배치만 전달합니다.
-
-## 날짜와 시간 컨트롤
-
-날짜 입력란, 시간 입력란, 달력, 선택기를 브라우저 요소에 연결할 때 `@sectile/temporal`을 설치합니다. 각 어댑터 제품군은 세분화된 선택 진입점을 사용하므로 필요한 제품군만 불러옵니다.
-
-```sh
-pnpm add @sectile/core @sectile/temporal @sectile/dom
+```html
+<button type="button" data-help-trigger>배송 안내</button>
+<div class="delivery-popover" data-help-popover hidden>
+  오후 3시 이전 주문은 영업일 기준 당일 출고합니다.
+</div>
 ```
 
 ```ts
-import { createCalendar } from '@sectile/dom/temporal/calendar'
-import { createDateField } from '@sectile/dom/temporal/date-field'
-import { createDatePicker } from '@sectile/dom/temporal/date-picker'
-```
+import { createPopover } from '@sectile/dom/popover'
 
-## Form 조정
+const trigger = document.querySelector<HTMLElement>('[data-help-trigger]')
+const root = document.querySelector<HTMLElement>('[data-help-popover]')
 
-기존 HTML 폼에 접근 가능한 오류, 검증, 제출 처리, 일관된 초기화가 필요할 때 optional peer인 `@sectile/form`을 설치합니다. 일반 `@sectile/dom` 컴포넌트 import에는 필요하지 않습니다.
-
-```sh
-pnpm add @sectile/core @sectile/form @sectile/dom
-```
-
-```ts
-import { createForm } from '@sectile/dom/form'
-```
-
-`createForm()`은 브라우저 폼 동작을 유지하면서 네이티브 입력, Sectile 컨트롤, 두 종류를 섞은 폼에서 사용할 수 있습니다. 전체 예제와 동적 필드, 네이티브 페이지 이동, 정리 방법은 [DOM 폼 안내](/ko/packages/form/dom/)를 참고하세요.
-
-## 가상화 host
-
-`@sectile/dom/virtual`은 `@sectile/virtual` layout strategy를 명시적인 scrollport와 surface에 연결합니다. Connection은 브라우저 scheduling, frame geometry, measurement, 물리 scroll effect를 맡고, layout semantics는 계속 Virtual이 소유합니다.
-
-```sh
-pnpm add @sectile/core @sectile/virtual @sectile/dom
-```
-
-```ts
-import {
-  createAxisMeasurementResolver,
-  createVirtualizer,
-  virtualItemStyle,
-  virtualSurfaceStyle,
-} from '@sectile/dom/virtual'
-import { linearLayoutStrategy } from '@sectile/virtual/linear-layout'
-
-const virtualizer = createVirtualizer({
-  scrollport: scrollElement,
-  surface: surfaceElement,
-  state: linearState,
-  strategy: linearLayoutStrategy,
-  overscan: 240,
-  viewportInsets: { top: 48 },
-  measure: createAxisMeasurementResolver('vertical'),
-  onStateChange(state) {
-    linearState = state
-  },
-  onPlanChange(plan, connection) {
-    Object.assign(surfaceElement.style, virtualSurfaceStyle(plan))
-    reconcileItems(plan.placements, (element, placement) => {
-      Object.assign(element.style, virtualItemStyle(placement, { width: true }))
-      return connection.registerItem(element, placement.id)
-    })
-  },
-})
-
-const unregisterHeader = virtualizer.registerFrame(headerElement)
-```
-
-Scroll, frame invalidation, measurement, layout mutation은 한 animation-frame transaction으로 합칩니다. `registerFrame()`은 일반 header/footer geometry를 관찰하지만 그 element를 Virtual item domain에는 넣지 않습니다. Item rect를 한꺼번에 읽고 strategy에 한 세대의 measurement batch로 적용한 뒤 frame correction과 layout anchor correction을 합성하고 다음 plan을 공개합니다. `measure()`는 여러 rect가 하나의 item을 구성하는 track grid 등에 명시적인 strategy measurement를 전달합니다. `mutate()`는 domain이나 geometry 변경에도 같은 anchor 보정 경로를 적용하며, `scrollTo()`는 현재 render window 밖에 있는 ID도 요청할 수 있습니다.
-
-`createAxisMeasurementResolver()`는 layout plan의 물리 좌표와 일치하도록 `getBoundingClientRect()`로 물리 border-box rect를 읽습니다. Content-box, device-pixel, writing-mode 기반 측정이 필요하면 custom resolver에 전달되는 원래 `ResizeObserverEntry`를 사용합니다. 재활용한 element를 다른 identity에 할당하면 이전 identity에서 대기하던 observation은 폐기합니다.
-
-기본 viewport는 0 이상의 물리 `scrollLeft`와 `scrollTop`을 사용합니다. RTL scroller나 사용자 정의 surface의 좌표 모델이 다르면 `readViewport`와 `writeScroll`을 전달합니다.
-
-## 스타일 선택자
-
-DOM 연결 객체는 동작을 제공합니다. 테마는 응용 프로그램 클래스와 반영된 상태 속성으로 구성합니다.
-
-```css
-#newsletter {
-  border: 1px solid var(--control-border);
-  border-radius: 0.5rem;
+if (trigger === null || root === null) {
+  throw new Error('배송 안내 팝업 요소를 찾을 수 없습니다')
 }
 
-#newsletter[data-state='checked'] {
+const popover = createPopover({
+  trigger,
+  root,
+  label: '배송 안내',
+  side: 'bottom',
+  align: 'start',
+})
+
+window.addEventListener('pagehide', () => {
+  popover.destroy()
+}, { once: true })
+```
+
+기본 설정에서는 Popover 연결 객체가 표시 상태를 관리하고 트리거를 기준으로 콘텐츠 위치를 계산합니다. Dialog, Menu, Select, Combobox, Tooltip, Drawer, 날짜 선택기도 각자의 공개 DOM 경로에서 같은 방식으로 애플리케이션 마크업에 연결됩니다.
+
+CSS 닫힘 모션은 [모션](/ko/guides/motion)을 참고하세요. 표시 여부를 애플리케이션이 직접 관리할 수 있도록 공개 옵션을 제공하는 화면도 있습니다. 일반적인 직접 연결 방식에서는 표시 상태, 포커스, 닫기 동작, 위치 계산을 한 연결 객체가 함께 맞춥니다.
+
+## 브라우저 기본 동작 유지하기
+
+HTML이 이미 제공하는 편집 동작은 Sectile이 다시 구현하지 않습니다. 텍스트 입력은 브라우저의 선택 영역과 IME 조합 입력을 유지하고, 폼 컨트롤은 원래의 폼 소속 관계를 유지하며, 포커스 효과는 실제 요소를 대상으로 합니다.
+
+의도한 컨트롤과 HTML 기본 요소가 잘 맞는다면 그 요소를 사용하는 편이 좋습니다. 제품 구조상 다른 요소가 필요할 때 DOM 연결 객체가 필요한 접근성·상태 속성을 그 구조에 반영합니다.
+
+## 반영된 상태로 스타일 지정하기
+
+DOM 연결에는 테마가 포함되지 않습니다. 애플리케이션 클래스와 Sectile이 요소에 반영한 상태 속성을 기준으로 스타일을 지정합니다.
+
+```css
+.newsletter-toggle {
+  border: 1px solid var(--control-border);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.newsletter-toggle[data-state='checked'] {
   background: var(--control-accent);
   color: var(--control-on-accent);
 }
 
-#newsletter[data-disabled] {
+.newsletter-toggle[data-disabled] {
   cursor: not-allowed;
   opacity: 0.5;
 }
 ```
 
-복합 컴포넌트의 속성 도우미는 안정적인 `data-scope`와 `data-part` 경계도 제공합니다. 전체 규칙은 [스타일링](/ko/guide/styling)에서 확인할 수 있습니다.
+복합 화면은 `data-scope`와 `data-part`도 안정적인 스타일 경계로 노출합니다. 공통 선택자 규칙은 [스타일링](/ko/guide/styling), 공개 상태를 이용한 전환 효과는 [모션](/ko/guides/motion)에서 설명합니다.
 
-## 생성 실패 처리
+## 화면과 함께 연결 객체 정리하기
 
-일반적인 설정에서는 `create*`를 사용합니다. 바로 사용할 수 있는 연결 객체를 반환하며 설정이 잘못되면 형식이 정해진 Sectile 오류를 던집니다. 생성 실패를 복구 가능한 `Result`로 다뤄야 할 때는 대응하는 `tryCreate*`를 사용합니다.
+연결 객체의 수명은 자신이 연결된 요소를 소유한 화면의 수명과 같아야 합니다. 경로나 화면, 상위 컴포넌트가 요소를 제거할 때 `destroy()`를 호출하고 애플리케이션이 만든 구독도 같은 시점에 해제합니다.
 
 ```ts
-import { createCheckbox, tryCreateCheckbox } from '@sectile/dom/checkbox'
+const unsubscribe = checkbox.subscribe(render)
 
-const connection = createCheckbox(options)
-const recoverable = tryCreateCheckbox(options)
+function disposeNewsletterControls() {
+  unsubscribe()
+  checkbox.destroy()
+}
 ```
 
-브라우저의 `create*`는 바로 사용할 수 있는 연결 객체를 반환합니다.
+`destroy()`는 해당 연결 객체가 소유한 브라우저 자원을 해제합니다. 서로 독립적인 연결 객체를 여러 개 만들었다면 각각의 소유 화면에서 따로 정리합니다.
+
+## 필요한 도메인만 추가하기
+
+기본 DOM 패키지는 Core에 의존하며 다른 도메인 패키지를 자동으로 요구하지 않습니다. 필요한 기능에 해당하는 선택 패키지만 추가합니다.
+
+| 필요한 기능 | 추가 패키지 | DOM 공개 경로 | 안내 |
+| --- | --- | --- | --- |
+| 폼 검증과 제출 | `@sectile/form` | `@sectile/dom/form` | [DOM 폼](/ko/packages/form/dom/) |
+| 날짜, 시간, 달력, 선택기 | `@sectile/temporal` | 예: `@sectile/dom/temporal/date-picker` | [Temporal](/ko/packages/temporal) |
+| 가상화 목록과 화면 | `@sectile/virtual` | `@sectile/dom/virtual` | [Virtual DOM 연결](/ko/packages/virtual/dom) |
+| 표와 그리드 | `@sectile/tabular` | `@sectile/dom/tabular` | [Tabular DOM 조합](/ko/packages/tabular/dom) |
+| 차트 | `@sectile/chart` | `@sectile/dom/chart` | [DOM 차트 렌더링](/ko/packages/chart/dom) |
+
+각 도메인의 동작 규칙은 해당 패키지가 계속 맡습니다. DOM 연결은 그 규칙에 브라우저 요소, 입력, 측정, 포커스, 렌더링 자원, 정리 수명 주기를 결합합니다.
+
+## 수명 주기를 분리해야 할 때 하위 API 사용하기
+
+대부분은 직접 생성 함수로 시작하면 됩니다. 상태와 요소의 수명 주기를 분리해야 하는 컴포넌트는 하위 컨트롤러와 속성 도우미도 공개합니다. 예를 들어 `createCheckboxController()`는 요소 없이 체크박스 상태를 관리하고, `getCheckboxAttributes()`는 현재 상태를 애플리케이션이 관리하는 DOM에 반영할 속성으로 바꿉니다.
+
+이 방식은 이벤트 위임 시스템이나 사용자 정의 렌더링 계층처럼 하나의 직접 연결 객체가 요소를 소유하기 어려운 경우에 적합합니다. 공개 패키지 경로의 기준 목록은 [DOM API 참조](/ko/api/dom)에 있으며, 세부 타입과 도우미는 필요한 컴포넌트 경로에서 찾을 수 있습니다.
+
+## 생성 실패를 정상 흐름에서 처리하기
+
+`create*` 생성 함수는 바로 사용할 수 있는 연결 객체를 반환하며 설정 값이 잘못되면 예외를 던집니다. 외부 설정처럼 생성 실패를 정상 흐름에서 처리해야 한다면 대응하는 `tryCreate*`를 사용해 `Result`로 받습니다.
+
+```ts
+import { tryCreateCheckbox } from '@sectile/dom/checkbox'
+
+const result = tryCreateCheckbox({ element })
+
+if (!result.ok) {
+  console.error(result.error.code)
+} else {
+  const checkbox = result.value
+  window.addEventListener('pagehide', () => checkbox.destroy(), { once: true })
+}
+```
+
+## 작업별 다음 문서
+
+- 개별 컨트롤의 동작 미리보기와 DOM 사용 코드는 [컴포넌트](/ko/components/)에서 확인할 수 있습니다.
+- 애플리케이션 상태가 값을 소유하는 경우에는 [상태 소유권](/ko/guide/state-ownership)을 참고하세요.
+- 공개 상태 선택자와 전환 효과는 [스타일링](/ko/guide/styling)과 [모션](/ko/guides/motion)에서 다룹니다.
+- 정확한 DOM 공개 패키지 경로가 필요하면 [DOM API 참조](/ko/api/dom)를 확인하세요.

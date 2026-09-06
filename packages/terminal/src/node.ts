@@ -1,4 +1,5 @@
 import { emitKeypressEvents } from 'node:readline';
+import { Readable } from 'node:stream';
 import type { ReadStream } from 'node:tty';
 import type { Result } from '@sectile/core';
 import type {
@@ -110,25 +111,53 @@ export function createTTYKeyboard(
   const wasRaw = input.isRaw;
   const wasFlowing = input.readableFlowing === true;
   let closed = false;
+  let decoder: Readable | undefined;
+  let onInput: TTYKeyboardInputHandler | undefined = listener;
   const handleKeypress = (value: string | undefined, keypress: NodeKeypress): void => {
+    if (closed) return;
     const normalized = toTerminalKeyboardInput(value, keypress);
-    if (normalized !== null) listener(normalized);
+    if (normalized !== null) onInput?.(normalized);
+  };
+  const handleData = (chunk: Buffer | string): void => {
+    if (!closed) decoder?.emit('data', chunk);
+  };
+  const close = (): void => {
+    if (closed) return;
+    closed = true;
+    onInput = undefined;
+    try {
+      input.off('data', handleData);
+    } finally {
+      const ownedDecoder = decoder;
+      decoder = undefined;
+      ownedDecoder?.removeAllListeners();
+      ownedDecoder?.destroy();
+      try {
+        input.setRawMode(wasRaw);
+      } finally {
+        try {
+          if (wasFlowing) input.resume();
+          else input.pause();
+        } finally {
+          ownedTTYInputs.delete(input);
+        }
+      }
+    }
   };
 
   ownedTTYInputs.add(input);
   try {
-    emitKeypressEvents(input);
+    // Node's decoder has no public disposer. Keep its state off the borrowed TTY.
+    // Forward data synchronously, without introducing another buffering queue.
+    decoder = createKeypressStream();
+    decoder.on('keypress', handleKeypress);
+    emitKeypressEvents(decoder);
     input.setRawMode(true);
+    input.on('data', handleData);
     input.resume();
-    input.on('keypress', handleKeypress);
   } catch (cause) {
-    ownedTTYInputs.delete(input);
-    try {
-      input.off('keypress', handleKeypress);
-      input.setRawMode(wasRaw);
-      if (wasFlowing) input.resume();
-      else input.pause();
-    } catch {
+    try { close(); }
+    catch {
       // The original setup failure remains the actionable error.
     }
     return {
@@ -142,26 +171,13 @@ export function createTTYKeyboard(
     };
   }
 
-  return {
-    ok: true,
-    value: Object.freeze({
-      close(): void {
-        if (closed) return;
-        closed = true;
-        input.off('keypress', handleKeypress);
-        try {
-          input.setRawMode(wasRaw);
-        } finally {
-          try {
-            if (wasFlowing) input.resume();
-            else input.pause();
-          } finally {
-            ownedTTYInputs.delete(input);
-          }
-        }
-      },
-    }),
-  };
+  return { ok: true, value: Object.freeze({ close }) };
+}
+
+function createKeypressStream(): Readable {
+  // Keep the pull callback outside the acquisition scope: a pending Node escape
+  // timeout must not retain the borrowed input through that callback's closure.
+  return new Readable({ read(): void {} });
 }
 
 export function detectTerminalCapabilities(

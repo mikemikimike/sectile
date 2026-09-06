@@ -14,7 +14,7 @@ Every runtime ESM export inherits an explicit package public contract. Hot inter
 | form | 21 | 0 | 7 |
 | tabular | 33 | 0 | 8 |
 | temporal | 99 | 24 | 2 |
-| terminal | 347 | 177 | 3 |
+| terminal | 347 | 177 | 4 |
 | virtual | 114 | 0 | 27 |
 | vue | 740 | 319 | 8 |
 
@@ -136,6 +136,7 @@ Every runtime ESM export inherits an explicit package public contract. Hot inter
 | terminal:component.dispatch | trusted | `O(nDomain + cCommand)` worst-case | `O(nDomain + cCommand)` | `O(cCommand)` | `O(nDomain)` | allowed | VAL-016, VAL-017 |
 | terminal:screen.render | connected | `O(rRow * cColumn)` worst-case | `O(rRow * cColumn)` | `O(rRow * cColumn)` | `O(rRow * cColumn)` | allowed | VAL-016, VAL-017 |
 | terminal:screen.writer-snapshot | external | `O(rRow)` worst-case | `O(1)` | `O(rRow)` | `O(rRow)` | allowed | packages/terminal/tests/screen.test.mjs |
+| terminal:tty.keyboard-close | connected | `O(lInput)` worst-case | `O(1)` | `O(1)` | `O(1)` | forbidden | packages/terminal/tests/keyboard.test.mjs |
 | virtual:collection.extents.reconcile | trusted | `O(jChanged log nItem)` worst-case | `O(jChanged)` | `O(jChanged)` | `O(jChanged)` | forbidden | VAL-003 |
 | virtual:collection.lanes.resolve | external | `O(1)` worst-case | `O(1)` | `O(1)` | `O(1)` | forbidden | VAL-003 |
 | virtual:collection.patch.trusted | external | `O(jChanged)` worst-case | `O(jChanged)` | `O(1)` | `O(jChanged)` | forbidden | VAL-003 |

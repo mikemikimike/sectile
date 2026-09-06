@@ -65,6 +65,55 @@ test('controlled component controller preserves external ownership and callback 
   assert.equal(uncontrolled.value.syncControlledValue(1).error.code, 'uncontrolled-controller-sync');
 });
 
+test('controlled component controller drains committed effects before change callbacks', () => {
+  for (const controlled of [false, true]) {
+    const trace = [];
+    const first = new Error('first effect failed');
+    const controller = createControlledComponentController({
+      controlled,
+      initial: { ok: true, value: 0 },
+      reducer: (state, amount) => ({
+        ok: true, value: { state: state + amount, commands: [{ id: 1 }, { id: 2 }] },
+      }),
+      create: (value) => ({ ok: true, value }),
+      read: (state) => state,
+      publishEffect: (command) => {
+        trace.push(`effect:${command.id}`);
+        assert.equal(controller.value.getSnapshot().revision, 1);
+        assert.equal(controller.value.getSnapshot().state, controlled ? 0 : 1);
+        throw command.id === 1 ? first : new Error('later effect failed');
+      },
+      onChange: (value, previous) => {
+        trace.push(['change', previous, value]);
+        throw new Error('later change failed');
+      },
+    });
+    assert.equal(controller.ok, true);
+    assert.throws(() => controller.value.handle(1), (error) => error === first);
+    assert.deepEqual(trace, ['effect:1', 'effect:2', ['change', 0, 1]]);
+    const committed = controller.value.getSnapshot();
+    trace.length = 0;
+    assert.equal(controller.value.handle(1, 0).ok, false);
+    assert.equal(controller.value.getSnapshot(), committed);
+    assert.deepEqual(trace, []);
+  }
+});
+
+test('controlled component effect publication satisfies the public declaration contract', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const result = spawnSync(process.execPath, [
+    'node_modules/typescript/lib/tsc.js',
+    '--project', 'tests/runtime/tsconfig.types.json',
+    '--pretty', 'false',
+  ], {
+    cwd: new URL('../../', import.meta.url),
+    encoding: 'utf8',
+    timeout: 30_000,
+  });
+  assert.ifError(result.error);
+  assert.equal(result.status, 0, `${result.stdout ?? ''}${result.stderr ?? ''}`);
+});
+
 test('collection component controller replaces one domain generation and retains equal owners', () => {
   const first = Object.freeze({ ids: Object.freeze(['a', 'b']) });
   const second = Object.freeze({ ids: Object.freeze(['b', 'c']) });

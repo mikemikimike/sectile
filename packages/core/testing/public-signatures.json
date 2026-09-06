@@ -283,7 +283,7 @@
       "types": "dist/window-splitter.d.ts"
     }
   ],
-  "fingerprint": "86dcb762e9734686148a910b1ef420188ca3bbfe25005c5d56e6e4c46ca0c6c5",
+  "fingerprint": "c953e15171c3ebd4f784779516deb39ac5b670adadc44c0bd562ee5961055dee",
   "files": [
     {
       "path": "dist/accordion.d.ts",
@@ -291,7 +291,7 @@
     },
     {
       "path": "dist/adapter-runtime.d.ts",
-      "sha256": "68b08bb1b366c334024a70a7c0b5f7b399c78854dd084a462c251478c5fa06eb"
+      "sha256": "af549ade58e92902407c21c499deaa6808eb4580e6bd55e5fb7b66a050609e45"
     },
     {
       "path": "dist/alert-dialog.d.ts",

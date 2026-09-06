@@ -10,7 +10,7 @@
     "errorRemoved": "breaking"
   },
   "baseline": {
-    "publicSignatureFingerprint": "35414af44b934db66d5d5eb093f55545a5a9480968fa8ec3a043aa6eacac43a0",
+    "publicSignatureFingerprint": "244a17ebc50ef265ece5f5911a8dc6caf27cb4a41e3b878327e1311ccaf5e188",
     "subpaths": [
       ".",
       "./accordion",
@@ -520,6 +520,6 @@
   ],
   "acceptance": {
     "classification": "type-change-reviewed",
-    "reason": "WI-003-adds-optional-host-effect-publication-before-notify"
+    "reason": "issue-17-adds-optional-controlled-effect-publication-before-change"
   }
 }

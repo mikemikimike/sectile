@@ -16,7 +16,7 @@ test('Virtual examples follow the shared usage environment and real host connect
     source('ko/packages/virtual/layouts.md'),
   ]);
 
-  assert.match(component, /<ExampleFrame :sources="sources">/u);
+  assert.match(component, /<ExampleFrame[\s\S]*:sources="sources"[\s\S]*source-relationship="usage"[\s\S]*:source-note=/u);
   assert.match(component, /queryLinearLayout/u);
   assert.match(component, /queryTrackGridLayout/u);
   assert.match(component, /queryMasonryLayout/u);
@@ -200,9 +200,9 @@ test('Virtual benchmark lab stays isolated and reuses docs controls', async () =
   assert.match(report, /showHeading \? 'benchmark-report-title' : undefined/u);
   assert.match(report, /scenario\.value === 'mount'[\s\S]*mountEvidence/u);
   assert.match(config, /plugins: \[virtualBenchmarkRunner\(\)\]/u);
-  assert.match(config, /text: 'Benchmark', link: '\/benchmarks\/virtual', activeMatch: '\^\/benchmarks\/'/u);
+  assert.doesNotMatch(config, /text: 'Benchmark', link: '\/benchmarks\/virtual', activeMatch: '\^\/benchmarks\/'/u);
   assert.match(config, /text: 'Benchmark lab', link: '\/benchmarks\/virtual'/u);
-  assert.match(config, /text: '벤치마크', link: '\/ko\/benchmarks\/virtual', activeMatch: '\^\/ko\/benchmarks\/'/u);
+  assert.doesNotMatch(config, /text: '벤치마크', link: '\/ko\/benchmarks\/virtual', activeMatch: '\^\/ko\/benchmarks\/'/u);
   assert.match(config, /text: '벤치마크 실행', link: '\/ko\/benchmarks\/virtual'/u);
   assert.match(runnerPlugin, /outDir: runnerOutput/u);
   assert.match(runnerPlugin, /mode: 'production'/u);

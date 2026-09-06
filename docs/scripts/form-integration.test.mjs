@@ -34,10 +34,10 @@ test('Form documentation provides a complete task-oriented guide in both locales
     Promise.all(sharedGuideNames.map((name) => readDocs(`ko/packages/${name}`))),
     readDocs('packages/form/api.md'),
     readDocs('ko/packages/form/api.md'),
-    readDocs('packages/form/vue/api.md'),
-    readDocs('ko/packages/form/vue/api.md'),
-    readDocs('packages/form/dom/api.md'),
-    readDocs('ko/packages/form/dom/api.md'),
+    readDocs('api/form/vue.md'),
+    readDocs('ko/api/form/vue.md'),
+    readDocs('api/form/dom.md'),
+    readDocs('ko/api/form/dom.md'),
     readDocs('.vitepress/config.ts'),
     readDocs('.vitepress/theme/components/HostSelector.vue'),
   ]);
@@ -47,14 +47,21 @@ test('Form documentation provides a complete task-oriented guide in both locales
 
   for (const source of [overview, koOverview]) {
     assert.match(source, /pnpm add [^\n`]*@sectile\/form/u);
-    assert.match(source, /\.\/form\/api/u);
     assert.doesNotMatch(source, /<FormPackageExample/u);
-    assert.doesNotMatch(source, /`FormRoot`|`FormField`|`FormConnection`|`createForm`/u);
+    assert.match(source, /FormRoot/u);
+    assert.match(source, /createForm/u);
+    assert.match(source, /defineFormSubmission/u);
+    assert.match(source, /dirty/u);
+    assert.match(source, /reinitialize/u);
   }
+  assert.match(overview, /\]\(\/api\/form\)/u);
+  assert.match(koOverview, /\]\(\/ko\/api\/form\)/u);
 
+  assert.match(apiChooser, /\/api\/form\/vue/u);
+  assert.match(apiChooser, /\/api\/form\/dom/u);
+  assert.match(koApiChooser, /\/ko\/api\/form\/vue/u);
+  assert.match(koApiChooser, /\/ko\/api\/form\/dom/u);
   for (const source of [apiChooser, koApiChooser]) {
-    assert.match(source, /\.\/vue\/api/u);
-    assert.match(source, /\.\/dom\/api/u);
     assert.doesNotMatch(source, /Generated|생성함/u);
   }
 
@@ -72,25 +79,22 @@ test('Form documentation provides a complete task-oriented guide in both locales
     assert.doesNotMatch(source, /FormRoot|useCompositeFormControl|@sectile\/vue\/form/u);
   }
 
-  assert.match(overview, /\.\/form\/vue/u);
-  assert.match(overview, /\.\/form\/dom/u);
+  assert.match(overview, /## Choose your integration/u);
+  assert.match(overview, /\[Vue forms\]\(\.\/form\/vue\/\)/u);
+  assert.match(overview, /\[DOM forms\]\(\.\/form\/dom\/\)/u);
   assert.match(overview, /\.\/form\/custom-controls/u);
   assert.match(overview, /\.\/form\/fields/u);
   assert.match(overview, /\.\/form\/validation/u);
   assert.match(overview, /\.\/form\/submission/u);
-  assert.match(overview, /- \[Vue\]\(\.\/form\/vue\/\)/u);
-  assert.match(overview, /- \[Direct DOM\]\(\.\/form\/dom\/\)/u);
   assert.doesNotMatch(overview, /form-integration-table/u);
   assert.doesNotMatch(overview, /Browser without Vue/u);
-  assert.match(koOverview, /\.\/form\/vue/u);
-  assert.match(koOverview, /\.\/form\/dom/u);
-  assert.match(koOverview, /\.\/form\/custom-controls/u);
-  assert.match(koOverview, /\.\/form\/fields/u);
-  assert.match(koOverview, /\.\/form\/validation/u);
-  assert.match(koOverview, /\.\/form\/submission/u);
-  assert.match(koOverview, /## 애플리케이션에 연결하기/u);
-  assert.match(koOverview, /- \[Vue\]\(\.\/form\/vue\/\)/u);
-  assert.match(koOverview, /- \[DOM 직접 연결\]\(\.\/form\/dom\/\)/u);
+  assert.match(koOverview, /## 연결 방식 선택하기/u);
+  assert.match(koOverview, /\[Vue 폼\]\(\/ko\/packages\/form\/vue\/\)/u);
+  assert.match(koOverview, /\[DOM 폼\]\(\/ko\/packages\/form\/dom\/\)/u);
+  assert.match(koOverview, /\/ko\/packages\/form\/custom-controls/u);
+  assert.match(koOverview, /\/ko\/packages\/form\/fields/u);
+  assert.match(koOverview, /\/ko\/packages\/form\/validation/u);
+  assert.match(koOverview, /\/ko\/packages\/form\/submission/u);
   assert.doesNotMatch(koOverview, /form-integration-table/u);
   assert.doesNotMatch(koOverview, /Vue를 쓰지 않는/u);
 
@@ -208,12 +212,16 @@ test('Form public documentation stays consumer-facing', async () => {
 
   assert.doesNotMatch(migration, /Form package extraction|createTypedForm|@sectile\/form/u);
 
-  for (const source of [dom, koDom, vue, koVue]) {
+  for (const source of [dom, vue]) {
     assert.match(source, /@sectile\/form/u);
     assert.match(source, /optional/iu);
   }
-  assert.match(terminal, /does not expose a Form adapter/u);
-  assert.match(koTerminal, /Form 어댑터를 제공하지 않/u);
+  for (const source of [koDom, koVue]) {
+    assert.match(source, /@sectile\/form/u);
+    assert.match(source, /선택 (?:패키지|도메인)/u);
+  }
+  assert.match(terminal, /not a Terminal Form adapter/u);
+  assert.match(koTerminal, /Terminal용 Form 연결은 없/u);
   for (const source of [terminal, koTerminal]) {
     assert.doesNotMatch(source, /@sectile\/form\/state/u);
   }

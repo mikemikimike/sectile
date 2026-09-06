@@ -25,8 +25,10 @@ test('Chart documentation is task-oriented and visual in both locales', async ()
     assert.match(source, /<ChartPackageExample \/>/u);
     assert.match(source, /@sectile\/chart/u);
   }
-  assert.match(english[0], /needed only when you import the chart entry points/iu);
-  assert.match(korean[0], /차트 진입점을 가져올 때만 .*필요/u);
+  assert.match(english[0], /optional peer of the host packages/iu);
+  assert.match(english[0], /unrelated Sectile Vue or DOM components do not require it/iu);
+  assert.match(korean[0], /호스트 패키지의 선택적 peer dependency/u);
+  assert.match(korean[0], /다른 Sectile Vue나 DOM 기능만 사용할 때는 설치할 필요가 없/u);
   for (const kind of ['line', 'scatter', 'bar', 'heatmap', 'pie', 'donut']) {
     assert.match(english[0], new RegExp(`\\b${kind}\\b`, 'iu'));
   }

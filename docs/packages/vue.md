@@ -184,7 +184,7 @@ Sectile Vue components do not ship a visual theme. Compound parts expose stable 
 }
 ```
 
-Use slot props when rendered content must change with state and data attributes when CSS is sufficient. [Styling](/guide/styling) documents the shared selector conventions, while [Motion](/guides/motion) covers state- and presence-driven transitions, including reduced-motion handling.
+Use slot props when rendered content must change with state and data attributes when CSS is sufficient. [Styling](/guides/styling) documents the shared selector conventions, while [Motion](/guides/motion) covers state- and presence-driven transitions, including reduced-motion handling.
 
 ## Keep native browser behavior where it matters
 
@@ -225,6 +225,6 @@ Use `@sectile/vue` when Vue owns the tree. Reach for lower-level `@sectile/dom` 
 ## Continue by task
 
 - Browse [Components](/components/) for interactive examples and Vue usage code for individual controls.
-- Use [State ownership](/guide/state-ownership) for the shared controlled/uncontrolled model.
-- Use [Styling](/guide/styling) and [Motion](/guides/motion) for public state hooks and transitions.
+- Use [State ownership](/guides/state-ownership) for the shared controlled/uncontrolled model.
+- Use [Styling](/guides/styling) and [Motion](/guides/motion) for public state hooks and transitions.
 - Use the [Vue API reference](/api/vue) for exact public package paths.

@@ -33,7 +33,7 @@ Keep composition text separate until an IME commit produces the accepted query.
 
 ## Floating positioning
 
-This component uses the shared positioning engine. Use the [live positioning example](/guide/positioning) to change `side`, `align`, offsets, collision boundaries, strategy, and tracking while inspecting the resolved placement.
+This component uses the shared positioning engine. Use the [live positioning example](/guides/positioning) to change `side`, `align`, offsets, collision boundaries, strategy, and tracking while inspecting the resolved placement.
 
 ## Motion example
 

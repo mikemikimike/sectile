@@ -86,7 +86,7 @@ const checkbox = createCheckbox({
 })
 ```
 
-A controlled interaction proposes the next value through `onValueChange`; it does not silently replace the application's value. After the application accepts the proposal, `update()` synchronizes the DOM connection with that accepted value. The same ownership model is used across Sectile controls; see [State ownership](/guide/state-ownership).
+A controlled interaction proposes the next value through `onValueChange`; it does not silently replace the application's value. After the application accepts the proposal, `update()` synchronizes the DOM connection with that accepted value. The same ownership model is used across Sectile controls; see [State ownership](/guides/state-ownership).
 
 ## Connect a popup without giving up the markup
 
@@ -154,7 +154,7 @@ DOM connections do not provide a theme. Style application classes and the state 
 }
 ```
 
-Compound surfaces also expose stable `data-scope` and `data-part` hooks. [Styling](/guide/styling) covers the shared conventions, and [Motion](/guides/motion) covers transitions driven by public state attributes.
+Compound surfaces also expose stable `data-scope` and `data-part` hooks. [Styling](/guides/styling) covers the shared conventions, and [Motion](/guides/motion) covers transitions driven by public state attributes.
 
 ## Destroy connections with the owning UI
 
@@ -211,6 +211,6 @@ if (!result.ok) {
 ## Continue by task
 
 - Browse [Components](/components/) for interaction previews and DOM usage code for individual controls.
-- Use [State ownership](/guide/state-ownership) when application state owns a component value.
-- Use [Styling](/guide/styling) and [Motion](/guides/motion) for public state hooks and transitions.
+- Use [State ownership](/guides/state-ownership) when application state owns a component value.
+- Use [Styling](/guides/styling) and [Motion](/guides/motion) for public state hooks and transitions.
 - Use the [DOM API reference](/api/dom) when you need the exact public package path for a DOM capability.

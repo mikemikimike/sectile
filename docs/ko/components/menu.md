@@ -25,7 +25,7 @@
 
 ## Floating 위치
 
-이 컴포넌트는 공통 위치 엔진을 사용합니다. [실시간 위치 예시](/ko/guide/positioning)에서 `side`, `align`, 간격, 충돌 경계, strategy, tracking을 바꾸며 계산 결과를 확인할 수 있습니다.
+이 컴포넌트는 공통 위치 엔진을 사용합니다. [실시간 위치 예시](/ko/guides/positioning)에서 `side`, `align`, 간격, 충돌 경계, strategy, tracking을 바꾸며 계산 결과를 확인할 수 있습니다.
 
 ## 현재 항목 모션 예시
 

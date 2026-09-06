@@ -86,7 +86,7 @@ const checkbox = createCheckbox({
 })
 ```
 
-제어 상태에서는 상호작용 결과가 `onValueChange`로 제안됩니다. 애플리케이션이 그 값을 받아들인 뒤 `update()`를 호출하면 연결 객체도 확정된 값으로 맞춰집니다. Sectile 컴포넌트가 공유하는 상태 소유 규칙은 [상태 소유권](/ko/guide/state-ownership)에서 다룹니다.
+제어 상태에서는 상호작용 결과가 `onValueChange`로 제안됩니다. 애플리케이션이 그 값을 받아들인 뒤 `update()`를 호출하면 연결 객체도 확정된 값으로 맞춰집니다. Sectile 컴포넌트가 공유하는 상태 소유 규칙은 [상태 소유권](/ko/guides/state-ownership)에서 다룹니다.
 
 ## 마크업을 유지한 채 팝업 연결하기
 
@@ -154,7 +154,7 @@ DOM 연결에는 테마가 포함되지 않습니다. 애플리케이션 클래�
 }
 ```
 
-복합 화면은 `data-scope`와 `data-part`도 안정적인 스타일 경계로 노출합니다. 공통 선택자 규칙은 [스타일링](/ko/guide/styling), 공개 상태를 이용한 전환 효과는 [모션](/ko/guides/motion)에서 설명합니다.
+복합 화면은 `data-scope`와 `data-part`도 안정적인 스타일 경계로 노출합니다. 공통 선택자 규칙은 [스타일링](/ko/guides/styling), 공개 상태를 이용한 전환 효과는 [모션](/ko/guides/motion)에서 설명합니다.
 
 ## 화면과 함께 연결 객체 정리하기
 
@@ -211,6 +211,6 @@ if (!result.ok) {
 ## 작업별 다음 문서
 
 - 개별 컨트롤의 동작 미리보기와 DOM 사용 코드는 [컴포넌트](/ko/components/)에서 확인할 수 있습니다.
-- 애플리케이션 상태가 값을 소유하는 경우에는 [상태 소유권](/ko/guide/state-ownership)을 참고하세요.
-- 공개 상태 선택자와 전환 효과는 [스타일링](/ko/guide/styling)과 [모션](/ko/guides/motion)에서 다룹니다.
+- 애플리케이션 상태가 값을 소유하는 경우에는 [상태 소유권](/ko/guides/state-ownership)을 참고하세요.
+- 공개 상태 선택자와 전환 효과는 [스타일링](/ko/guides/styling)과 [모션](/ko/guides/motion)에서 다룹니다.
 - 정확한 DOM 공개 패키지 경로가 필요하면 [DOM API 참조](/ko/api/dom)를 확인하세요.

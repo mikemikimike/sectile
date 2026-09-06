@@ -45,11 +45,11 @@ Components expose stable `data-scope`, `data-part`, and state attributes. You ca
 }
 ```
 
-Read [Styling](/guide/styling) for reusable selectors and [Motion](/guides/motion) for enter, exit, indicator, and swipe animation patterns.
+Read [Styling](/guides/styling) for reusable selectors and [Motion](/guides/motion) for enter, exit, indicator, and swipe animation patterns.
 
 ## 5. Control state only when you need to
 
-Most components can own their initial state. When application state must be authoritative, use the controlled prop/event pair shown in each component's **Controlled** example. [Controlled state](/guide/state-ownership) explains the shared pattern.
+Most components can own their initial state. When application state must be authoritative, use the controlled prop/event pair shown in each component's **Controlled** example. [Controlled state](/guides/state-ownership) explains the shared pattern.
 
 ## Where to go next
 

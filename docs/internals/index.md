@@ -5,7 +5,7 @@ description: Architecture, theory, engineering constraints, and verification rec
 
 # Internals
 
-This section records the theory, implementation boundaries, and evidence behind Sectile's public packages. Most users can stay in the [guide](/guide/getting-started) and [component catalog](/components/).
+This section records the theory, implementation boundaries, and evidence behind Sectile's public packages. Most users can stay in the [Getting Started](/getting-started/) and [component catalog](/components/).
 
 ## Architecture and theory
 

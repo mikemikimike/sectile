@@ -58,43 +58,60 @@
       "benchmarkIDs": [
         "VAL-017:terminal-screen-work"
       ],
-      "specificationCeiling": "O(rRow * cColumn)",
+      "specificationCeiling": "O(rRow + rRow * cColumn)",
       "contract": {
         "variables": [
           {
             "name": "rRow",
             "meaning": "terminal screen rows",
-            "ceiling": "screen row ceiling"
+            "ceiling": "4096; non-negative safe integer"
           },
           {
             "name": "cColumn",
             "meaning": "terminal screen columns",
-            "ceiling": "screen column ceiling"
+            "ceiling": "4096; non-negative safe integer"
           }
         ],
         "time": {
-          "bound": "O(rRow * cColumn)",
+          "bound": "O(rRow + rRow * cColumn)",
           "kind": "worst-case",
           "runtimeState": "connected"
         },
         "space": {
-          "auxiliary": "O(rRow * cColumn)",
-          "output": "O(rRow * cColumn)",
-          "retained": "O(rRow * cColumn)"
+          "auxiliary": "O(rRow + rRow * cColumn)",
+          "output": "O(rRow + rRow * cColumn)",
+          "retained": "O(rRow + rRow * cColumn)"
         },
         "resources": {
-          "allocations": "O(rRow * cColumn)",
-          "cacheEntries": "O(rRow * cColumn)",
+          "allocations": "O(rRow + rRow * cColumn)",
+          "cacheEntries": "O(rRow + rRow * cColumn)",
           "listeners": "0",
           "observers": "0",
           "timers": "0",
           "subscriptions": "0"
         },
-        "proof": "A full screen projection touches each bounded cell and emits its grapheme/appearance state.",
-        "adversarialWitness": "Every screen cell contains a distinct styled grapheme.",
+        "assumptions": [
+          "These bounds cover dense frame materialization; layout traversal and text measurement are separate input-dependent work.",
+          "Dimension property access has constant cost; each property is read once into the transaction-local viewport."
+        ],
+        "ceilings": [
+          "Rows and columns are each at most 4096, including viewports with a zero axis.",
+          "The rows-by-columns product is at most 1048576 cells. Both axis checks precede multiplication, so the product is an exact safe integer."
+        ],
+        "deterministicWork": [
+          "Viewport validation performs two dimension reads and constant numeric checks before appearance access, layout traversal, or frame allocation.",
+          "Rejected dimensions allocate zero row arrays and cells and read no node or appearance properties.",
+          "All accepted allocation lengths, viewport geometry, and returned dimensions use the same validated scalar snapshot."
+        ],
+        "resourceRationale": "The dense mutable frame and immutable output each contain at most 1048576 cells and 4096 row arrays. Empty-width frames still own row arrays. Validation adds no retained state or accepted-path allocation.",
+        "proof": "renderTerminalScreen snapshots each axis once, rejects malformed values, applies the 4096 axis ceilings, and checks the 1048576 cell budget before allocating. Construction and freezing visit every row and cell, including row-array overhead when columns is zero.",
+        "adversarialWitness": "Production-bound tests intercept dense allocation before exercising over-limit axes, zero-axis counterexamples, 2^32, safe-integer extremes, and over-budget products of individually valid axes. Inclusive axis and cell limits remain accepted; an appearance getter that changes the caller's dimensions cannot change the validated viewport.",
+        "evidence": [
+          "packages/terminal/tests/screen.test.mjs"
+        ],
         "fullScan": {
           "allowed": true,
-          "rationale": "A requested full screen output has row-by-column size."
+          "rationale": "Dense frame output requires its bounded rows and cells; rejected viewport dimensions require no scan."
         }
       }
     },

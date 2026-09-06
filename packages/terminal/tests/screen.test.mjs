@@ -36,6 +36,117 @@ test('appearance emits truecolor styles from semantic theme roles', () => {
   assert.equal(appearance.style('Sectile', 'accent'), '\u001b[1;38;2;10;20;30mSectile\u001b[0m');
 });
 
+test('screen rejects malformed dimensions with package-owned errors', () => {
+  for (const name of ['columns', 'rows']) {
+    for (const value of [-1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1, undefined, null, '1']) {
+      assert.throws(() => renderTerminalScreen(terminalText('x'), {
+        columns: 1, rows: 1, [name]: value,
+      }), {
+        name: 'RangeError',
+        message: `Terminal screen ${name} must be a non-negative safe integer.`,
+      });
+    }
+  }
+});
+
+test('screen rejects axis and cell ceilings before dense allocation or consumer reads', () => {
+  const cases = [];
+  for (const name of ['columns', 'rows']) {
+    for (const value of [4_097, 2 ** 32, Number.MAX_SAFE_INTEGER]) {
+      for (const other of [0, 1]) {
+        cases.push({
+          dimensions: { columns: other, rows: other, [name]: value },
+          message: `Terminal screen ${name} must not exceed 4096.`,
+        });
+      }
+    }
+  }
+  for (const dimensions of [
+    { columns: 4_096, rows: 257 },
+    { columns: 257, rows: 4_096 },
+    { columns: 1_025, rows: 1_024 },
+    { columns: 4_096, rows: 4_096 },
+  ]) cases.push({ dimensions, message: 'Terminal screen cell count must not exceed 1048576.' });
+
+  let allocations = 0;
+  let consumerReads = 0;
+  const sentinel = new Error('frame work must not begin for rejected dimensions');
+  const node = { get type() { consumerReads += 1; throw sentinel; } };
+  const from = Array.from;
+  const outcomes = [];
+  try {
+    // Intercept the first allocation attempt instead of risking a huge matrix
+    // when this regression is run against a renderer without the boundary check.
+    Array.from = () => { allocations += 1; throw sentinel; };
+    for (const { dimensions, message } of cases) {
+      let error;
+      try {
+        renderTerminalScreen(node, {
+          ...dimensions,
+          get appearance() { consumerReads += 1; throw sentinel; },
+        });
+      } catch (caught) { error = caught; }
+      outcomes.push({ error, message });
+    }
+  } finally { Array.from = from; }
+
+  for (const { error, message } of outcomes) {
+    assert.ok(error instanceof RangeError);
+    assert.equal(error.message, message);
+  }
+  assert.equal(allocations, 0);
+  assert.equal(consumerReads, 0);
+});
+
+test('screen accepts inclusive axis limits and preserves empty viewport shapes', () => {
+  for (const [columns, rows] of [[0, 0], [4_096, 0], [0, 4_096], [4_096, 1], [1, 4_096]]) {
+    const frame = renderTerminalScreen(terminalText('X'), { columns, rows });
+    assert.equal(frame.columns, columns);
+    assert.equal(frame.rows, rows);
+    assert.equal(frame.cells.length, rows);
+    assert.ok(frame.cells.every((row) => row.length === columns && Object.isFrozen(row)));
+    assert.equal(frame.cursor, null);
+    if (columns > 0 && rows > 0) assert.equal(frame.cells[0][0].text, 'X');
+    assert.equal(Object.isFrozen(frame), true);
+    assert.equal(Object.isFrozen(frame.cells), true);
+  }
+});
+
+test('screen accepts the exact dense cell budget', () => {
+  const frame = renderTerminalScreen(terminalText('X'), { columns: 4_096, rows: 256 });
+  assert.equal(frame.cells.length, 256);
+  assert.ok(frame.cells.every((row) => row.length === 4_096));
+  assert.equal(frame.rows * frame.columns, 1_048_576);
+  assert.equal(frame.cells[0][0].text, 'X');
+  assert.equal(frame.cells[255][4_095].text, ' ');
+  assert.equal(Object.isFrozen(frame.cells[255][4_095]), true);
+});
+
+test('screen uses one validated dimension snapshot across consumer callbacks', () => {
+  const appearance = createTerminalAppearance();
+  const reads = { columns: 0, rows: 0 };
+  let columns = 4;
+  let rows = 1;
+  const frame = renderTerminalScreen(terminalText('A한', {
+    cursor: { codeUnitOffset: 2 },
+  }), {
+    get columns() { reads.columns += 1; return columns; },
+    get rows() { reads.rows += 1; return rows; },
+    get appearance() {
+      columns = 2 ** 32;
+      rows = 2 ** 32;
+      return appearance;
+    },
+  });
+  assert.deepEqual(reads, { columns: 1, rows: 1 });
+  assert.equal(frame.columns, 4);
+  assert.equal(frame.rows, 1);
+  assert.deepEqual(serializeTerminalFrame(frame, appearance), ['A한 ']);
+  assert.equal(frame.cells[0][2].continuation, true);
+  assert.equal(frame.cursor.column, 3);
+  assert.equal(frame.cursor.visible, true);
+});
+
 test('screen composes boxes, rows, fill regions, and clipping into a fixed viewport', () => {
   const appearance = createTerminalAppearance({
     capabilities: { colorLevel: 0, unicode: true },

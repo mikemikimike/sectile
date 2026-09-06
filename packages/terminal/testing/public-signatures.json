@@ -287,7 +287,7 @@
       "types": "dist/year-range-picker.d.ts"
     }
   ],
-  "fingerprint": "5ba24cb903bb72233b8d86e9763c0cb37877c465473c3456b32ecf957ce1c7b7",
+  "fingerprint": "da64a7187dbb91d1c10bb6efd5351226f08a3d6caf65f15d841eca5648b5078a",
   "files": [
     {
       "path": "dist/accordion.d.ts",
@@ -503,7 +503,7 @@
     },
     {
       "path": "dist/screen.d.ts",
-      "sha256": "4aec035c8621545e5c6ab252e30a5eca6853c9d6283dd7c1ec3721f276bd3c87"
+      "sha256": "8b94e14d44ac37f288ecb34f93fb317437f9ee2fc9ab7456e0bbb7370bb7845a"
     },
     {
       "path": "dist/select.d.ts",

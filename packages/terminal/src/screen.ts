@@ -125,10 +125,15 @@ export interface TerminalFrame {
 }
 
 export interface RenderTerminalScreenOptions {
+  /** Non-negative safe integer, at most 4,096. */
   readonly columns: number;
+  /** Non-negative safe integer, at most 4,096. */
   readonly rows: number;
   readonly appearance?: TerminalAppearance;
 }
+
+const MAX_SCREEN_DIMENSION = 4_096;
+const MAX_SCREEN_CELLS = 1_048_576;
 
 interface MutableFrameCell {
   text: string;
@@ -205,21 +210,32 @@ export function terminalSpacer(options: TerminalSpacerOptions = {}): TerminalSpa
   return Object.freeze({ type: 'spacer', ...options });
 }
 
+/**
+ * Renders a dense viewport of at most 1,048,576 cells (rows multiplied by columns).
+ * @throws RangeError when dimensions are invalid or exceed a viewport limit,
+ * before allocating the frame or reading the node and appearance.
+ */
 export function renderTerminalScreen(
   node: TerminalScreenNode,
   options: RenderTerminalScreenOptions,
 ): TerminalFrame {
-  assertDimension(options.columns, 'columns');
-  assertDimension(options.rows, 'rows');
+  const columns = options.columns;
+  const rows = options.rows;
+  assertDimension(columns, 'columns');
+  assertDimension(rows, 'rows');
+  // Both axes are bounded first, so the product is an exact safe integer.
+  if (rows * columns > MAX_SCREEN_CELLS) {
+    throw new RangeError(`Terminal screen cell count must not exceed ${MAX_SCREEN_CELLS}.`);
+  }
   const appearance = options.appearance ?? createTerminalAppearance();
   const frame: MutableFrame = {
-    columns: options.columns,
-    rows: options.rows,
-    cells: Array.from({ length: options.rows }, () =>
-      Array.from({ length: options.columns }, () => ({ text: ' ' }))),
+    columns,
+    rows,
+    cells: Array.from({ length: rows }, () =>
+      Array.from({ length: columns }, () => ({ text: ' ' }))),
     cursor: null,
   };
-  const viewport = { x: 0, y: 0, width: options.columns, height: options.rows };
+  const viewport = { x: 0, y: 0, width: columns, height: rows };
   renderNode(frame, node, viewport, viewport, appearance);
   return Object.freeze({
     columns: frame.columns,
@@ -696,5 +712,8 @@ function clampNonNegative(value: number): number {
 function assertDimension(value: number, name: string): void {
   if (!Number.isSafeInteger(value) || value < 0) {
     throw new RangeError(`Terminal screen ${name} must be a non-negative safe integer.`);
+  }
+  if (value > MAX_SCREEN_DIMENSION) {
+    throw new RangeError(`Terminal screen ${name} must not exceed ${MAX_SCREEN_DIMENSION}.`);
   }
 }

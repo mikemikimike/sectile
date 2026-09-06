@@ -1,11 +1,14 @@
 import type { PositionOptions } from '../position.js';
 import {
   createPositionEngine,
+  selectPositionRoute,
   type PositionEngineConnection,
+  type PositionEngineOptions,
 } from './positioning/engine.js';
 
 export interface DOMPositionOptions {
   readonly root: HTMLElement;
+  readonly onPositioned?: () => void;
   readonly reference?: HTMLElement | undefined;
   readonly arrow?: HTMLElement;
   readonly side?: PositionOptions['side'] | undefined;
@@ -44,7 +47,7 @@ export function createPosition(options: DOMPositionOptions): PositionConnection 
       return;
     }
     if (engine === undefined) {
-      engine = createPositionEngine({
+      const engineOptions: PositionEngineOptions = {
         root: options.root,
         reference,
         ...(options.arrow === undefined ? {} : { arrow: options.arrow }),
@@ -66,11 +69,18 @@ export function createPosition(options: DOMPositionOptions): PositionConnection 
           : { hideWhenDetached: options.hideWhenDetached }),
         ...(options.strategy === undefined ? {} : { strategy: options.strategy }),
         ...(options.tracking === undefined ? {} : { tracking: options.tracking }),
-      });
+      };
+      // Keep CSS anchoring eligible: it has no asynchronous layout to await.
+      engine = createPositionEngine(options.onPositioned !== undefined
+        && selectPositionRoute(engineOptions) === 'javascript'
+        ? { ...engineOptions, onLayout: options.onPositioned }
+        : engineOptions);
       engine.connect();
+      if (engine.route === 'css-anchor') options.onPositioned?.();
       return;
     }
     engine.update();
+    if (engine.route === 'css-anchor') options.onPositioned?.();
   };
 
   return Object.freeze({ update, disconnect });

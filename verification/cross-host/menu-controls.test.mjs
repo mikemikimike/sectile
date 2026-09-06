@@ -41,6 +41,56 @@ test('DOM and terminal menu buttons preserve controlled popup parity', () => {
   assert.deepEqual(observe(DOM.getSnapshot()), observe(terminal.getSnapshot()));
 });
 
+test('controlled menu opening proposals retain their canonical cursor until owner resolution', () => {
+  for (const immediate of [false, true]) {
+    const controls = [];
+    for (const host of ['dom', 'terminal']) {
+      let control;
+      const options = {
+        items, open: false,
+        onOpenChange: (open) => { if (immediate) control.syncControlledValue(open); },
+      };
+      control = host === 'dom'
+        ? createDOMMenuButton({ ...options, root: new FakeElement(), trigger: new FakeElement() })
+        : createTerminalMenuButton(options);
+      controls.push(control);
+      for (let cycle = 0; cycle < 3; cycle += 1) {
+        assert.equal(control.send('open-popup'), true);
+        if (!immediate) {
+          assert.equal(control.state.open, false);
+          assert.equal(control.state.cursor.current, null);
+          assert.equal(control.syncControlledValue(true).ok, true);
+        }
+        assert.equal(control.state.open, true);
+        assert.equal(control.state.cursor.current, 'file');
+        assert.equal(control.send('open-submenu'), true);
+        assert.equal(control.state.cursor.current, 'new');
+        assert.deepEqual(control.state.openPath, ['file']);
+        assert.equal(control.send('close-popup'), true);
+        if (!immediate) assert.equal(control.syncControlledValue(false).ok, true);
+        assert.equal(control.state.open, false);
+      }
+    }
+    assert.deepEqual(controls[0].getSnapshot(), controls[1].getSnapshot());
+    for (const control of controls) control.destroy();
+  }
+});
+
+test('controlled menu owner rejection discards the pending opening cursor in both hosts', () => {
+  const controls = [
+    createDOMMenuButton({ items, open: false, root: new FakeElement(), trigger: new FakeElement() }),
+    createTerminalMenuButton({ items, open: false }),
+  ];
+  for (const control of controls) {
+    control.send('open-popup');
+    assert.equal(control.syncControlledValue(false).ok, true);
+    assert.equal(control.syncControlledValue(true).ok, true);
+    assert.equal(control.state.cursor.current, null);
+    control.destroy();
+  }
+  assert.deepEqual(controls[0].getSnapshot(), controls[1].getSnapshot());
+});
+
 function assertTrace(DOM, terminal, events) {
   assert.deepEqual(observe(DOM.getSnapshot()), observe(terminal.getSnapshot()));
   for (const event of events) { DOM.handleEvent(event); terminal.handleEvent(event); assert.deepEqual(observe(DOM.getSnapshot()), observe(terminal.getSnapshot())); }

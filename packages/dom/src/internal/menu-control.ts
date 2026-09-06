@@ -60,13 +60,18 @@ export function createMenuControl<ID extends StableID>(options: MenuControlOptio
   const policies: MenuPolicies<ID> = { ...options.policies, disabled: (id) => disabled.has(id) || (suppliedDisabled?.(id) ?? false) };
   const openControlled = options.kind === 'menu-button' && options.open !== undefined;
   const initialOpen = options.kind === 'menu-button' ? options.open ?? options.defaultOpen ?? false : true;
+  let pendingOpenState: MenuState<ID> | undefined;
   const runtime = createControlledComponentController<MenuState<ID>, MenuEvent<ID>, MenuCommand<ID>, boolean>({
     controlled: openControlled,
     initial: tryCreateMenuState(model.value.tree, initialOpen, initialOpen ? options.defaultHighlightedValue ?? null : null, []),
     reducer: (state, event) => applyMenuEvent(model.value.tree, state, event, policies),
     create: (requestedOpen, proposed) => {
       const open = options.kind === 'menu-button' ? requestedOpen : true;
-      return tryCreateMenuState(model.value.tree, open, open ? proposed.cursor.current : null, open ? proposed.openPath : []);
+      const reference = open && !proposed.open ? pendingOpenState ?? proposed : proposed;
+      const result = tryCreateMenuState(model.value.tree, open, open ? reference.cursor.current : null, open ? reference.openPath : []);
+      // Keep the canonical opening proposal until the owner accepts or rejects it.
+      if (result.ok) pendingOpenState = !open && proposed.open ? proposed : undefined;
+      return result;
     },
     read: (state) => state.open,
     onChange: (open) => options.onOpenChange?.(open),
@@ -94,6 +99,7 @@ class DOMMenuControl<ID extends StableID> implements MenuControl<ID> {
         : createPosition({
           root: options.root,
           reference: options.trigger,
+          onPositioned: () => this.#focusPending(),
           ...(options.side === undefined ? {} : { side: options.side }),
           ...(options.align === undefined ? {} : { align: options.align }),
           ...(options.sideOffset === undefined ? {} : { sideOffset: options.sideOffset }),
@@ -113,7 +119,10 @@ class DOMMenuControl<ID extends StableID> implements MenuControl<ID> {
   public getSnapshot(): RevisionSnapshot<MenuState<ID>> { return this.#runtime.getSnapshot(); }
   public syncControlledValue(open: boolean): Result<RevisionSnapshot<MenuState<ID>>> {
     const result = this.#runtime.syncControlledValue(open);
-    if (result.ok) { this.#refresh(); this.#options.onUpdate?.(); }
+    if (result.ok) {
+      if (!open) this.#pendingFocus = undefined;
+      this.#refresh(); this.#options.onUpdate?.();
+    }
     return result;
   }
   public setItemAttributes(element: HTMLElement | undefined, id: ID): void {
@@ -196,7 +205,7 @@ class DOMMenuControl<ID extends StableID> implements MenuControl<ID> {
   }
   #refresh(): void {
     const state = this.getSnapshot().state;
-    if (this.#pendingFocus !== undefined && state.cursor.current !== this.#pendingFocus) this.#pendingFocus = undefined;
+    if (state.open && this.#pendingFocus !== undefined && state.cursor.current !== this.#pendingFocus) this.#pendingFocus = undefined;
     this.#options.root.setAttribute('role', this.#options.kind === 'navigation-menu' ? 'navigation' : this.#options.kind === 'menubar' ? 'menubar' : 'menu');
     this.#options.root.setAttribute('dir', this.#options.direction ?? 'ltr');
     if (this.#options.label !== undefined) this.#options.root.setAttribute('aria-label', this.#options.label);
@@ -216,12 +225,14 @@ class DOMMenuControl<ID extends StableID> implements MenuControl<ID> {
   }
   #focusPending(): void {
     const id = this.#pendingFocus;
-    if (id === undefined) return;
+    if (id === undefined || !this.getSnapshot().state.open) return;
     const element = this.#elements.get(id);
     if (element === undefined) return;
     const parentID = this.#tree.parentOf(id);
     const surface = parentID === null ? this.#options.root : this.#submenus.get(parentID);
-    if (surface === undefined || surface.hidden || surface.inert) return;
+    const root = this.#options.root;
+    if (surface === undefined || root.hidden || root.inert || root.style?.visibility === 'hidden'
+      || surface.hidden || surface.inert || surface.style?.visibility === 'hidden') return;
     this.#pendingFocus = undefined;
     element.focus();
   }
@@ -262,6 +273,7 @@ class DOMMenuControl<ID extends StableID> implements MenuControl<ID> {
     const position = createPosition({
       root: submenu,
       reference: anchor,
+      onPositioned: () => this.#focusPending(),
       side: opensFromMenubar ? 'bottom' : this.#options.direction === 'rtl' ? 'left' : 'right',
       align: opensFromMenubar && this.#options.direction === 'rtl' ? 'end' : 'start',
       sideOffset: 8,

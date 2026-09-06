@@ -183,5 +183,9 @@ const result = Object.freeze({
   tabularVirtual,
 });
 window.__SECTILE_BROWSER_RESULT__ = result;
+console.info('Sectile browser verification:', JSON.stringify({ ok: result.ok, failures, warnings }));
+for (const [scenario, evidence] of Object.entries(popupPresenceFocus)) {
+  console.info('Sectile popup focus:', scenario, JSON.stringify(evidence));
+}
 document.documentElement.dataset.sectileVerification = result.ok ? 'passed' : 'failed';
 document.querySelector('#result').textContent = JSON.stringify(result);

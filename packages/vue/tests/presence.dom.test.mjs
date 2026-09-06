@@ -210,8 +210,10 @@ test('MenuButton content and submenu retain presence through exit motion', async
     assert.equal(content.hidden, false); assert.equal(submenu.hidden, true);
 
     file.click(); await nextTick(); await nextTick();
+    await new Promise((resolve) => browserWindow.requestAnimationFrame(resolve));
+    await nextTick();
     assert.equal(submenu.dataset.state, 'open'); assert.equal(submenu.hidden, false);
-    assert.equal(document.activeElement, child);
+    assert.equal(document.activeElement === child, true, 'positioned submenu focuses its child after layout');
 
     trigger.click(); await nextTick();
     assert.equal(content.dataset.state, 'closed'); assert.equal(content.hidden, false); assert.equal(content.inert, true); assert.equal(content.getAttribute('aria-hidden'), 'true');

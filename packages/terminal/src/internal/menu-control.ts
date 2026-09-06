@@ -70,6 +70,7 @@ export function createMenuControl<ID extends StableID>(
   const initialOpen = options.kind === 'menu-button'
     ? options.open ?? options.defaultOpen ?? false
     : true;
+  let pendingOpenState: MenuState<ID> | undefined;
   const runtime = createControlledComponentController<MenuState<ID>, MenuEvent<ID>, MenuCommand<ID>, boolean>({
     controlled: openControlled,
     interaction: options,
@@ -82,12 +83,16 @@ export function createMenuControl<ID extends StableID>(
     reducer: (state, event) => applyMenuEvent(model.value.tree, state, event, policies),
     create: (requestedOpen, proposed) => {
       const open = options.kind === 'menu-button' ? requestedOpen : true;
-      return tryCreateMenuState(
+      const reference = open && !proposed.open ? pendingOpenState ?? proposed : proposed;
+      const result = tryCreateMenuState(
         model.value.tree,
         open,
-        open ? proposed.cursor.current : null,
-        open ? proposed.openPath : [],
+        open ? reference.cursor.current : null,
+        open ? reference.openPath : [],
       );
+      // Keep the canonical opening proposal until the owner accepts or rejects it.
+      if (result.ok) pendingOpenState = !open && proposed.open ? proposed : undefined;
+      return result;
     },
     read: (state) => state.open,
     onChange: (open) => options.onOpenChange?.(open),

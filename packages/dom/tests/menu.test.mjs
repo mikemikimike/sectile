@@ -302,8 +302,8 @@ test('menu visibility management can be delegated to the renderer', () => {
   menu.disconnect();
 });
 
-test('renderer-owned menu visibility defers focus until the surface is visible', () => {
-  const { root, trigger, file, child, submenu } = menuDOM(500, 300);
+test('renderer-owned menu visibility defers focus until the surface is visible', async () => {
+  const { window, root, trigger, file, child, submenu } = menuDOM(500, 300);
   root.hidden = true;
   submenu.hidden = true;
   const menu = createMenuButton({
@@ -325,8 +325,64 @@ test('renderer-owned menu visibility defers focus until the surface is visible',
   assert.equal(document.activeElement, file);
   submenu.hidden = false;
   menu.refresh();
+  assert.equal(document.activeElement, file);
+  await settlePosition(window);
   assert.equal(document.activeElement, child);
   menu.disconnect();
+});
+
+test('controlled menu focus waits for owner acceptance and survives renderer refreshes', () => {
+  const { root, trigger, file } = menuDOM(500, 300);
+  const menu = createMenuButton({
+    root, trigger, open: false, manageVisibility: false, position: false,
+    items: [{ id: 'file', parentID: null }],
+  });
+  menu.setItemAttributes(file, 'file');
+  trigger.focus();
+  assert.equal(menu.send('open-popup'), true);
+  menu.refresh();
+  assert.equal(menu.state.open, false);
+  assert.equal(menu.state.cursor.current, null);
+  assert.equal(document.activeElement, trigger);
+
+  root.inert = true;
+  assert.equal(menu.syncControlledValue(true).ok, true);
+  assert.equal(menu.state.cursor.current, 'file');
+  assert.equal(document.activeElement, trigger);
+  root.inert = false;
+  menu.refresh();
+  assert.equal(document.activeElement, file);
+  assert.equal(file.tabIndex, 0);
+  menu.destroy();
+});
+
+test('controlled menu rejection clears the pending host focus request', () => {
+  const { root, trigger, file } = menuDOM(500, 300);
+  const menu = createMenuButton({
+    root, trigger, open: false, position: false,
+    items: [{ id: 'file', parentID: null }],
+  });
+  menu.setItemAttributes(file, 'file');
+  trigger.focus();
+  menu.send('open-popup');
+  menu.syncControlledValue(false);
+  menu.syncControlledValue(true);
+  menu.refresh();
+  assert.equal(menu.state.cursor.current, null);
+  assert.equal(document.activeElement, trigger);
+  menu.destroy();
+});
+
+test('positioned menu disposal cancels a pending focus handoff', async () => {
+  const { window, root, trigger, file } = menuDOM(500, 300);
+  const menu = createMenuButton({ root, trigger, items: [{ id: 'file', parentID: null }] });
+  menu.setItemAttributes(file, 'file');
+  trigger.focus();
+  menu.send('open-popup');
+  assert.equal(document.activeElement, trigger);
+  menu.destroy();
+  await settlePosition(window);
+  assert.equal(document.activeElement, trigger);
 });
 
 test('menu unregister restores submenu visibility and generated ID ownership', () => {

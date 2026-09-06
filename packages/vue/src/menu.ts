@@ -1,6 +1,6 @@
 import {
   Fragment, computed, defineComponent, h, inject, mergeProps, nextTick, onBeforeUnmount, onMounted, provide,
-  shallowRef, watch, type Component, type ComputedRef, type PropType, type SlotsType, type VNodeChild,
+  shallowRef, watch, type Component, type ComputedRef, type PropType, type ShallowRef, type SlotsType, type VNodeChild,
 } from 'vue';
 import { createMenu, type MenuConnection, type MenuItemDefinition, type MenuPolicies } from '@sectile/dom/menu';
 import { createMenuButton } from '@sectile/dom/menu-button';
@@ -266,8 +266,7 @@ export const MenuButtonContent = defineComponent({
     const root = useRoot('MenuButtonContent');
     const element = shallowRef<HTMLElement>();
     const open = computed(() => root.state.value.open);
-    const present = usePresence(open, element);
-    watch(present, async () => { await nextTick(); root.refresh(); }, { flush: 'post' });
+    const present = useMenuPresence(open, element, root.refresh);
     return (): VNodeChild => {
       const exiting = !open.value && present.value;
       return h(Primitive, mergeProps(attrs, {
@@ -301,8 +300,7 @@ export const MenuSubContent = defineComponent({
     const root = useRoot('MenuSubContent');
     const element = shallowRef<HTMLElement>();
     const open = computed(() => root.state.value.open && root.state.value.openPath.includes(props.for));
-    const present = usePresence(open, element);
-    watch(present, async () => { await nextTick(); root.refresh(); }, { flush: 'post' });
+    const present = useMenuPresence(open, element, root.refresh);
     return (): VNodeChild => {
       const exiting = !open.value && present.value;
       return h(Primitive, mergeProps(attrs, {
@@ -319,5 +317,22 @@ export const MenuSeparator = defineComponent({
   name: 'SectileMenuSeparator', inheritAttrs: false, props: partProps,
   setup(props, { attrs }) { return (): VNodeChild => h(Primitive, mergeProps(attrs, { as: props.as, asChild: props.asChild, role: 'separator', 'data-scope': 'menu', 'data-part': 'separator' })); },
 });
+
+function useMenuPresence(
+  open: ComputedRef<boolean>,
+  element: ShallowRef<HTMLElement | undefined>,
+  refresh: () => void,
+): ShallowRef<boolean> {
+  const retainedReopen = shallowRef(0);
+  const present = usePresence(open, element, () => { retainedReopen.value += 1; });
+  watch([present, retainedReopen], async (_next, _previous, onCleanup): Promise<void> => {
+    let active = true;
+    onCleanup(() => { active = false; });
+    await nextTick();
+    // Retry pending host focus after Vue removes the exit quarantine.
+    if (active) refresh();
+  }, { flush: 'post' });
+  return present;
+}
 
 function useRoot(part: string): Context { const root = inject<Context>(key); if (root === undefined) throw new TypeError(`${part} must be used inside a menu root.`); return root; }

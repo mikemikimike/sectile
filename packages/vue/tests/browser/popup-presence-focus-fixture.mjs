@@ -1,8 +1,10 @@
 import { createApp, h, nextTick, ref } from 'vue';
 import { DialogClose, DialogContent, DialogRoot, DialogTrigger } from '../../.verification-dist/dialog.js';
 import { PopoverClose, PopoverContent, PopoverRoot, PopoverTrigger } from '../../.verification-dist/popover.js';
+import { MenuButtonContent, MenuButtonRoot, MenuButtonTrigger, MenuItem, MenuSubContent } from '../../.verification-dist/menu.js';
 
 const motion = Object.freeze({ transitionProperty: 'opacity', transitionDuration: '20ms' });
+const menuMotion = Object.freeze({ transitionProperty: 'opacity', transitionDuration: '100ms' });
 
 export async function runPopupPresenceFocusScenarios() {
   return Object.freeze({
@@ -10,6 +12,12 @@ export async function runPopupPresenceFocusScenarios() {
     'popup-dialog-controlled-retained-reopen-focus': await popupScenario('dialog', true),
     'popup-popover-uncontrolled-retained-reopen-focus': await popupScenario('popover', false),
     'popup-popover-controlled-retained-reopen-focus': await popupScenario('popover', true),
+    'menu-button-uncontrolled-retained-reopen-focus': await menuScenario(false, false),
+    'menu-button-controlled-retained-reopen-focus': await menuScenario(true, false),
+    'menu-submenu-uncontrolled-retained-reopen-focus': await menuScenario(false, true),
+    'menu-submenu-controlled-retained-reopen-focus': await menuScenario(true, true),
+    'menu-button-uncontrolled-positioned-retained-reopen-focus': await menuScenario(false, false, true),
+    'menu-button-controlled-positioned-retained-reopen-focus': await menuScenario(true, false, true),
   });
 }
 
@@ -94,6 +102,149 @@ async function popupScenario(kind, controlled) {
     app.unmount();
     host.remove();
   }
+}
+
+async function menuScenario(controlled, nested, position = false) {
+  const host = document.createElement('div');
+  document.body.append(host);
+  const open = ref(false);
+  const caption = ref('Item');
+  const items = nested
+    ? [{ id: 'parent', parentID: null }, { id: 'child', parentID: 'parent' }]
+    : [{ id: 'item', parentID: null }];
+  const app = createApp({
+    render: () => h(MenuButtonRoot, {
+      items, position,
+      ...(controlled
+        ? { open: open.value, 'onUpdate:open': (next) => { open.value = next; } }
+        : { defaultOpen: false }),
+    }, {
+      default: () => [
+        h(MenuButtonTrigger, null, { default: () => 'Actions' }),
+        h(MenuButtonContent, { style: menuMotion }, {
+          default: () => nested ? [
+            h(MenuItem, { value: 'parent' }, { default: () => 'Parent' }),
+            h(MenuSubContent, { for: 'parent', style: menuMotion }, {
+              default: () => h(MenuItem, { value: 'child' }, { default: () => caption.value }),
+            }),
+          ] : h(MenuItem, { value: 'item' }, { default: () => caption.value }),
+        }),
+      ],
+    }),
+  });
+  let mounted = false;
+  let releaseProbe = () => {};
+  try {
+    app.mount(host);
+    mounted = true;
+    await settle();
+    const trigger = host.querySelector('[data-part="trigger"]');
+    const surfaceSelector = nested ? '[data-part="sub-content"]' : '[data-part="content"]';
+    const surface = host.querySelector(surfaceSelector);
+    const target = host.querySelector(`[data-sectile-menu-id="${nested ? 'child' : 'item'}"]`);
+    const parent = host.querySelector('[data-sectile-menu-id="parent"]');
+    if (!(trigger instanceof HTMLButtonElement) || !(surface instanceof HTMLElement)
+      || !(target instanceof HTMLElement) || (nested && !(parent instanceof HTMLElement))) {
+      return Object.freeze({ ok: false, reason: 'menu fixture elements unavailable' });
+    }
+
+    const listeners = trackPresenceListeners(surface);
+    const originalFocus = target.focus;
+    let focusCalls = 0;
+    target.focus = function (...args) { focusCalls += 1; return originalFocus.apply(this, args); };
+    releaseProbe = () => { delete target.focus; listeners.restore(); };
+    const key = (element, value) => element.dispatchEvent(new KeyboardEvent('keydown', {
+      key: value, bubbles: true, cancelable: true,
+    }));
+    const openSurface = async () => {
+      if (nested) key(parent, 'ArrowRight');
+      else trigger.click();
+      await settle();
+      // Positioned surfaces publish visibility and pending focus in their layout frame.
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      await settle();
+    };
+    const closeSurface = () => nested ? key(target, 'ArrowLeft') : trigger.click();
+    const interactive = () => !surface.hidden && !surface.inert && surface.getAttribute('aria-hidden') === null;
+    const retained = () => !surface.hidden && surface.inert && surface.getAttribute('aria-hidden') === 'true';
+    if (nested) { trigger.click(); await settle(); }
+    await openSurface();
+    await settle();
+    const firstOpenFocus = document.activeElement === target && focusCalls === 1;
+
+    caption.value = 'Updated item';
+    await settle();
+    const ordinaryUpdateFocus = document.activeElement === target && focusCalls === 1;
+    const retainedReopens = [];
+    for (let cycle = 0; cycle < 3; cycle += 1) {
+      closeSurface();
+      await settle();
+      const closed = retained() && document.activeElement === (nested ? parent : trigger)
+        && listeners.count() === 2;
+      await openSurface();
+      await settle();
+      retainedReopens.push(closed && host.querySelector(surfaceSelector) === surface
+        && interactive() && document.activeElement === target
+        && focusCalls === cycle + 2 && listeners.count() === 0);
+    }
+
+    // Outlive the cancelled exit's fallback and deliver its late end event.
+    await new Promise((resolve) => setTimeout(resolve, 160));
+    surface.dispatchEvent(new Event('transitionend', { bubbles: true }));
+    await settle();
+    const staleExitIgnored = interactive() && document.activeElement === target
+      && focusCalls === 4 && listeners.count() === 0;
+
+    closeSurface();
+    await settle();
+    await new Promise((resolve) => setTimeout(resolve, 105));
+    surface.dispatchEvent(new Event('transitionend', { bubbles: true }));
+    await settle();
+    const fullExit = surface.hidden && !surface.inert && listeners.count() === 0;
+    await openSurface();
+    await settle();
+    const fullExitReopenFocus = interactive() && document.activeElement === target && focusCalls === 5;
+
+    closeSurface();
+    await settle();
+    const pendingExit = retained() && listeners.count() === 2;
+    const reopening = openSurface();
+    app.unmount();
+    mounted = false;
+    await reopening;
+    const disconnected = pendingExit && listeners.count() === 0;
+    surface.dispatchEvent(new Event('transitionend', { bubbles: true }));
+    await settle();
+    const noPostUnmountFocus = focusCalls === 5;
+    return Object.freeze({
+      ok: firstOpenFocus && ordinaryUpdateFocus && retainedReopens.every(Boolean)
+        && staleExitIgnored && fullExit && fullExitReopenFocus && disconnected && noPostUnmountFocus,
+      firstOpenFocus, ordinaryUpdateFocus, retainedReopens, staleExitIgnored,
+      fullExit, fullExitReopenFocus, disconnected, noPostUnmountFocus, focusCalls,
+    });
+  } finally {
+    if (mounted) app.unmount();
+    releaseProbe();
+    host.remove();
+  }
+}
+
+function trackPresenceListeners(element) {
+  const listeners = new Map([['animationend', new Set()], ['transitionend', new Set()]]);
+  const add = element.addEventListener;
+  const remove = element.removeEventListener;
+  element.addEventListener = function (type, listener, ...args) {
+    listeners.get(type)?.add(listener);
+    return add.call(this, type, listener, ...args);
+  };
+  element.removeEventListener = function (type, listener, ...args) {
+    listeners.get(type)?.delete(listener);
+    return remove.call(this, type, listener, ...args);
+  };
+  return {
+    count: () => [...listeners.values()].reduce((count, entries) => count + entries.size, 0),
+    restore: () => { delete element.addEventListener; delete element.removeEventListener; },
+  };
 }
 
 async function settle() {

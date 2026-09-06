@@ -52,6 +52,33 @@ test('DOM Chart projects synchronously and exposes a bounded mixed-ID accessibil
   assert.equal(value.disconnected(), 0, 'borrowed renderer remains caller-owned');
 });
 
+test('DOM Chart projection and overlay use the canvas viewport inside a larger root', () => {
+  const value = fixture();
+  value.root.getBoundingClientRect = () => ({
+    x: 10, y: 20, left: 10, top: 20, right: 130, bottom: 200,
+    width: 120, height: 180, toJSON() {},
+  });
+  value.canvas.getBoundingClientRect = () => ({
+    x: 18, y: 64, left: 18, top: 64, right: 114, bottom: 176,
+    width: 96, height: 112, toJSON() {},
+  });
+  const connection = createDOMChart({
+    root: value.root,
+    canvas: value.canvas,
+    controller: value.controller,
+    renderer: value.renderer,
+  });
+  assert.deepEqual(connection.getViewport(), { width: 96, height: 112, devicePixelRatio: 1 });
+  assert.deepEqual(value.renders.at(-1)?.viewport, { width: 96, height: 112, devicePixelRatio: 1 });
+  const overlay = value.root.querySelector('svg[aria-hidden="true"]');
+  assert.equal(overlay?.style.left, '8px');
+  assert.equal(overlay?.style.top, '44px');
+  assert.equal(overlay?.style.width, '96px');
+  assert.equal(overlay?.style.height, '112px');
+  assert.equal(overlay?.getAttribute('viewBox'), '0 0 96 112');
+  connection.disconnect();
+});
+
 test('DOM Chart accessibility IDs preserve exact stable identity and linkage', () => {
   const ids = ['%', '-25', '/', '-2F', 1, '1', 'a%b', 'a-25b', 'é', 'e\u0301'];
   const value = fixture('point', ids.map((id, index) => ({ id, x: index, y: index })));
@@ -294,10 +321,10 @@ test('failed DOM Chart construction rolls back every acquired host resource', ()
     target.addEventListener = (...args) => { listeners += 1; return add(...args); };
     target.removeEventListener = (...args) => { listeners -= 1; return remove(...args); };
   }
-  let observers = 0;
+  const observed = new Set();
   value.window.ResizeObserver = class {
-    observe() { observers += 1; }
-    disconnect() { observers -= 1; }
+    observe(target) { observed.add(target); }
+    disconnect() { observed.clear(); }
   };
   let subscriptions = 0;
   const controller = new Proxy(value.controller, {
@@ -320,7 +347,7 @@ test('failed DOM Chart construction rolls back every acquired host resource', ()
   assert.equal(result.ok, false);
   assert.equal(result.error.code, 'invalid-boundary');
   assert.equal(listeners, 0);
-  assert.equal(observers, 0);
+  assert.equal(observed.size, 0);
   assert.equal(subscriptions, 0);
   assert.equal(value.root.hasAttribute('role'), false);
   assert.equal(value.canvas.hasAttribute('aria-hidden'), false);
@@ -338,10 +365,10 @@ test('initial DOM Chart projection failure stays typed and rolls back acquired h
     target.addEventListener = (...args) => { listeners += 1; return add(...args); };
     target.removeEventListener = (...args) => { listeners -= 1; return remove(...args); };
   }
-  let observers = 0;
+  const observed = new Set();
   value.window.ResizeObserver = class {
-    observe() { observers += 1; }
-    disconnect() { observers -= 1; }
+    observe(target) { observed.add(target); }
+    disconnect() { observed.clear(); }
   };
   let subscriptions = 0;
   const projectionError = Object.freeze({
@@ -368,7 +395,7 @@ test('initial DOM Chart projection failure stays typed and rolls back acquired h
   assert.equal(result.ok, false);
   assert.deepEqual(result.error, projectionError);
   assert.equal(listeners, 0);
-  assert.equal(observers, 0);
+  assert.equal(observed.size, 0);
   assert.equal(subscriptions, 0);
   assert.equal(value.root.hasAttribute('role'), false);
   assert.equal(value.canvas.hasAttribute('aria-hidden'), false);

@@ -88,7 +88,7 @@ export class DOMChart<ID extends StableID> implements DOMChartConnection<ID> {
       this.#live.setAttribute('aria-live', 'polite');
       cleanup.push(() => { this.#list.remove(); this.#live.remove(); });
       options.root.append(this.#list, this.#live);
-      this.#overlay = new ChartOverlay(options.root);
+      this.#overlay = new ChartOverlay(options.root, options.canvas);
       cleanup.push(() => this.#overlay.disconnect());
       this.#viewport = this.#measureViewport();
       this.#navigation = new ChartNavigationAdapter(
@@ -111,6 +111,7 @@ export class DOMChart<ID extends StableID> implements DOMChartConnection<ID> {
         this.#resizeObserver = observer;
         cleanup.push(() => observer.disconnect());
         observer.observe(options.root);
+        observer.observe(options.canvas);
       } else this.#resizeObserver = null;
       cleanup.push(() => {
         if (this.#frame !== 0) view.cancelAnimationFrame(this.#frame);
@@ -317,9 +318,10 @@ export class DOMChart<ID extends StableID> implements DOMChartConnection<ID> {
   }
 
   #measureViewport(): ChartViewport {
-    const rect = this.#options.root.getBoundingClientRect();
-    const width = Math.max(1, rect.width || this.#options.canvas.clientWidth || 1);
-    const height = Math.max(1, rect.height || this.#options.canvas.clientHeight || 1);
+    const rect = this.#options.canvas.getBoundingClientRect();
+    const rootRect = this.#options.root.getBoundingClientRect();
+    const width = Math.max(1, rect.width || this.#options.canvas.clientWidth || rootRect.width || 1);
+    const height = Math.max(1, rect.height || this.#options.canvas.clientHeight || rootRect.height || 1);
     const ratio = Math.max(0.25, Math.min(8, this.#view.devicePixelRatio || 1)) * this.#renderScale;
     const pixelWidth = Math.max(1, Math.round(width * ratio));
     const pixelHeight = Math.max(1, Math.round(height * ratio));

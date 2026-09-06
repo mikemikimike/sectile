@@ -8,9 +8,38 @@ export function createTerminalCheckedControl<State, Event, Command extends objec
 }
 class Impl<State, Event, Command extends object, Value> implements TerminalCheckedControl<State, Event, Value> {
   readonly #options: Options<State, Event, Command, Value>; readonly #runtime: ControlledComponentController<State, Event, Command, Value>;
-  public constructor(options: Options<State, Event, Command, Value>, runtime: ControlledComponentController<State, Event, Command, Value>) { this.#options = options; this.#runtime = runtime; }
+  #publishedRevision: number;
+  public constructor(options: Options<State, Event, Command, Value>, runtime: ControlledComponentController<State, Event, Command, Value>) {
+    this.#options = options; this.#runtime = runtime;
+    this.#publishedRevision = runtime.getSnapshot().revision;
+  }
   public getSnapshot(): RevisionSnapshot<State> { return this.#runtime.getSnapshot(); }
-  public syncControlledValue(value: Value): Result<RevisionSnapshot<State>> { const result = this.#runtime.syncControlledValue(value); if (result.ok) this.#options.onUpdate?.(); return result; }
-  public handleEvent(event: Event): boolean { const result = this.#runtime.handle(event); if (result.ok) this.#options.onUpdate?.(); return result.ok; }
+  public syncControlledValue(value: Value): Result<RevisionSnapshot<State>> {
+    const result = this.#runtime.syncControlledValue(value);
+    if (result.ok) this.#publishUpdate();
+    return result;
+  }
+  public handleEvent(event: Event): boolean {
+    const previousRevision = this.#runtime.getSnapshot().revision;
+    let accepted: boolean;
+    try {
+      accepted = this.#runtime.handle(event).ok;
+    } catch (error) {
+      if (this.#runtime.getSnapshot().revision !== previousRevision) {
+        try { this.#publishUpdate(); }
+        catch { /* Preserve the first callback error after completing publication. */ }
+      }
+      throw error;
+    }
+    if (accepted) this.#publishUpdate();
+    return accepted;
+  }
   public handleKeyboardInput(input: TerminalKeyboardInput): boolean { if (input.key !== 'enter' && input.key !== 'space') return false; return this.handleEvent(this.#options.toggleEvent); }
+  #publishUpdate(): void {
+    const revision = this.#runtime.getSnapshot().revision;
+    // Nested dispatch or controlled synchronization may already have published it.
+    if (revision === this.#publishedRevision) return;
+    this.#publishedRevision = revision;
+    this.#options.onUpdate?.();
+  }
 }

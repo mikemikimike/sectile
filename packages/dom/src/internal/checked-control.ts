@@ -114,15 +114,49 @@ export function createDOMCheckedControl<State, Event, Command extends object, Va
 class DOMCheckedControlImpl<State, Event, Command extends object, Value> implements DOMCheckedControl<State, Event, Value> {
   readonly #options: DOMCheckedControlOptions<State, Event, Command, Value>;
   readonly #controller: CheckedControlController<State, Event, Value>; readonly #click: () => void;
+  #publishedRevision: number;
   public constructor(options: DOMCheckedControlOptions<State, Event, Command, Value>, controller: CheckedControlController<State, Event, Value>) {
     this.#options = options; this.#controller = controller; this.#click = (): void => { this.handleEvent(options.toggleEvent); };
+    this.#publishedRevision = controller.getSnapshot().revision;
     options.element.addEventListener('click', this.#click); this.updateAttributes();
   }
   public getSnapshot(): RevisionSnapshot<State> { return this.#controller.getSnapshot(); }
   public syncControlledValue(value: Value): Result<RevisionSnapshot<State>> {
-    const result = this.#controller.syncControlledValue(value); if (result.ok) { this.updateAttributes(); this.#options.onUpdate?.(); } return result;
+    const result = this.#controller.syncControlledValue(value);
+    if (result.ok) this.#publishUpdate();
+    return result;
   }
-  public handleEvent(event: Event): boolean { const accepted = this.#controller.handleEvent(event); this.updateAttributes(); if (accepted) this.#options.onUpdate?.(); return accepted; }
+  public handleEvent(event: Event): boolean {
+    const previousRevision = this.#controller.getSnapshot().revision;
+    let accepted: boolean;
+    try {
+      accepted = this.#controller.handleEvent(event);
+    } catch (error) {
+      if (this.#controller.getSnapshot().revision !== previousRevision) {
+        try { this.#publishUpdate(); }
+        catch { /* Preserve the first callback error after completing publication. */ }
+      }
+      throw error;
+    }
+    if (accepted) this.#publishUpdate();
+    else this.updateAttributes();
+    return accepted;
+  }
+  #publishUpdate(): void {
+    const revision = this.#controller.getSnapshot().revision;
+    // Nested dispatch or controlled synchronization may already have published it.
+    if (revision === this.#publishedRevision) return;
+    this.#publishedRevision = revision;
+    let failed = false;
+    let firstError: unknown;
+    try { this.updateAttributes(); }
+    catch (error) { failed = true; firstError = error; }
+    try { this.#options.onUpdate?.(); }
+    catch (error) {
+      if (!failed) { failed = true; firstError = error; }
+    }
+    if (failed) throw firstError;
+  }
   public updateAttributes(): void {
     const value = this.#options.read(this.#controller.getSnapshot().state);
     applyCheckedControlAttributes(this.#options.element, getCheckedControlAttributes({

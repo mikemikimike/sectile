@@ -1,70 +1,32 @@
+---
+title: Vue
+description: Vue 상태와 컴포넌트 수명 주기 안에서 Sectile 상호작용을 구성하고 폼, Portal, 선택 도메인 패키지를 연결합니다.
+---
+
 # Vue
 
-`@sectile/vue`는 Sectile DOM 의미 체계를 사용하는 Vue 컴포넌트를 제공합니다. Vue의 모델 규칙을 따르고 접근 가능한 조합형 구성 요소와 안정적인 스타일 경계를 렌더링합니다. 레이아웃과 시각 디자인은 응용 프로그램이 소유합니다.
+`@sectile/vue`는 Sectile 상호작용을 Vue 컴포넌트로 연결합니다. Vue의 상태와 이벤트 규칙을 따르고, 각 상호작용에 필요한 접근성 구조와 동작을 렌더링하며, 시각 테마 대신 공개 스타일 속성을 노출합니다.
+
+Vue가 렌더링 트리와 컴포넌트 수명 주기를 소유할 때 이 패키지를 사용합니다. Vue 밖에서 애플리케이션이 직접 마크업을 만들거나 다른 렌더링 계층이 브라우저 연결을 소유해야 한다면 [`@sectile/dom`](/ko/packages/dom)을 사용합니다.
+
+## 설치
 
 ```sh
 pnpm add @sectile/vue vue
 ```
 
-컴포넌트별 공개 경로에서 필요한 구성 요소를 가져옵니다.
+컴포넌트 제품군마다 공개 경로가 나뉘어 있습니다.
 
 ```ts
 import { CheckboxIndicator, CheckboxRoot } from '@sectile/vue/checkbox'
+import { PopoverContent, PopoverRoot, PopoverTrigger } from '@sectile/vue/popover'
 ```
 
-## 실행 환경 기본값
+지원하는 공개 경로 전체는 [Vue API 참조](/ko/api/vue)에 정리되어 있습니다. Form, Temporal, Virtual, Tabular, Chart는 해당 Vue 연결을 사용할 때만 각각의 추가 패키지가 필요합니다.
 
-`HostProvider`는 Context를 통해 실행 환경 기본값을 하위 컴포넌트에 전달합니다. 일반적으로 응용 프로그램 루트 가까이에 한 번 두고, 방향이나 포털 경계가 다른 하위 영역에서 중첩해 재정의합니다.
+## 제어 상태 컴포넌트 구성하기
 
-```vue
-<script setup lang="ts">
-import { HostProvider } from '@sectile/vue/host-provider'
-</script>
-
-<template>
-  <HostProvider
-    direction="rtl"
-    portal-target="#overlays"
-  >
-    <RouterView />
-  </HostProvider>
-</template>
-```
-
-| Prop | 타입 | 기본값 | 설명 |
-| --- | --- | --- | --- |
-| `direction` | `'ltr' \| 'rtl'` | 상위 값 또는 기본값 `'ltr'` | 컴포넌트가 소유한 영역과 수평 키보드 탐색에 적용할 읽기 방향입니다. |
-| `portalTarget` | `string \| HTMLElement` | 상위 값 또는 기본값 `'body'` | 팝업 Portal 파트가 사용할 기본 대상입니다. 각 Portal의 `to`가 있으면 그 값을 우선합니다. |
-| `createId` | `() => string` | 상위 값 또는 Vue `useId()` | 서로 연결된 ARIA ID가 공유할 고유 접미사를 만듭니다. 호출할 때마다 SSR에서도 동일한 고유 값을 반환해야 합니다. |
-
-응용 프로그램이 직접 만든 조합형 파트에서는 `useHostDirection`, `useHostPortalTarget`, `useHostId`로 확정된 값을 읽을 수 있습니다. 중첩한 Provider는 생략한 속성만 상위 값을 물려받습니다.
-
-## 날짜와 시간 컴포넌트
-
-날짜 입력란, 시간 입력란, 달력, 선택기를 사용할 때 `@sectile/temporal`을 설치합니다. 각 제품군은 세분화된 `@sectile/vue/temporal/*` 진입점에서 가져오며 기본 Vue 패키지는 날짜와 시간 계산에 의존하지 않습니다.
-
-```sh
-pnpm add @sectile/core @sectile/temporal @sectile/vue vue
-```
-
-```vue
-<script setup lang="ts">
-import { DatePickerRoot } from '@sectile/vue/temporal/date-picker'
-import { TemporalProvider } from '@sectile/vue/temporal/temporal-provider'
-</script>
-
-<template>
-  <TemporalProvider :reference-date="{ year: 2026, month: 8, day: 28 }">
-    <DatePickerRoot />
-  </TemporalProvider>
-</template>
-```
-
-`TemporalProvider`는 하위 영역 전체에 결정적인 기준 날짜 하나를 전달합니다. 특정 선택기에 다른 달력 기준이 필요하면 해당 root의 `referenceDate`가 우선합니다.
-
-## 기본 사용법
-
-Root가 상호작용 상태를 소유하고 하위 구성 요소에 공유합니다. `v-model`은 Vue의 제어 상태를 사용하고, `default-value`는 컴포넌트가 소유하는 비제어 상태를 만듭니다.
+`Root`는 하위 구성 요소가 함께 쓰는 상호작용 상태를 소유합니다. 최종 값을 애플리케이션 상태가 결정한다면 `v-model`을 사용합니다. 아래 체크박스는 `name`과 `required`도 지정했으므로 브라우저 폼 제출에도 참여합니다.
 
 ```vue
 <script setup lang="ts">
@@ -72,25 +34,40 @@ import { ref } from 'vue'
 import { CheckboxIndicator, CheckboxRoot } from '@sectile/vue/checkbox'
 
 const accepted = ref(false)
+
+function save() {
+  if (!accepted.value) return
+  console.log('약관 동의 완료')
+}
 </script>
 
 <template>
-  <form class="terms" @submit.prevent>
-    <CheckboxRoot
-      v-model="accepted"
-      class="terms__control"
-      name="terms"
-      required
-      aria-label="약관 동의"
-    >
-      <CheckboxIndicator class="terms__indicator">✓</CheckboxIndicator>
-    </CheckboxRoot>
-    <span>약관에 동의합니다</span>
+  <form class="terms" @submit.prevent="save">
+    <div class="terms__row">
+      <CheckboxRoot
+        v-model="accepted"
+        class="terms__control"
+        name="terms"
+        required
+        aria-label="이용 약관 동의"
+      >
+        <CheckboxIndicator class="terms__indicator">✓</CheckboxIndicator>
+      </CheckboxRoot>
+      <span>이용 약관에 동의합니다</span>
+    </div>
+
+    <button type="submit" :disabled="!accepted">계속</button>
   </form>
 </template>
 
 <style scoped>
 .terms {
+  display: grid;
+  gap: 1rem;
+  justify-items: start;
+}
+
+.terms__row {
   display: flex;
   align-items: center;
   gap: 0.625rem;
@@ -116,29 +93,38 @@ const accepted = ref(false)
 </style>
 ```
 
-시각 CSS는 응용 프로그램이 소유합니다. 위 스타일을 다른 CSS로 교체해도 컴포넌트 동작은 그대로 유지됩니다.
+컴포넌트는 키보드·포인터 입력과 접근성 속성을 관리합니다. `accepted` 값과 폼 제출 흐름, 시각 스타일은 애플리케이션이 소유합니다.
 
-## 제어 상태와 비제어 상태
+## 제어 상태와 비제어 상태 구분하기
 
-응용 프로그램 상태가 기준이면 `v-model`을 사용합니다.
+부모가 제안된 값을 받아 저장한다면 `v-model`을 사용합니다.
 
 ```vue
 <CheckboxRoot v-model="accepted" />
 ```
 
-이후의 변경을 컴포넌트가 소유해야 하면 `default-value`를 사용합니다.
+마운트된 `Root`가 이후 값을 직접 소유하게 하려면 `default-value`를 사용합니다.
 
 ```vue
 <CheckboxRoot :default-value="true" />
 ```
 
-내부 관리와 외부 관리 가운데 한 가지 소유 방식을 선택합니다. 제어 컴포넌트는 `update:modelValue`로 제안된 값을 알리고, 부모가 그 값을 받아들일지 결정합니다.
+한 번 마운트된 `Root`의 소유 방식은 바꾸지 않습니다. 애플리케이션이 제어 상태와 비제어 상태 사이를 의도적으로 전환해야 한다면 해당 `Root`를 다시 마운트합니다.
 
-마운트된 root의 소유 방식은 고정됩니다. 모델 prop을 `undefined`에서 값으로 바꾸거나, 전달하던 모델 prop을 제거하면 오류입니다. 응용 프로그램이 소유 방식을 의도적으로 바꿀 때는 root를 다시 마운트합니다.
+화면 내용 자체가 상태에 따라 달라져야 할 때는 슬롯에서 노출하는 상태를 사용할 수 있습니다. CSS만 달라지면 공개 데이터 속성을 사용하는 편이 단순합니다.
 
-## 렌더링 소유권
+```vue
+<CheckboxRoot v-slot="{ isChecked, isIndeterminate }" default-value="indeterminate">
+  <span v-if="isIndeterminate">일부 선택됨</span>
+  <span v-else>{{ isChecked ? '선택됨' : '선택 안 됨' }}</span>
+</CheckboxRoot>
+```
 
-대부분의 공개 구성 요소는 `as`와 `as-child`를 받습니다. `as`는 렌더링할 요소를 고르고, `as-child`는 동작과 속성을 하나의 자식 요소에 합쳐 응용 프로그램이 요소를 완전히 소유하게 합니다.
+슬롯에서 받을 수 있는 값은 컴포넌트마다 다르며 TypeScript가 가져온 컴포넌트의 타입에서 추론합니다.
+
+## 여러 구성 요소로 화면 조합하기
+
+Popover, Dialog, Select, Menu, Combobox 같은 복합 컴포넌트는 `Root`, `Trigger`, `Content`와 필요한 보조 구성 요소로 나뉩니다. 정해진 한 가지 HTML 구조를 강제하지 않으면서 관련 동작을 같은 상태로 묶을 수 있습니다.
 
 ```vue
 <script setup lang="ts">
@@ -154,6 +140,7 @@ import {
     <PopoverTrigger as-child>
       <button class="account-button">계정</button>
     </PopoverTrigger>
+
     <PopoverContent class="account-popover">
       계정 설정
     </PopoverContent>
@@ -161,196 +148,85 @@ import {
 </template>
 ```
 
-기본 슬롯의 유효한 형태는 네이티브 요소 또는 지원 가능한 컴포넌트 하나입니다. Sectile은 투명한 fragment와 중첩 배열을 탐색하고, 주석과 공백뿐인 텍스트는 VNode 트리에 보존합니다. 채택한 요소까지 이어지는 fragment 경로만 복제하므로 key, scoped slot 메타데이터, hydration 구조도 유지됩니다.
+`as-child`를 사용하면 애플리케이션이 만든 자식 요소가 실제 상호작용 요소가 되고 Sectile의 동작과 속성을 함께 받습니다. 이때 하나의 요소를 소유하는 자식을 사용합니다. 자식 요소 전체를 넘길 필요가 없다면 `as`로 렌더링할 요소만 바꿀 수 있습니다.
 
-자식 속성은 Vue가 한 번만 병합합니다. 기존 class·style과 Sectile 값은 합성되고 두 ref가 모두 유지되며, 충돌하는 role, ARIA 속성, 데이터 속성, 내부 ID는 Sectile 값이 우선합니다. 자식 listener가 먼저 실행되며 `preventDefault()`를 호출하면 자식 listener가 해당 동작의 제어권을 유지합니다.
+팝업의 Portal 구성 요소는 기본적으로 `body`에 렌더링됩니다. 애플리케이션이 오버레이를 별도 컨테이너에 모은다면 `HostProvider`에서 공통 대상을 지정할 수 있습니다.
 
-컴포넌트 자식이 요소 root 하나를 렌더링하면 `$el`을 사용할 수 있습니다. Fragment 또는 multi-root 컴포넌트는 대상 요소에 `$attrs`를 전달하고 그 요소를 명시적으로 expose해야 합니다. 이 계약을 위반하면 마운트 단계에서 즉시 오류를 냅니다.
+## 공통 실행 환경 기본값 지정하기
 
-```vue
-<script setup lang="ts">
-import { ref } from 'vue'
-import type { PrimitiveElementExpose } from '@sectile/vue/primitive'
-
-defineOptions({ inheritAttrs: false })
-const element = ref<PrimitiveElementExpose['element']>(null)
-defineExpose({ element })
-</script>
-
-<template>
-  <span aria-hidden="true">→</span>
-  <button ref="element" v-bind="$attrs"><slot /></button>
-</template>
-```
-
-Portal 파트의 `defer`는 같은 mount 또는 update tick 안에서 뒤늦게 렌더링되는 대상을 지원합니다. 탐색 범위는 현재 tick이며, `body`나 이미 마운트된 대상을 쓸 때는 `false`로 두면 됩니다. Vue의 [deferred Teleport 문서](https://vuejs.org/guide/built-ins/teleport.html#deferred-teleport)도 함께 참고하세요.
-
-## 가상화 collection
-
-선언형 collection은 `@sectile/vue/virtual/list`, `grid`, `masonry`, `spatial`의 focused entry point를 사용합니다. 네 컴포넌트 모두 `items`, `getID`, `header` / `item` / `empty` / `footer` slot과 `scrollport`, `surface`, `state`, `plan`, `phase`, `scrollToID()`, `refresh()`, `flush()` expose 계약을 공유합니다. List, Grid, Masonry는 명시적인 size policy를 사용하고, Grid와 Masonry는 lane policy를 추가로 사용합니다. Spatial은 `sizeOwnership: 'declared' | 'mounted'`로 크기 소유권을 정합니다.
-
-직접 layout을 조립할 때는 `@sectile/vue/virtual/core`의 `useVirtualizer`, `VirtualizerRoot`, `VirtualizerHeader`, `VirtualizerSurface`, `VirtualizerItem`, `VirtualizerFooter`를 사용합니다. Root는 scrollport이고 Surface는 layout 좌표의 원점이면서 plan 크기를 소유합니다. Header와 Footer는 item domain 바깥에 남습니다.
-
-```sh
-pnpm add @sectile/core @sectile/virtual @sectile/dom @sectile/vue vue
-```
+`HostProvider`는 별도 래퍼 요소를 추가하지 않고 읽기 방향, 기본 Portal 대상, 선택적인 ID 생성 함수를 하위 영역에 전달합니다.
 
 ```vue
 <script setup lang="ts">
-import { shallowRef } from 'vue'
-import { createSequence } from '@sectile/core/sequence'
-import { createAxisMeasurementResolver } from '@sectile/dom/virtual'
-import { createExtentIndex } from '@sectile/virtual/extent-index'
-import {
-  createLinearLayout,
-  linearLayoutStrategy,
-} from '@sectile/virtual/linear-layout'
-import {
-  VirtualizerFooter,
-  VirtualizerHeader,
-  VirtualizerItem,
-  VirtualizerRoot,
-  VirtualizerSurface,
-} from '@sectile/vue/virtual/core'
-
-const items = Array.from({ length: 100_000 }, (_, index) => `item-${index}`)
-const extents = createExtentIndex(items.map(() => ({
-  kind: 'unknown' as const,
-  fallback: 36,
-})))
-const layout = shallowRef(createLinearLayout(
-  createSequence(items),
-  extents,
-  { crossExtent: 320 },
-))
-const measure = createAxisMeasurementResolver('vertical')
+import { HostProvider } from '@sectile/vue/host-provider'
 </script>
 
 <template>
-  <VirtualizerRoot
-    :default-state="layout"
-    class="virtual-list"
-    :strategy="linearLayoutStrategy"
-    :measure="measure"
-    :overscan="240"
-    @state-change="layout = $event"
-    v-slot="{ placements, scrollTo }"
-  >
-    <VirtualizerHeader>
-      <button @click="scrollTo('item-99999', 'end')">끝으로 이동</button>
-    </VirtualizerHeader>
-
-    <VirtualizerSurface>
-      <VirtualizerItem
-        v-for="placement in placements"
-        :key="placement.id"
-        :placement="placement"
-        size="width"
-      >
-        {{ placement.id }}
-      </VirtualizerItem>
-    </VirtualizerSurface>
-
-    <VirtualizerFooter>목록 끝</VirtualizerFooter>
-  </VirtualizerRoot>
+  <HostProvider direction="rtl" portal-target="#overlays">
+    <RouterView />
+  </HostProvider>
 </template>
+```
 
-<style scoped>
-.virtual-list {
-  width: 20rem;
-  height: 24rem;
-  overflow: auto;
+중첩한 `HostProvider`는 생략한 값을 상위에서 물려받습니다. 개별 컴포넌트가 Portal 대상을 직접 지정하면 그 값이 공통 기본값보다 우선합니다. 별도 ID 생성 함수를 주지 않으면 Vue의 `useId()`를 사용합니다.
+
+## 공개 속성으로 상태와 모션 표현하기
+
+Sectile Vue 컴포넌트에는 시각 테마가 포함되지 않습니다. 복합 구성 요소는 `data-scope`, `data-part`를 안정적인 스타일 경계로 노출하고, 상태가 있는 구성 요소는 필요에 따라 `data-state`, `data-disabled`, `data-readonly`, `data-invalid` 같은 속성을 반영합니다.
+
+```css
+[data-scope='checkbox'][data-part='root'] {
+  border: 1px solid var(--control-border);
 }
-</style>
+
+[data-scope='checkbox'][data-part='root'][data-state='checked'] {
+  background: var(--control-accent);
+}
 ```
 
-`size="width"`는 placement의 cross-axis width를 적용하고 height는 content가 정하도록 두므로 실제 DOM 크기를 측정할 수 있습니다. 가로 layout은 보통 `size="height"`, 고정된 2차원 region은 `both`, application이 크기를 직접 소유하는 경우에는 `none`을 사용합니다.
+화면 내용이 바뀌어야 하면 슬롯 상태를 사용하고 CSS만 바뀌면 데이터 속성을 사용합니다. 공통 선택자 규칙은 [스타일링](/ko/guide/styling), 상태와 표시 여부에 따른 전환 효과와 동작 줄이기 설정은 [모션](/ko/guides/motion)에서 다룹니다.
 
-`VirtualizerRoot`는 `defaultState`로 초기화한 뒤 활성 layout을 소유하고 확정된 state를 `stateChange`로 보냅니다. `strategy`, `measure`, `initialViewport`는 생성 시점 option이며 `overscan`과 `viewportInsets`는 반응형입니다. Frame invalidation, item measurement, layout mutation, anchor 보정은 DOM connection에서 합성한 뒤 다음 plan을 공개합니다. SSR에서 첫 range까지 렌더해야 한다면 결정적인 `initialViewport`를 전달하고, 생략하면 브라우저 mount 뒤에 첫 plan을 만듭니다.
+## 브라우저 기본 동작 유지하기
 
-## SSR과 hydration 계약
+폼을 지원하는 컨트롤은 브라우저 제출 규칙을 유지합니다. 예를 들어 `CheckboxRoot`는 폼 참여에 필요한 경우 시각적으로 숨긴 기본 체크박스 입력 요소를 함께 렌더링합니다. 텍스트 입력 컴포넌트도 브라우저의 입력, 선택 영역, IME 조합 입력을 다시 구현하지 않고 그대로 사용합니다.
 
-SSR 지원 범위는 검증 증거를 기준으로 정합니다. 현재 server-to-client hydration 매트릭스는 중첩 Fragment의 `asChild` 채택, deferred Select/Toast Teleport, host가 생성한 ID 관계, 열린 상태와 닫힌 상태의 conditional presence, 숨겨진 form control을 검증합니다. 이 시나리오는 Vue mismatch 경고 0건과 함께 의도한 동일성, 대상 구조, presence 상태, 네이티브 제출 값을 유지해야 합니다. 기준 목록과 증거 경로는 `packages/vue/testing/hydration-contract.json`에 있습니다.
+`autocomplete`, `inputmode`, `name`, `form` 같은 일반 HTML 속성과 접근성 이름은 해당 공개 입력 구성 요소나 `Root`에 전달합니다. 따라서 한 폼 안에서 기본 HTML 입력 요소와 Sectile 컴포넌트를 함께 사용할 수 있습니다.
 
-Dialog, Alert Dialog, Drawer, Popover, Tooltip, Select뿐 아니라 Menu 계열 popup/submenu content, Combobox, Cascade Select, popup picker content도 의미상 close와 렌더링 presence를 분리합니다. 의미상 close는 즉시 끝나므로 focus 복귀, modal 격리, layer 소유권, selection/navigation 같은 상호작용 효과는 시각적 exit가 끝나기 전에 해제됩니다. 닫혔지만 CSS exit를 위해 아직 present한 surface는 `hidden`으로 즉시 가리지 않고, Vue가 `inert`와 접근성 숨김을 반영합니다. positioning은 rendered presence가 끝날 때까지만 유지됩니다. Dialog 계열처럼 `unmountOnExit`을 제공하는 popup part는 exit 완료 뒤 제거할 수 있고, 나머지 persistent surface는 exit가 끝난 뒤 숨긴 채 같은 DOM node를 reopen 때 다시 사용합니다.
+폼 전체의 검증, 오류, 초기화, 제출 상태까지 조정하려면 선택 패키지인 `@sectile/form`을 설치하고 [`@sectile/vue/form`](/ko/packages/form/vue/)을 사용합니다.
 
-Toast item도 같은 브라우저 presence 관찰자를 사용하지만 persistent hidden content 대신 keyed collection 수명을 따릅니다. 닫힌 item은 CSS exit 동안 `inert`와 접근성 숨김 상태로 남고, exit가 끝나면 렌더링 collection에서 제거됩니다. 완료 전에 같은 toast ID가 다시 활성화되면 현재 element의 오래된 exit generation을 취소합니다. Vue는 imperative `hidden` 소유권을 presence projection에 위임하고, 기반 DOM 연결은 semantic state, ARIA, focus, layer, positioning 소유권을 계속 유지합니다.
+## 필요한 도메인만 추가하기
 
-이벤트 API 이름은 `positionChange`, `interactOutside`처럼 camelCase를 사용합니다. Vue 템플릿에서는 `@position-change`, `@interact-outside`처럼 kebab-case로 수신하고, render function과 JSX에서는 `onPositionChange`, `onInteractOutside`를 사용합니다.
+기본 Vue 패키지는 Core와 DOM에 의존합니다. 다른 도메인 패키지는 해당 Vue 연결을 사용할 때만 추가합니다.
 
-## 슬롯 상태
+| 필요한 기능 | 추가 패키지 | Vue 공개 경로 | 안내 |
+| --- | --- | --- | --- |
+| 폼 검증과 제출 | `@sectile/form` | `@sectile/vue/form` | [Vue 폼](/ko/packages/form/vue/) |
+| 날짜, 시간, 달력, 선택기 | `@sectile/temporal` | 예: `@sectile/vue/temporal/date-picker` | [Temporal](/ko/packages/temporal) |
+| 가상화 화면 | `@sectile/virtual` | `@sectile/vue/virtual/list`, `grid`, `masonry`, `spatial` | [Virtual Vue 연결](/ko/packages/virtual/vue) |
+| 표와 그리드 | `@sectile/tabular` | `@sectile/vue/data-table`, `data-grid`, `data-tree-grid` | [Vue로 Tabular 사용하기](/ko/packages/tabular/vue) |
+| 차트 | `@sectile/chart` | `@sectile/vue/chart` | [Vue 차트](/ko/packages/chart/vue) |
 
-Root와 구성 요소 슬롯은 현재 의미 상태를 노출합니다. 상호작용에 따라 내용이 바뀌어야 하면 슬롯 속성을 사용하고, CSS만 바뀌면 데이터 속성을 사용합니다.
+각 도메인의 화면 표현과 무관한 규칙은 해당 패키지가 계속 맡습니다. Vue 연결은 그 규칙을 컴포넌트, `ref`, 슬롯, 이벤트, 브라우저 효과, Vue 수명 주기에 연결합니다.
 
-```vue
-<CheckboxRoot v-slot="{ isChecked, isIndeterminate }" default-value="indeterminate">
-  <span v-if="isIndeterminate">일부 선택됨</span>
-  <span v-else>{{ isChecked ? '선택됨' : '선택 안 됨' }}</span>
-</CheckboxRoot>
-```
+## SSR과 하이드레이션 일관성 유지하기
 
-슬롯 이름과 값은 컴포넌트마다 다르며 TypeScript가 가져온 컴포넌트에서 형식을 추론합니다.
+Vue 컴포넌트는 서버 렌더링 중에 브라우저 전용 자원을 만들지 않습니다. 서버에서 만든 구조와 첫 브라우저 렌더링이 일치하도록 제어 값, 기본 상태, 읽기 방향, ID처럼 초기 구조에 영향을 주는 입력을 같게 유지합니다.
 
-## 폼과 기본 입력 요소
+애플리케이션 전체에서 같은 실행 환경 기본값이 필요하면 `HostProvider`를 사용합니다. Temporal 컨트롤의 첫 달력 화면을 일정하게 만들어야 한다면 `TemporalProvider`나 명시적인 `referenceDate`를 사용할 수 있습니다. 서버에서 Virtual 항목을 미리 렌더링하는 경우에는 Virtual 안내에서 요구하는 초기 화면 범위를 지정합니다.
 
-폼을 지원하는 컴포넌트는 브라우저의 제출 의미를 유지합니다. 예를 들어 `CheckboxRoot`는 `name`, `form`, `required` 중 하나 때문에 기본 체크박스가 필요할 때 시각적으로 숨긴 입력 요소를 렌더링합니다. 이 요소의 `checked`, `indeterminate`, `required`, `disabled`, 폼 속성은 의미 상태를 따릅니다.
+Portal 구성 요소는 Vue Teleport 동작을 따릅니다. 대상이 같은 Vue 마운트나 갱신 주기 안에서 조금 늦게 만들어질 때만 `defer`를 사용합니다. 이미 존재하는 대상에는 지연 설정이 필요하지 않습니다.
 
-텍스트 입력 컴포넌트는 브라우저의 입력, 선택 영역, IME 조합 입력을 그대로 사용합니다. `autocomplete`, `inputmode`, `aria-label` 같은 일반 HTML 속성은 공개 Field 구성 요소에 전달합니다.
+## 컴포넌트 정리는 Vue 수명 주기에 맡기기
 
-폼 전체를 조정하려면 optional peer인 `@sectile/form`을 설치하고 `@sectile/vue/form`에서 정적 파트를 가져옵니다. 일반 Vue 컴포넌트 import에는 이 peer가 필요하지 않습니다.
+Sectile Vue 컴포넌트가 만든 브라우저·도메인 연결은 해당 컴포넌트의 렌더링 수명이 끝날 때 함께 정리됩니다. 연결 객체가 소유한 리스너, 관찰자, 구독, 렌더링 자원도 이때 해제됩니다.
 
-```sh
-pnpm add @sectile/core @sectile/form @sectile/dom @sectile/vue vue
-```
+반대로 애플리케이션이 컴포넌트 밖에서 직접 만든 자원은 계속 애플리케이션이 소유합니다. 그런 자원은 생성한 Vue 수명 주기와 같은 경계에서 정리합니다.
 
-```vue
-<script setup lang="ts">
-import { FormField, FormRoot, FormSubmit, defineFormSubmission } from '@sectile/vue/form'
+Vue가 렌더링 트리를 소유한다면 `@sectile/vue`를 사용합니다. 요소 수명이나 브라우저 연결을 애플리케이션이 직접 소유해야 하는 경우에만 `@sectile/dom`이나 화면 표현과 무관한 패키지 API를 직접 사용합니다.
 
-const submission = defineFormSubmission({
-  onSubmit: ({ formData }) => console.log(Object.fromEntries(formData)),
-})
-</script>
+## 작업별 다음 문서
 
-<template>
-  <FormRoot v-bind="submission">
-    <FormField name="email" required><input type="email" /></FormField>
-    <FormSubmit>저장</FormSubmit>
-  </FormRoot>
-</template>
-```
-
-한 폼에서 네이티브와 Sectile 컨트롤을 섞을 수 있습니다. 먼저 [Vue 폼 안내](/ko/packages/form/vue/)를 보고, 그룹·중첩 이름·외부 연결 입력은 [필드와 컨트롤](/ko/packages/form/vue/fields)을 참고하세요.
-
-## 스타일 경계
-
-모든 공개 구성 요소는 안정적인 데이터 속성을 노출합니다.
-
-```html
-<button
-  data-scope="checkbox"
-  data-part="root"
-  data-state="checked"
-></button>
-```
-
-- `data-scope`는 컴포넌트 종류를 나타냅니다.
-- `data-part`는 공개 스타일 경계를 나타냅니다.
-- `data-state`는 해당 구성 요소의 현재 의미 상태를 나타냅니다.
-- `data-disabled`, `data-readonly`, `data-invalid` 같은 상태 표시는 활성 상태일 때만 나타납니다.
-
-자동 생성된 컴포넌트 이름이나 내부 DOM 깊이보다 이 선택자를 사용합니다. 선택자와 테마 규칙은 [스타일링](/ko/guide/styling)에서 확인할 수 있습니다.
-
-## DOM 의미 체계와 수명 주기
-
-Vue 컴포넌트는 ARIA 속성, 정규화된 입력, 포커스 효과, 팝업 배치, 기본 요소 동작을 `@sectile/dom`에서 재사용합니다. 설정 과정에서 연결 객체를 만들고, 감시자로 제어 속성을 동기화하며, 렌더링 소유권이 끝나면 리스너를 해제합니다.
-
-Vue는 Core의 완전한 공개 실행 환경 투영입니다. 저장소 완전성 검사는 모든 공개 Core 컴포넌트 경로에 Vue 증거가 있는지 확인합니다. Vue 테스트는 prop과 controller option의 연결, 모델 변경 제안, 동적 컬렉션 보정, 네이티브 폼 직렬화, SSR ID, hydration, Teleport 소유권을 따로 검증합니다.
-
-Vue 템플릿과 조합형 구성에는 `@sectile/vue`를 사용합니다. Vue 밖에서 마크업을 만들거나 사용자 정의 렌더러가 연결 객체의 수명 주기를 소유해야 하면 `@sectile/dom`을 직접 사용합니다.
-
-`@sectile/vue/reorder`는 `SequenceReorderRoot`/`SequenceReorderItem`과 `TreeReorderRoot`/`TreeReorderItem`을 제공합니다. DOM 키보드·포인터 계약을 재사용하면서 `update:items` 또는 `update:nodes`를 발생시킵니다. Feed 구간 요청은 응답에 다시 넣어야 하는 request generation을 포함하고, Form 제출 완료 함수는 `submitStarted`가 반환한 generation으로만 현재 제출을 완료합니다.
-
-## 컴포넌트 살펴보기
-
-[컴포넌트 목록](/ko/components/)에는 각 컴포넌트의 예시, 공개 구성 요소, 키보드 동작, 접근성 규약, API가 정리되어 있습니다. 기본 예시로 시작한 뒤 Anatomy에서 스타일에 사용할 정확한 `data-scope`와 `data-part` 경계를 확인합니다.
+- 개별 컨트롤의 상호작용 미리보기와 Vue 사용 코드는 [컴포넌트](/ko/components/)에서 확인할 수 있습니다.
+- 제어 상태와 비제어 상태의 공통 규칙은 [상태 소유권](/ko/guide/state-ownership)에서 다룹니다.
+- 공개 상태 선택자와 전환 효과는 [스타일링](/ko/guide/styling)과 [모션](/ko/guides/motion)을 참고하세요.
+- 정확한 Vue 공개 패키지 경로는 [Vue API 참조](/ko/api/vue)에서 확인할 수 있습니다.

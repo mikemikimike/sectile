@@ -1,70 +1,32 @@
+---
+title: Vue
+description: Compose Sectile interaction behavior with headless Vue components, Vue state, forms, portals, and optional domain packages.
+---
+
 # Vue
 
-`@sectile/vue` provides headless Vue components backed by Sectile DOM semantics. It follows Vue's model conventions, renders accessible compound parts, and exposes stable styling boundaries while leaving layout and visual design to the application.
+`@sectile/vue` provides headless Vue components for Sectile interaction behavior. Components follow Vue state and event conventions, render the accessibility and interaction structure their pattern requires, and expose public styling hooks without imposing a visual theme.
+
+Use the Vue package when Vue owns the rendered tree and component lifecycle. Use [`@sectile/dom`](/packages/dom) instead when application markup is created outside Vue or another renderer must own the browser connection directly.
+
+## Install
 
 ```sh
 pnpm add @sectile/vue vue
 ```
 
-Import components from their public component subpath:
+Import each component family from its focused public path:
 
 ```ts
 import { CheckboxIndicator, CheckboxRoot } from '@sectile/vue/checkbox'
+import { PopoverContent, PopoverRoot, PopoverTrigger } from '@sectile/vue/popover'
 ```
 
-## Host defaults
+The [Vue API reference](/api/vue) is the canonical list of public import paths. Form, Temporal, Virtual, Tabular, and Chart integrations use optional peer packages only when those features are imported.
 
-`HostProvider` supplies environment defaults without rendering a wrapper element. Use it once near the application root, then override it in a nested subtree only when that subtree uses a different host boundary.
+## Build a controlled component
 
-```vue
-<script setup lang="ts">
-import { HostProvider } from '@sectile/vue/host-provider'
-</script>
-
-<template>
-  <HostProvider
-    direction="rtl"
-    portal-target="#overlays"
-  >
-    <RouterView />
-  </HostProvider>
-</template>
-```
-
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `direction` | `'ltr' \| 'rtl'` | inherited, then `'ltr'` | Reading direction used by owned surfaces and horizontal keyboard navigation. |
-| `portalTarget` | `string \| HTMLElement` | inherited, then `'body'` | Default target for popup Portal parts. A Portal's own `to` prop takes priority. |
-| `createId` | `() => string` | inherited, then Vue `useId()` | Creates the unique suffix shared by related ARIA IDs. Each call must return a unique, SSR-stable value. |
-
-`useHostDirection`, `useHostPortalTarget`, and `useHostId` expose the resolved values to application-owned compound parts. Nested providers inherit each omitted prop independently.
-
-## Date and time components
-
-Install `@sectile/temporal` to use date fields, time fields, calendars, and pickers. Import each family from its granular `@sectile/vue/temporal/*` entry point; the base Vue package remains independent of date and time logic.
-
-```sh
-pnpm add @sectile/core @sectile/temporal @sectile/vue vue
-```
-
-```vue
-<script setup lang="ts">
-import { DatePickerRoot } from '@sectile/vue/temporal/date-picker'
-import { TemporalProvider } from '@sectile/vue/temporal/temporal-provider'
-</script>
-
-<template>
-  <TemporalProvider :reference-date="{ year: 2026, month: 8, day: 28 }">
-    <DatePickerRoot />
-  </TemporalProvider>
-</template>
-```
-
-`TemporalProvider` supplies one deterministic reference date to its subtree. A picker-level `referenceDate` prop takes priority when one control needs a different calendar baseline.
-
-## Basic usage
-
-The root owns interaction state and shares it with its compound parts. `v-model` uses controlled Vue state; `default-value` creates an uncontrolled component.
+Roots own the interaction state shared by their compound parts. Use `v-model` when application state is authoritative. This Checkbox also participates in native form submission because it has a `name` and `required` state.
 
 ```vue
 <script setup lang="ts">
@@ -72,25 +34,40 @@ import { ref } from 'vue'
 import { CheckboxIndicator, CheckboxRoot } from '@sectile/vue/checkbox'
 
 const accepted = ref(false)
+
+function save() {
+  if (!accepted.value) return
+  console.log('terms accepted')
+}
 </script>
 
 <template>
-  <form class="terms" @submit.prevent>
-    <CheckboxRoot
-      v-model="accepted"
-      class="terms__control"
-      name="terms"
-      required
-      aria-label="Accept the terms"
-    >
-      <CheckboxIndicator class="terms__indicator">✓</CheckboxIndicator>
-    </CheckboxRoot>
-    <span>I accept the terms</span>
+  <form class="terms" @submit.prevent="save">
+    <div class="terms__row">
+      <CheckboxRoot
+        v-model="accepted"
+        class="terms__control"
+        name="terms"
+        required
+        aria-label="Accept the terms"
+      >
+        <CheckboxIndicator class="terms__indicator">✓</CheckboxIndicator>
+      </CheckboxRoot>
+      <span>I accept the terms</span>
+    </div>
+
+    <button type="submit" :disabled="!accepted">Continue</button>
   </form>
 </template>
 
 <style scoped>
 .terms {
+  display: grid;
+  gap: 1rem;
+  justify-items: start;
+}
+
+.terms__row {
   display: flex;
   align-items: center;
   gap: 0.625rem;
@@ -116,29 +93,38 @@ const accepted = ref(false)
 </style>
 ```
 
-The components include no visual CSS. The example styles are application-owned and can be replaced without changing behavior.
+The component owns keyboard and pointer interaction plus its accessibility projection. The application owns the `accepted` ref, the surrounding form flow, and the visual styles.
 
-## Controlled and uncontrolled state
+## Choose controlled or uncontrolled ownership
 
-Use `v-model` when application state is authoritative:
+Use `v-model` when the parent accepts and stores every proposed value:
 
 ```vue
 <CheckboxRoot v-model="accepted" />
 ```
 
-Use `default-value` when the component should own subsequent changes:
+Use `default-value` when the mounted root should own subsequent changes:
 
 ```vue
 <CheckboxRoot :default-value="true" />
 ```
 
-Do not pass both ownership modes. Controlled components emit their proposed value through `update:modelValue`; the parent decides whether to accept it.
+Do not switch a mounted root between controlled and uncontrolled ownership. Remount the root when the application intentionally changes that ownership boundary.
 
-Ownership is fixed for a mounted root. Changing a model prop from `undefined` to a value, or removing a previously supplied model prop, is an error. Remount the root when the application intentionally changes ownership.
+For content that changes with interaction, use the slot state exposed by the component. For CSS-only changes, prefer public data attributes:
 
-## Render ownership
+```vue
+<CheckboxRoot v-slot="{ isChecked, isIndeterminate }" default-value="indeterminate">
+  <span v-if="isIndeterminate">Partially selected</span>
+  <span v-else>{{ isChecked ? 'Selected' : 'Not selected' }}</span>
+</CheckboxRoot>
+```
 
-Most public parts accept `as` and `as-child`. `as` chooses the rendered element. `as-child` merges behavior and attributes into the single child so the application can own the element completely.
+Slot contracts are component-specific and remain typed from the imported component.
+
+## Compose multi-part surfaces
+
+Compound components keep related behavior together without requiring one fixed HTML structure. Popover, Dialog, Select, Menu, Combobox, and similar families expose focused Root, Trigger, Content, and supporting parts.
 
 ```vue
 <script setup lang="ts">
@@ -154,6 +140,7 @@ import {
     <PopoverTrigger as-child>
       <button class="account-button">Account</button>
     </PopoverTrigger>
+
     <PopoverContent class="account-popover">
       Account settings
     </PopoverContent>
@@ -161,196 +148,83 @@ import {
 </template>
 ```
 
-The default slot must contain exactly one native element or supported component after transparent fragments and nested arrays are inspected. Comments and whitespace-only text are ignored as candidates but remain in the VNode tree. Visible text, zero elements, and multiple elements are rejected. Sectile path-copies only the fragments leading to the adopted element, preserving keys, scoped-slot metadata, and hydration structure.
+`as-child` lets the application-owned child become the interactive element while receiving the Sectile behavior and attributes. Use it with one element-owning child; ordinary `as` can select another rendered element when full child adoption is unnecessary.
 
-Vue performs the child-prop merge once. Existing and Sectile classes and styles compose, both refs remain active, and Sectile owns conflicting roles, ARIA attributes, data attributes, and internal IDs. Child listeners run first. Calling `preventDefault()` prevents the corresponding Sectile listener from applying its semantic action.
+Popup Portal parts render to `body` by default. Supply a shared target with `HostProvider` when an application keeps overlays in another container.
 
-A component child may rely on `$el` when it renders one element root. A fragment or multi-root component must forward `$attrs` to the intended element and expose that element explicitly. Otherwise Sectile throws instead of mounting visually correct markup with broken focus, positioning, or collection registration.
+## Set shared host defaults
 
-```vue
-<script setup lang="ts">
-import { ref } from 'vue'
-import type { PrimitiveElementExpose } from '@sectile/vue/primitive'
-
-defineOptions({ inheritAttrs: false })
-const element = ref<PrimitiveElementExpose['element']>(null)
-defineExpose({ element })
-</script>
-
-<template>
-  <span aria-hidden="true">→</span>
-  <button ref="element" v-bind="$attrs"><slot /></button>
-</template>
-```
-
-Portal parts accept `defer` when their target is rendered by Vue later in the same mount or update tick. It does not wait for a target created in a later tick. Leave it `false` for `body` or an already-mounted target. See Vue's [deferred Teleport documentation](https://vuejs.org/guide/built-ins/teleport.html#deferred-teleport).
-
-## Virtualized collections
-
-Declarative collections live at the focused `@sectile/vue/virtual/list`, `grid`, `masonry`, and `spatial` entry points. They share `items`, `getID`, the `header` / `item` / `empty` / `footer` slots, and the exposed `scrollport`, `surface`, `state`, `plan`, `phase`, `scrollToID()`, `refresh()`, and `flush()` contract. List, Grid, and Masonry use explicit size policies; Grid and Masonry also use lane policies; Spatial uses `sizeOwnership: 'declared' | 'mounted'`.
-
-For custom composition, `@sectile/vue/virtual/core` provides `useVirtualizer` plus `VirtualizerRoot`, `VirtualizerHeader`, `VirtualizerSurface`, `VirtualizerItem`, and `VirtualizerFooter`. The root is the scrollport, the surface is the layout coordinate origin and owns plan size, and header/footer remain outside the item domain.
-
-```sh
-pnpm add @sectile/core @sectile/virtual @sectile/dom @sectile/vue vue
-```
+`HostProvider` supplies reading direction, a default portal target, and optional ID generation to its subtree without adding a wrapper element.
 
 ```vue
 <script setup lang="ts">
-import { shallowRef } from 'vue'
-import { createSequence } from '@sectile/core/sequence'
-import { createAxisMeasurementResolver } from '@sectile/dom/virtual'
-import { createExtentIndex } from '@sectile/virtual/extent-index'
-import {
-  createLinearLayout,
-  linearLayoutStrategy,
-} from '@sectile/virtual/linear-layout'
-import {
-  VirtualizerFooter,
-  VirtualizerHeader,
-  VirtualizerItem,
-  VirtualizerRoot,
-  VirtualizerSurface,
-} from '@sectile/vue/virtual/core'
-
-const items = Array.from({ length: 100_000 }, (_, index) => `item-${index}`)
-const extents = createExtentIndex(items.map(() => ({
-  kind: 'unknown' as const,
-  fallback: 36,
-})))
-const layout = shallowRef(createLinearLayout(
-  createSequence(items),
-  extents,
-  { crossExtent: 320 },
-))
-const measure = createAxisMeasurementResolver('vertical')
+import { HostProvider } from '@sectile/vue/host-provider'
 </script>
 
 <template>
-  <VirtualizerRoot
-    :default-state="layout"
-    class="virtual-list"
-    :strategy="linearLayoutStrategy"
-    :measure="measure"
-    :overscan="240"
-    @state-change="layout = $event"
-    v-slot="{ placements, scrollTo }"
-  >
-    <VirtualizerHeader>
-      <button @click="scrollTo('item-99999', 'end')">Jump to end</button>
-    </VirtualizerHeader>
-
-    <VirtualizerSurface>
-      <VirtualizerItem
-        v-for="placement in placements"
-        :key="placement.id"
-        :placement="placement"
-        size="width"
-      >
-        {{ placement.id }}
-      </VirtualizerItem>
-    </VirtualizerSurface>
-
-    <VirtualizerFooter>End of list</VirtualizerFooter>
-  </VirtualizerRoot>
+  <HostProvider direction="rtl" portal-target="#overlays">
+    <RouterView />
+  </HostProvider>
 </template>
+```
 
-<style scoped>
-.virtual-list {
-  width: 20rem;
-  height: 24rem;
-  overflow: auto;
+Nested providers inherit omitted values. A component-specific portal target still takes priority over the provider default. Without a custom ID generator, Vue's `useId()` provides the host ID source.
+
+## Style state and motion through public hooks
+
+Sectile Vue components do not ship a visual theme. Compound parts expose stable `data-scope` and `data-part` boundaries, and stateful parts expose attributes such as `data-state`, `data-disabled`, `data-readonly`, or `data-invalid` when applicable.
+
+```css
+[data-scope='checkbox'][data-part='root'] {
+  border: 1px solid var(--control-border);
 }
-</style>
+
+[data-scope='checkbox'][data-part='root'][data-state='checked'] {
+  background: var(--control-accent);
+}
 ```
 
-`size="width"` applies the placement's cross-axis width while leaving height content-driven and measurable. Horizontal layouts normally use `size="height"`; fixed two-dimensional regions can use `both`, and application-owned sizing can use `none`.
+Use slot props when rendered content must change with state and data attributes when CSS is sufficient. [Styling](/guide/styling) documents the shared selector conventions, while [Motion](/guides/motion) covers state- and presence-driven transitions, including reduced-motion handling.
 
-`VirtualizerRoot` owns its active layout after `defaultState` initializes it and emits committed states through `stateChange`. `strategy`, `measure`, and `initialViewport` are construction-time options; `overscan` and `viewportInsets` remain reactive. Frame invalidation, item measurements, layout mutations, and anchor correction are composed by the DOM connection before the next plan is published. Pass a deterministic `initialViewport` for SSR when the server must render the first range; otherwise the first browser plan is created after mount.
+## Keep native browser behavior where it matters
 
-## SSR and hydration contract
+Form-capable controls preserve native submission semantics. For example, `CheckboxRoot` adds a hidden native checkbox when its form participation requires one. Text-entry components retain browser input, selection, and IME behavior instead of recreating text editing in Vue.
 
-SSR support is evidence-scoped. The verified server-to-client hydration matrix covers nested `asChild` Fragment adoption, deferred Select/Toast Teleports, host-generated ID relationships, open and closed conditional presence, and hidden form controls. These scenarios must hydrate without Vue mismatch warnings and preserve their intended identity, target structure, presence state, and native submission value. The canonical inventory and evidence paths live in `packages/vue/testing/hydration-contract.json`.
+Ordinary HTML attributes such as `autocomplete`, `inputmode`, `name`, `form`, and accessible labeling stay on the relevant public field or root part. Native inputs and Sectile components can therefore participate in the same form.
 
-Dialog, Alert Dialog, Drawer, Popover, Tooltip, Select, Menu-family popup/submenu content, Combobox, Cascade Select, and popup picker content distinguish semantic close from rendered presence. Their semantic close happens immediately: focus restoration, modal isolation, layer ownership, selection/navigation effects, and other interaction work end before visual exit finishes. While a closed surface is still present for CSS exit motion, Vue keeps it unhidden, marks it inert and accessibility-hidden, and keeps positioning connected only until rendered presence ends. Dialog-family popup parts that expose `unmountOnExit` can be removed after exit completes; the other persistent surfaces are hidden after exit and reused on reopen, preserving DOM-local state.
+For form-wide validation, errors, reset, and submission coordination, install the optional Form package and use [`@sectile/vue/form`](/packages/form/vue/).
 
-Toast items use the same browser presence observer but have keyed collection lifetime instead of persistent hidden content: a dismissed item remains inert and accessibility-hidden through its CSS exit, then leaves the rendered toast collection. Reusing the same toast ID before completion cancels the stale exit for the retained current element. Vue delegates imperative `hidden` ownership to its presence projection while the underlying DOM connections continue to own semantic state, ARIA, focus, layers, and positioning.
+## Add domain packages only when needed
 
-Event API names use camelCase, including `positionChange` and `interactOutside`. Vue templates listen with their kebab-case forms, such as `@position-change` and `@interact-outside`. Render functions and JSX use `onPositionChange` and `onInteractOutside`.
+The base Vue package depends on Core and DOM. Larger domains are optional peers and are installed only when their Vue integration is used.
 
-## Slot state
+| Need | Additional package | Vue entry point | Guide |
+| --- | --- | --- | --- |
+| Form validation and submission | `@sectile/form` | `@sectile/vue/form` | [Vue forms](/packages/form/vue/) |
+| Dates, times, calendars, pickers | `@sectile/temporal` | e.g. `@sectile/vue/temporal/date-picker` | [Temporal](/packages/temporal) |
+| Virtualized surfaces | `@sectile/virtual` | `@sectile/vue/virtual/list`, `grid`, `masonry`, `spatial` | [Virtual Vue connection](/packages/virtual/vue) |
+| Tables and grids | `@sectile/tabular` | `@sectile/vue/data-table`, `data-grid`, `data-tree-grid` | [Tabular with Vue](/packages/tabular/vue) |
+| Charts | `@sectile/chart` | `@sectile/vue/chart` | [Vue charts](/packages/chart/vue) |
 
-Root and part slots expose live semantic state. Use slot props for content that must change with interaction; use data attributes for CSS-only state.
+Each domain package continues to own its renderer-neutral rules. The Vue layer maps those rules to components, refs, slots, events, browser effects, and Vue lifecycle.
 
-```vue
-<CheckboxRoot v-slot="{ isChecked, isIndeterminate }" default-value="indeterminate">
-  <span v-if="isIndeterminate">Partially selected</span>
-  <span v-else>{{ isChecked ? 'Selected' : 'Not selected' }}</span>
-</CheckboxRoot>
-```
+## Render consistently with SSR and hydration
 
-Slot names and values are component-specific. TypeScript infers them from the imported component.
+Vue components support server rendering without acquiring browser-only resources during the server render. Keep controlled values, default state, reading direction, IDs, and other inputs that affect the initial structure consistent between the server and the first client render.
 
-## Forms and native fields
+Use `HostProvider` when the application needs deterministic shared host defaults. Temporal controls can use `TemporalProvider` or an explicit `referenceDate` when their first calendar view must be deterministic. Virtual surfaces that need server-rendered items should provide the deterministic initial viewport required by their Virtual guide.
 
-Form-capable components preserve browser submission semantics. For example, `CheckboxRoot` renders a visually hidden native checkbox when `name`, `form`, or `required` makes one necessary. Its `checked`, `indeterminate`, `required`, `disabled`, and form attributes follow the semantic state.
+Portal parts follow Vue Teleport behavior. Use their `defer` option only when the target is created later in the same Vue mount or update tick; an already available target needs no deferral.
 
-Text-entry components retain native input, selection, and IME behavior instead of recreating text editing in Vue. Forward ordinary HTML attributes such as `autocomplete`, `inputmode`, and `aria-label` to the public field part.
+## Let Vue own component cleanup
 
-For form-wide coordination, install the optional `@sectile/form` peer and import the static parts from `@sectile/vue/form`. Ordinary Vue component imports do not require the peer.
+Sectile Vue components create their browser/domain connections with component setup and release their connection-owned listeners, observers, subscriptions, and rendering resources when their rendered ownership ends. Application resources created outside those components remain application-owned and should be disposed in the same Vue lifecycle that created them.
 
-```sh
-pnpm add @sectile/core @sectile/form @sectile/dom @sectile/vue vue
-```
+Use `@sectile/vue` when Vue owns the tree. Reach for lower-level `@sectile/dom` or renderer-neutral package APIs only when the application intentionally needs a different ownership boundary.
 
-```vue
-<script setup lang="ts">
-import { FormField, FormRoot, FormSubmit, defineFormSubmission } from '@sectile/vue/form'
+## Continue by task
 
-const submission = defineFormSubmission({
-  onSubmit: ({ formData }) => console.log(Object.fromEntries(formData)),
-})
-</script>
-
-<template>
-  <FormRoot v-bind="submission">
-    <FormField name="email" required><input type="email" /></FormField>
-    <FormSubmit>Save</FormSubmit>
-  </FormRoot>
-</template>
-```
-
-Native and Sectile controls can be mixed in one form. Start with the [Vue forms guide](/packages/form/vue/), then see [fields and controls](/packages/form/vue/fields) for groups, nested names, and externally associated inputs.
-
-## Styling boundaries
-
-Every public compound part exposes stable attributes:
-
-```html
-<button
-  data-scope="checkbox"
-  data-part="root"
-  data-state="checked"
-></button>
-```
-
-- `data-scope` identifies the component family.
-- `data-part` identifies the public styling boundary.
-- `data-state` exposes the current semantic state when the part has one.
-- State flags such as `data-disabled`, `data-readonly`, and `data-invalid` appear only when active.
-
-Prefer these selectors over generated component names or internal DOM depth. See [Styling](/guide/styling) for selector and theming guidance.
-
-## DOM semantics and lifecycle
-
-Vue components reuse `@sectile/dom` for ARIA projection, normalized input, focus effects, popup positioning, and native-element behavior. Components create their connection during setup, synchronize controlled props through watchers, and release listeners when their rendered ownership ends.
-
-Vue is a complete public host projection, not an optional example wrapper. Repository completeness checks require every public Core component subpath to have a Vue projection witness. The Vue suite separately covers prop-to-controller mapping, emitted model proposals, dynamic collection reconciliation, native form serialization, SSR-stable IDs, hydration, and Teleport ownership.
-
-Use `@sectile/vue` for Vue templates and compound composition. Use `@sectile/dom` directly when markup is created outside Vue or when a custom renderer must own the connection lifecycle.
-
-`@sectile/vue/reorder` provides `SequenceReorderRoot`/`SequenceReorderItem` and `TreeReorderRoot`/`TreeReorderItem`. They emit `update:items` or `update:nodes` while reusing the DOM keyboard and pointer contract. Feed window requests include a request generation that must be returned with the replacement, and Form submission actions complete only with the generation returned by `submitStarted`.
-
-## Explore components
-
-The [component catalog](/components/) documents each component's examples, public parts, keyboard behavior, accessibility contract, and API. Start with the basic example, then use Anatomy to inspect the exact `data-scope` and `data-part` boundaries exposed for styling.
+- Browse [Components](/components/) for interactive examples and Vue usage code for individual controls.
+- Use [State ownership](/guide/state-ownership) for the shared controlled/uncontrolled model.
+- Use [Styling](/guide/styling) and [Motion](/guides/motion) for public state hooks and transitions.
+- Use the [Vue API reference](/api/vue) for exact public package paths.

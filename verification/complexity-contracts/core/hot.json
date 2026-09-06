@@ -267,8 +267,13 @@
           "timers": "0",
           "subscriptions": "O(pSubscriber)"
         },
-        "proof": "Destroy invokes the connection disposer once and clears the owner-local subscriber set; repeated destroy is constant and inert.",
-        "adversarialWitness": "Maximum subscribers and connection resources followed by two destroy calls.",
+        "deterministicWork": [
+          "one active-to-inactive transition and at most one delegated disconnect lookup and call",
+          "owner-local subscribers are cleared in a finally phase even when disconnect lookup or invocation throws",
+          "reentrant and repeated destroy calls perform no delegated cleanup or publication"
+        ],
+        "proof": "Destroy marks the facade inactive before resolving the disposer, invokes it at most once, and unconditionally clears the subscriber Set in finally. The original thrown value propagates after cleanup. Time stays O(pSubscriber + rResource), with O(1) auxiliary space, no new runtime allocation, and zero retained subscribers after either normal or exceptional teardown.",
+        "adversarialWitness": "The production-export heap worker retains 40 facades through eight teardown cycles per success, Error, undefined, null, and throwing-getter mode. All 2560 subscribed callbacks and their captured payloads are live before destruction and collectible afterward without calling unsubscribe. Runtime tests cover reentrant destroy, stale publication, rejected mutations, and exact error identity.",
         "fullScan": {
           "allowed": false,
           "rationale": "Only facade-owned subscribers and connection resources may be visited."

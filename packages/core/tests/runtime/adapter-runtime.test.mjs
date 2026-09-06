@@ -311,6 +311,63 @@ test('facade connection exposes live state, subscriptions, and idempotent destru
   assert.equal(disconnects, 1);
 });
 
+for (const phase of ['disconnect call', 'disconnect lookup']) {
+  test(`facade destruction stays inactive and one-shot after a throwing ${phase}`, () => {
+    for (const failure of [new Error('disconnect failed'), undefined, null]) {
+      let reads = 0;
+      let disconnects = 0;
+      let mutations = 0;
+      let notifications = 0;
+      let notify;
+      const snapshot = { state: 0 };
+      const constructed = createFacadeConnection({ onUpdate: () => { notifications += 1; } }, (options) => {
+        notify = options.onUpdate;
+        const target = {
+          getSnapshot: () => snapshot,
+          handleEvent: () => { mutations += 1; return true; },
+          syncControlledValue: () => { mutations += 1; return { ok: true, value: snapshot }; },
+          refresh: () => { mutations += 1; },
+          get disconnect() {
+            reads += 1;
+            // Reentrant teardown and stale publication are inert from the outset.
+            facade.destroy();
+            notify();
+            facade.subscribe(() => { notifications += 1; });
+            assert.equal(facade.send(1), false);
+            if (phase === 'disconnect lookup') throw failure;
+            return function () {
+              assert.equal(this, target);
+              disconnects += 1;
+              throw failure;
+            };
+          },
+        };
+        return { ok: true, value: target };
+      });
+      assert.equal(constructed.ok, true);
+      const facade = constructed.value;
+      const unsubscribe = facade.subscribe(() => { notifications += 1; });
+      const handle = facade.handleEvent;
+
+      assert.throws(() => facade.destroy(), (error) => Object.is(error, failure));
+      facade.destroy();
+      unsubscribe();
+      unsubscribe();
+      notify();
+      assert.equal(facade.send(1), false);
+      assert.equal(handle(1), false);
+      assert.equal(facade.update(1).error.code, 'connection-destroyed');
+      assert.equal(facade.syncControlledValue(1).error.code, 'connection-destroyed');
+      facade.refresh();
+      assert.equal(facade.getSnapshot(), snapshot);
+      assert.equal(reads, 1);
+      assert.equal(disconnects, phase === 'disconnect call' ? 1 : 0);
+      assert.equal(mutations, 0);
+      assert.equal(notifications, 0);
+    }
+  });
+}
+
 test('facade connection completes subscribers before application update and preserves the first error', () => {
   let state = 0;
   let onUpdate = () => undefined;

@@ -20805,12 +20805,13 @@
           "VAL-017:lifecycle-work"
         ],
         "deterministicWork": [
-          "registrations do not exceed declared owned-resource and affected-target cardinalities",
-          "disconnect leaves every resource counter at zero"
+          "one active-to-inactive transition and at most one delegated disconnect lookup and call",
+          "owner-local subscribers are cleared in a finally phase even when disconnect lookup or invocation throws",
+          "reentrant and repeated destroy calls perform no delegated cleanup or publication"
         ],
         "resourceRationale": "Only connection-owned ancestors, affected targets, and one bounded scheduler/observer set may be retained.",
-        "proof": "Destroy invokes the connection disposer once and clears the owner-local subscriber set; repeated destroy is constant and inert.",
-        "adversarialWitness": "Maximum subscribers and connection resources followed by two destroy calls.",
+        "proof": "Destroy marks the facade inactive before resolving the disposer, invokes it at most once, and unconditionally clears the subscriber Set in finally. The original thrown value propagates after cleanup. Time stays O(pSubscriber + rResource), with O(1) auxiliary space, no new runtime allocation, and zero retained subscribers after either normal or exceptional teardown.",
+        "adversarialWitness": "The production-export heap worker retains 40 facades through eight teardown cycles per success, Error, undefined, null, and throwing-getter mode. All 2560 subscribed callbacks and their captured payloads are live before destruction and collectible afterward without calling unsubscribe. Runtime tests cover reentrant destroy, stale publication, rejected mutations, and exact error identity.",
         "evidence": [
           "VAL-016",
           "VAL-017"
@@ -30240,7 +30241,16 @@
       "effectCalls": 1,
       "facadeNotifications": 2,
       "subscriptions": 0,
-      "disconnects": 1
+      "disconnects": 1,
+      "facadeDestroy": {
+        "facades": 40,
+        "subscribed": 2560,
+        "disconnectLookups": 40,
+        "disconnectCalls": 32,
+        "failures": 32,
+        "retainedSubscribers": 0,
+        "retainedPayloads": 0
+      }
     }
   }
 }

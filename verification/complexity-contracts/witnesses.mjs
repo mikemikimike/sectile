@@ -1,4 +1,6 @@
+import { execFileSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
+import { fileURLToPath } from 'node:url';
 import {
   createFacadeConnection,
   createSemanticController,
@@ -159,7 +161,11 @@ export function runHostResourceWitness() {
   counters.subscriptions -= 1;
   facade.destroy();
   facade.destroy();
-  return Object.freeze({ ...counters });
+  const facadeDestroy = JSON.parse(execFileSync(process.execPath, [
+    '--expose-gc',
+    fileURLToPath(new URL('../../scripts/facade-destroy-heap-worker.mjs', import.meta.url)),
+  ], { encoding: 'utf8', timeout: 30_000 }));
+  return Object.freeze({ ...counters, facadeDestroy: Object.freeze(facadeDestroy) });
 }
 
 function unwrap(result) {

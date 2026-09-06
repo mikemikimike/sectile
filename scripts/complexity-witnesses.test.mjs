@@ -37,6 +37,15 @@ test('controller and facade resource witnesses release subscriptions exactly onc
     facadeNotifications: 2,
     subscriptions: 0,
     disconnects: 1,
+    facadeDestroy: {
+      facades: 40,
+      subscribed: 2_560,
+      disconnectLookups: 40,
+      disconnectCalls: 32,
+      failures: 32,
+      retainedSubscribers: 0,
+      retainedPayloads: 0,
+    },
   });
 });
 

@@ -580,9 +580,12 @@ export function createFacadeConnection<
   const destroy = (): void => {
     if (!active) return;
     active = false;
-    const disconnect = target['disconnect'];
-    if (typeof disconnect === 'function') Reflect.apply(disconnect, target, []);
-    subscribers.clear();
+    try {
+      const disconnect = target['disconnect'];
+      if (typeof disconnect === 'function') Reflect.apply(disconnect, target, []);
+    } finally {
+      subscribers.clear();
+    }
   };
   const facade = new Proxy(target, {
     get: (_target, property) => {

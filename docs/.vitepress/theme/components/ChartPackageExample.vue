@@ -7,7 +7,6 @@ import {
   ChartDonut,
   ChartGrid,
   ChartHeatmap,
-  ChartLegend,
   ChartLine,
   ChartNavigation,
   ChartPanControl,
@@ -23,8 +22,8 @@ import {
   ChartYAxis,
   ChartZoomControl,
 } from '@sectile/vue/chart';
-import { Activity, BarChart3, ChartNoAxesCombined, CircleDot, Grid3X3, PieChart } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import type { ChartState } from '@sectile/chart/interaction';
+import { computed } from 'vue';
 import {
   chartExampleSources,
   type ChartExampleHost,
@@ -39,90 +38,134 @@ const props = defineProps<{
 }>();
 
 const { isKorean } = useDocsLocale();
-const selectedKind = ref<ChartExampleKind>(props.kind ?? 'line');
-watch(() => props.kind, (kind) => {
-  if (kind !== undefined) selectedKind.value = kind;
-});
+const selectedKind = computed<ChartExampleKind>(() => props.kind ?? 'line');
 
-const chartKinds = ['line', 'scatter', 'bar', 'heatmap', 'pie', 'donut'] as const;
 const copy = computed(() => isKorean.value ? {
-  labels: { line: '선', scatter: '산점도', bar: '막대', heatmap: '히트맵', pie: '파이', donut: '도넛' },
   title: {
-    line: '주간 매출 추이', scatter: '배포 빈도와 안정성', bar: '지역별 주문', heatmap: '요일·시간대별 활동', pie: '예산 배분', donut: '유입 채널 비중',
+    line: '12주 매출 추이', scatter: '배포 빈도와 안정성', bar: '지역별 주문량', heatmap: '요일·시간대별 활동', pie: '분기 예산 배분', donut: '유입 채널 비중',
   },
   description: {
-    line: '순서가 있는 값의 변화를 하나의 선으로 표시합니다.',
-    scatter: '두 값의 관계를 개별 점으로 비교합니다.',
-    bar: '범주별 크기를 같은 기준선에서 비교합니다.',
-    heatmap: '행과 열에 놓인 관측값을 셀로 표시합니다.',
-    pie: '한 예산에서 각 부문이 차지하는 비중을 비교합니다.',
-    donut: '전체에서 각 항목이 차지하는 비중을 원형 구간으로 표시합니다.',
+    line: '주별 매출 흐름을 보고 최근 변화와 특정 주의 값을 확인합니다.',
+    scatter: '서비스별 배포 빈도와 안정성의 관계를 비교합니다.',
+    bar: '지역별 주문량을 같은 기준선에서 비교합니다.',
+    heatmap: '요일과 시간대가 겹치는 구간에서 활동이 몰리는 때를 찾습니다.',
+    pie: '한 분기 예산이 부문별로 어떻게 배분됐는지 비교합니다.',
+    donut: '유입 채널별 비중을 비교하면서 전체 구성을 확인합니다.',
   },
-  xLabel: { line: '주', scatter: '월간 배포', bar: '지역', heatmap: '요일', pie: '', donut: '' },
+  summary: {
+    line: '최근 주 $200k · 12주', scatter: '6개 서비스 · 안정성 94–100%', bar: '5개 지역 · 최고 800건', heatmap: '7일 · 4개 시간대', pie: '분기 예산 100%', donut: '4개 채널 · 유입 100%',
+  },
+  xLabel: { line: '주', scatter: '월간 배포 횟수', bar: '지역', heatmap: '요일', pie: '', donut: '' },
   yLabel: { line: '매출', scatter: '안정성', bar: '주문량', heatmap: '시간', pie: '', donut: '' },
-  yUnit: { line: '천 달러', scatter: '%', bar: '건', heatmap: undefined, pie: undefined, donut: undefined },
-  active: '가리킨 항목', selected: '선택한 항목', none: '없음',
-  help: '마크를 가리키거나 선택하세요. 직교 차트는 버튼으로 수평 범위를 이동·확대·초기화할 수 있습니다.',
-  back: '이전', zoomIn: '확대', zoomOut: '축소', reset: '초기화',
-  selector: '차트 종류', chart: '인터랙티브 차트 예시',
+  yUnit: { line: '$k', scatter: '%', bar: '건', heatmap: undefined, pie: undefined, donut: undefined },
+  seriesLabel: { line: '매출', scatter: '서비스', bar: '주문', heatmap: '세션', pie: '예산', donut: '유입' },
+  active: '현재 항목', selected: '선택한 항목', inspect: '세부 값',
+  empty: '차트의 항목을 가리키거나 선택하면 값을 확인할 수 있습니다.',
+  help: {
+    line: '점을 가리키거나 선택해 값을 확인하세요. 범위를 좁힌 뒤 이전·다음 구간으로 이동하거나 전체 범위로 돌아갈 수 있습니다.',
+    scatter: '점을 가리키거나 선택해 서비스별 배포 빈도와 안정성을 비교하세요.',
+    bar: '막대를 가리키거나 선택해 지역별 주문량을 비교하세요.',
+    heatmap: '셀을 가리키거나 선택해 활동이 몰리는 시간대를 확인하세요.',
+    pie: '조각을 가리키거나 선택해 부문별 예산 비중을 확인하세요.',
+    donut: '구간을 가리키거나 선택해 채널별 유입 비중을 확인하세요.',
+  },
+  previous: '이전', next: '다음', zoomIn: '확대', zoomOut: '축소', reset: '전체 보기',
+  chart: '차트 예시',
 } : {
-  labels: { line: 'Line', scatter: 'Scatter', bar: 'Bar', heatmap: 'Heatmap', pie: 'Pie', donut: 'Donut' },
   title: {
-    line: 'Weekly revenue trend', scatter: 'Deployment frequency and stability', bar: 'Orders by region', heatmap: 'Activity by day and hour', pie: 'Budget allocation', donut: 'Acquisition channels',
+    line: 'Revenue over 12 weeks', scatter: 'Deployment frequency and stability', bar: 'Orders by region', heatmap: 'Activity by day and hour', pie: 'Quarterly budget allocation', donut: 'Acquisition channel mix',
   },
   description: {
-    line: 'Show change across ordered values as a continuous line.',
-    scatter: 'Compare the relationship between two values as individual points.',
-    bar: 'Compare category magnitudes from a common baseline.',
-    heatmap: 'Place observations into rows and columns as cells.',
-    pie: 'Compare how one budget is allocated across departments.',
-    donut: 'Show each category as a share of the whole.',
+    line: 'Read the weekly revenue trend, inspect a specific week, and narrow the visible range when needed.',
+    scatter: 'Compare deployment frequency with stability across services.',
+    bar: 'Compare regional order volume from a common baseline.',
+    heatmap: 'Find the day and time combinations where activity is concentrated.',
+    pie: 'Compare how one quarterly budget is divided across departments.',
+    donut: 'Compare acquisition-channel shares while keeping the whole visible.',
+  },
+  summary: {
+    line: 'Latest $200k · 12 weeks', scatter: '6 services · 94–100% stability', bar: '5 regions · top 800 orders', heatmap: '7 days · 4 time windows', pie: '100% quarterly budget', donut: '4 channels · 100% acquisition',
   },
   xLabel: { line: 'Week', scatter: 'Monthly deployments', bar: 'Region', heatmap: 'Day', pie: '', donut: '' },
   yLabel: { line: 'Revenue', scatter: 'Stability', bar: 'Order volume', heatmap: 'Hour', pie: '', donut: '' },
-  yUnit: { line: 'USD thousands', scatter: '%', bar: 'orders', heatmap: undefined, pie: undefined, donut: undefined },
-  active: 'Hovered datum', selected: 'Selected datum', none: 'None',
-  help: 'Hover or select a mark. Cartesian charts expose buttons to pan, zoom, and reset the horizontal domain.',
-  back: 'Previous', zoomIn: 'Zoom in', zoomOut: 'Zoom out', reset: 'Reset',
-  selector: 'Chart type', chart: 'Interactive chart example',
+  yUnit: { line: '$k', scatter: '%', bar: 'orders', heatmap: undefined, pie: undefined, donut: undefined },
+  seriesLabel: { line: 'Revenue', scatter: 'Services', bar: 'Orders', heatmap: 'Sessions', pie: 'Budget', donut: 'Acquisition' },
+  active: 'Current', selected: 'Selected', inspect: 'Detail',
+  empty: 'Hover or select a chart mark to inspect its value.',
+  help: {
+    line: 'Hover or select a point to inspect it. Narrow the range, move backward or forward, or return to the full view.',
+    scatter: 'Hover or select a point to compare deployment frequency and stability by service.',
+    bar: 'Hover or select a bar to compare regional order volume.',
+    heatmap: 'Hover or select a cell to find the busiest day and time combinations.',
+    pie: 'Hover or select a slice to inspect each department\'s budget share.',
+    donut: 'Hover or select a segment to inspect each acquisition channel\'s share.',
+  },
+  previous: 'Previous', next: 'Next', zoomIn: 'Zoom in', zoomOut: 'Zoom out', reset: 'Show all',
+  chart: 'Chart example',
 });
 
-const series = Object.freeze({
-  line: [
-    { id: 'week-27', date: new Date('2026-07-06'), revenue: 128 },
-    { id: 'week-28', date: new Date('2026-07-13'), revenue: 142 },
-    { id: 'week-29', date: new Date('2026-07-20'), revenue: 137 },
-    { id: 'week-30', date: new Date('2026-07-27'), revenue: 163 },
-    { id: 'week-31', date: new Date('2026-08-03'), revenue: 181 },
-    { id: 'week-32', date: new Date('2026-08-10'), revenue: 194 },
-  ],
-  scatter: [
-    { id: 'api', deploys: 18, stability: 82 }, { id: 'worker', deploys: 28, stability: 66 },
-    { id: 'web', deploys: 42, stability: 74 }, { id: 'billing', deploys: 51, stability: 48 },
-    { id: 'search', deploys: 67, stability: 57 }, { id: 'identity', deploys: 60, stability: 78 },
-  ],
-  bar: [
-    { id: 'seoul', region: 'Seoul', orders: 812 }, { id: 'busan', region: 'Busan', orders: 594 },
-    { id: 'daegu', region: 'Daegu', orders: 436 }, { id: 'incheon', region: 'Incheon', orders: 521 },
-    { id: 'daejeon', region: 'Daejeon', orders: 377 },
-  ],
-  heatmap: Array.from({ length: 35 }, (_, index) => ({
-    id: `activity-${index}`,
-    day: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][index % 7]!,
-    hour: ['08', '11', '14', '17', '20'][Math.floor(index / 7)]!,
-    value: ((index * 7) % 11) + 1,
-  })),
-  pie: [
-    { id: 'product', label: 'Product', value: 38 }, { id: 'sales', label: 'Sales', value: 27 },
-    { id: 'operations', label: 'Operations', value: 21 }, { id: 'research', label: 'Research', value: 14 },
-  ],
-  donut: [
-    { id: 'direct', label: 'Direct', value: 42 }, { id: 'search', label: 'Search', value: 33 },
-    { id: 'referral', label: 'Referral', value: 16 }, { id: 'campaign', label: 'Campaign', value: 9 },
-  ],
+const series = computed(() => {
+  const regions = isKorean.value
+    ? ['서울', '부산', '인천', '대구', '대전']
+    : ['Seoul', 'Busan', 'Incheon', 'Daegu', 'Daejeon'];
+  const days = isKorean.value
+    ? ['월', '화', '수', '목', '금', '토', '일']
+    : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const budgetLabels = isKorean.value
+    ? ['제품', '영업', '운영', '연구']
+    : ['Product', 'Sales', 'Operations', 'Research'];
+  const channelLabels = isKorean.value
+    ? ['직접 유입', '검색', '추천', '캠페인']
+    : ['Direct', 'Search', 'Referral', 'Campaign'];
+
+  return {
+    line: [
+      { id: 'week-01', period: '6/1', revenue: 120 }, { id: 'week-02', period: '6/8', revenue: 128 },
+      { id: 'week-03', period: '6/15', revenue: 136 }, { id: 'week-04', period: '6/22', revenue: 132 },
+      { id: 'week-05', period: '6/29', revenue: 148 }, { id: 'week-06', period: '7/6', revenue: 154 },
+      { id: 'week-07', period: '7/13', revenue: 160 }, { id: 'week-08', period: '7/20', revenue: 168 },
+      { id: 'week-09', period: '7/27', revenue: 172 }, { id: 'week-10', period: '8/3', revenue: 180 },
+      { id: 'week-11', period: '8/10', revenue: 188 }, { id: 'week-12', period: '8/17', revenue: 200 },
+    ],
+    scatter: [
+      { id: 'api', service: 'API', deploys: 10, stability: 100 },
+      { id: 'worker', service: 'Worker', deploys: 18, stability: 98 },
+      { id: 'web', service: 'Web', deploys: 26, stability: 97 },
+      { id: 'billing', service: 'Billing', deploys: 34, stability: 96 },
+      { id: 'search', service: 'Search', deploys: 42, stability: 94 },
+      { id: 'identity', service: 'Identity', deploys: 50, stability: 99 },
+    ],
+    bar: regions.map((region, index) => ({
+      id: ['seoul', 'busan', 'incheon', 'daegu', 'daejeon'][index]!,
+      region,
+      orders: [800, 650, 700, 500, 400][index]!,
+    })),
+    heatmap: Array.from({ length: 28 }, (_, index) => ({
+      id: `activity-${index}`,
+      day: days[index % 7]!,
+      hour: ['09', '12', '15', '18'][Math.floor(index / 7)]!,
+      value: ((index * 5 + Math.floor(index / 7) * 3) % 9) + 1,
+    })),
+    pie: budgetLabels.map((label, index) => ({
+      id: ['product', 'sales', 'operations', 'research'][index]!,
+      label,
+      value: [40, 30, 20, 10][index]!,
+    })),
+    donut: channelLabels.map((label, index) => ({
+      id: ['direct', 'search', 'referral', 'campaign'][index]!,
+      label,
+      value: [45, 30, 15, 10][index]!,
+    })),
+  };
 });
 
 const isRadial = computed(() => selectedKind.value === 'pie' || selectedKind.value === 'donut');
+const xScale = computed(() => selectedKind.value === 'scatter' ? 'linear' : 'categorical');
+const xField = computed(() => selectedKind.value === 'line' ? 'period' : selectedKind.value === 'scatter' ? 'deploys' : selectedKind.value === 'bar' ? 'region' : 'day');
+const yScale = computed(() => selectedKind.value === 'heatmap' ? 'categorical' : 'linear');
+const yField = computed(() => selectedKind.value === 'line' ? 'revenue' : selectedKind.value === 'scatter' ? 'stability' : selectedKind.value === 'bar' ? 'orders' : 'hour');
+const xTicks = computed(() => selectedKind.value === 'line' ? 6 : selectedKind.value === 'scatter' ? 5 : selectedKind.value === 'bar' ? 5 : 7);
+const yTicks = computed(() => selectedKind.value === 'line' ? 5 : selectedKind.value === 'scatter' ? 4 : selectedKind.value === 'bar' ? 5 : 4);
 const yUnitProps = computed(() => {
   const unit = copy.value.yUnit[selectedKind.value];
   return unit === undefined ? {} : { unit };
@@ -130,16 +173,63 @@ const yUnitProps = computed(() => {
 const sources = computed(() => chartExampleSources(selectedKind.value));
 const koSources = computed(() => chartExampleSources(selectedKind.value, true));
 const frameHostProps = computed(() => props.host === undefined ? {} : { fixedHost: props.host });
-const icon = (kind: ChartExampleKind) => ({
-  line: ChartNoAxesCombined,
-  scatter: CircleDot,
-  bar: BarChart3,
-  heatmap: Grid3X3,
-  pie: PieChart,
-  donut: Activity,
-})[kind];
 
-const datumLabel = (id: string | number): string => String(id).replaceAll('-', ' ');
+function detailFor(id: string | number): string {
+  const key = String(id);
+  switch (selectedKind.value) {
+    case 'line': {
+      const record = series.value.line.find(item => item.id === key);
+      return record === undefined ? key : `${record.period} · $${record.revenue}k`;
+    }
+    case 'scatter': {
+      const record = series.value.scatter.find(item => item.id === key);
+      if (record === undefined) return key;
+      return isKorean.value
+        ? `${record.service} · 월 ${record.deploys}회 배포 · 안정성 ${record.stability}%`
+        : `${record.service} · ${record.deploys} deployments/month · ${record.stability}% stability`;
+    }
+    case 'bar': {
+      const record = series.value.bar.find(item => item.id === key);
+      if (record === undefined) return key;
+      return isKorean.value ? `${record.region} · ${record.orders}건` : `${record.region} · ${record.orders} orders`;
+    }
+    case 'heatmap': {
+      const record = series.value.heatmap.find(item => item.id === key);
+      if (record === undefined) return key;
+      return isKorean.value ? `${record.day}요일 ${record.hour}시 · 활동 ${record.value}` : `${record.day} ${record.hour}:00 · activity ${record.value}`;
+    }
+    case 'pie': {
+      const record = series.value.pie.find(item => item.id === key);
+      return record === undefined ? key : `${record.label} · ${record.value}%`;
+    }
+    case 'donut': {
+      const record = series.value.donut.find(item => item.id === key);
+      return record === undefined ? key : `${record.label} · ${record.value}%`;
+    }
+  }
+}
+
+function selectedID(state: ChartState | null): string | number | null {
+  if (state?.selection.type !== 'points') return null;
+  return state.selection.ids[0] ?? null;
+}
+
+function detailID(state: ChartState | null): string | number | null {
+  return selectedID(state) ?? state?.activeDatum ?? null;
+}
+
+function detailHeading(state: ChartState | null): string {
+  if (selectedID(state) !== null) return copy.value.selected;
+  if (state?.activeDatum != null) return copy.value.active;
+  return copy.value.inspect;
+}
+
+function detailText(state: ChartState | null): string {
+  const id = detailID(state);
+  return id === null ? copy.value.empty : detailFor(id);
+}
+
+const datumLabel = (id: string | number): string => detailFor(id);
 </script>
 
 <template>
@@ -150,27 +240,17 @@ const datumLabel = (id: string | number): string => String(id).replaceAll('-', '
     source-relationship="usage"
     unmount-preview-when-hidden
     :source-note="isKorean
-      ? '미리보기에는 차트 상태를 읽기 쉽게 보여 주는 문서용 레이아웃과 표현 스타일이 적용되어 있습니다. 사용 코드는 데이터, 투영, 상호작용을 선택한 실행 환경에 연결하는 공개 API 흐름만 담습니다.'
-      : 'The preview uses documentation layout and presentation styles to make chart state easy to inspect. The usage code focuses on the public API flow for data, projection, interaction, and the selected host.'"
+      ? '미리보기에는 제목, 요약, 세부 값 표시처럼 문서에서 읽기 쉬운 표현이 더해져 있습니다. 사용 코드는 같은 데이터를 공개 Chart API에 연결하는 Vue 또는 DOM 흐름에 집중합니다.'
+      : 'The preview adds documentation presentation such as the title, summary, and detail row. The usage code focuses on connecting the same data through the public Vue or DOM Chart APIs.'"
   >
-    <section class="chart-workbench" :aria-label="copy.chart">
-      <header class="chart-workbench__header">
+    <section class="chart-example" :aria-label="copy.chart">
+      <header class="chart-example__header">
         <div>
+          <p class="chart-example__eyebrow">{{ copy.seriesLabel[selectedKind] }}</p>
           <h3>{{ copy.title[selectedKind] }}</h3>
           <p>{{ copy.description[selectedKind] }}</p>
         </div>
-        <div v-if="kind === undefined" class="chart-workbench__selector" role="group" :aria-label="copy.selector">
-          <button
-            v-for="chartKind in chartKinds"
-            :key="chartKind"
-            type="button"
-            :aria-pressed="selectedKind === chartKind"
-            @click="selectedKind = chartKind"
-          >
-            <component :is="icon(chartKind)" :size="15" aria-hidden="true" />
-            {{ copy.labels[chartKind] }}
-          </button>
-        </div>
+        <strong class="chart-example__summary">{{ copy.summary[selectedKind] }}</strong>
       </header>
 
       <ChartRoot
@@ -182,51 +262,48 @@ const datumLabel = (id: string | number): string => String(id).replaceAll('-', '
           accessibilityLabel: copy.title[selectedKind],
           getAccessibleDatumLabel: datumLabel,
         }"
-        class="chart-workbench__chart"
+        class="chart-example__surface"
       >
         <ChartCartesian>
           <ChartXAxis
             id="x"
-            :scale="selectedKind === 'line' ? 'temporal' : selectedKind === 'bar' || selectedKind === 'heatmap' ? 'categorical' : 'linear'"
-            :field="selectedKind === 'line' ? 'date' : selectedKind === 'scatter' ? 'deploys' : selectedKind === 'bar' ? 'region' : 'day'"
+            :scale="xScale"
+            :field="xField"
             :label="copy.xLabel[selectedKind]"
+            :ticks="xTicks"
           >
-            <ChartAxisView :minimum-span="selectedKind === 'line' ? 86_400_000 : 1" />
+            <ChartAxisView v-if="selectedKind === 'line'" :minimum-span="4" update="preserve" />
           </ChartXAxis>
           <ChartYAxis
             v-bind="yUnitProps"
             id="y"
-            :scale="selectedKind === 'heatmap' ? 'categorical' : 'linear'"
-            :field="selectedKind === 'line' ? 'revenue' : selectedKind === 'scatter' ? 'stability' : selectedKind === 'bar' ? 'orders' : 'hour'"
+            :scale="yScale"
+            :field="yField"
             :label="copy.yLabel[selectedKind]"
+            :ticks="yTicks"
           />
-          <ChartLine v-if="selectedKind === 'line'" id="revenue" :data="series.line" x-axis="x" y-axis="y" label="Revenue" />
-          <ChartScatter v-else-if="selectedKind === 'scatter'" id="deployments" :data="series.scatter" x-axis="x" y-axis="y" label="Services" />
-          <ChartBar v-else-if="selectedKind === 'bar'" id="orders" :data="series.bar" x-axis="x" y-axis="y" label="Orders" />
-          <ChartHeatmap v-else id="activity" :data="series.heatmap" x-axis="x" y-axis="y" label="Sessions" />
+          <ChartLine v-if="selectedKind === 'line'" id="weekly-revenue" :data="series.line" x-axis="x" y-axis="y" :label="copy.seriesLabel.line" />
+          <ChartScatter v-else-if="selectedKind === 'scatter'" id="service-health" :data="series.scatter" x-axis="x" y-axis="y" :label="copy.seriesLabel.scatter" />
+          <ChartBar v-else-if="selectedKind === 'bar'" id="regional-orders" :data="series.bar" x-axis="x" y-axis="y" :label="copy.seriesLabel.bar" />
+          <ChartHeatmap v-else id="activity-grid" :data="series.heatmap" x-axis="x" y-axis="y" :label="copy.seriesLabel.heatmap" />
           <ChartNavigation keyboard />
-          <ChartViewControls axis="x" class="chart-workbench__controls">
-            <ChartPanControl direction="backward" :label="copy.back">←</ChartPanControl>
-            <ChartZoomControl direction="in" :label="copy.zoomIn">+</ChartZoomControl>
-            <ChartZoomControl direction="out" :label="copy.zoomOut">−</ChartZoomControl>
-            <ChartResetView :label="copy.reset">↺</ChartResetView>
-          </ChartViewControls>
         </ChartCartesian>
         <ChartGrid />
         <ChartAxisTicks />
-        <ChartLegend />
-        <ChartPlot><ChartRenderer /></ChartPlot>
-        <dl class="chart-workbench__state" aria-live="polite">
-          <div>
-            <dt>{{ copy.active }}</dt>
-            <dd>{{ state?.activeDatum == null ? copy.none : datumLabel(state.activeDatum) }}</dd>
-          </div>
-          <div>
-            <dt>{{ copy.selected }}</dt>
-            <dd>{{ state?.selection.type === 'points' && state.selection.ids[0] !== undefined ? datumLabel(state.selection.ids[0]) : copy.none }}</dd>
-          </div>
-        </dl>
+        <ChartPlot class="chart-example__plot"><ChartRenderer /></ChartPlot>
+        <ChartViewControls v-if="selectedKind === 'line'" axis="x" class="chart-example__controls">
+          <ChartPanControl direction="backward" :label="copy.previous">{{ copy.previous }}</ChartPanControl>
+          <ChartPanControl direction="forward" :label="copy.next">{{ copy.next }}</ChartPanControl>
+          <ChartZoomControl direction="in" :label="copy.zoomIn">{{ copy.zoomIn }}</ChartZoomControl>
+          <ChartZoomControl direction="out" :label="copy.zoomOut">{{ copy.zoomOut }}</ChartZoomControl>
+          <ChartResetView :label="copy.reset">{{ copy.reset }}</ChartResetView>
+        </ChartViewControls>
+        <p class="chart-example__detail" aria-live="polite">
+          <strong>{{ detailHeading(state) }}</strong>
+          <span>{{ detailText(state) }}</span>
+        </p>
       </ChartRoot>
+
       <ChartRoot
         v-else
         key="radial"
@@ -236,135 +313,154 @@ const datumLabel = (id: string | number): string => String(id).replaceAll('-', '
           accessibilityLabel: copy.title[selectedKind],
           getAccessibleDatumLabel: datumLabel,
         }"
-        class="chart-workbench__chart"
+        class="chart-example__surface chart-example__surface--radial"
       >
         <ChartRadial>
-          <ChartPie v-if="selectedKind === 'pie'" id="budget" :data="series.pie" label="Budget" />
-          <ChartDonut v-else id="channels" :data="series.donut" label="Channels" />
+          <ChartPie v-if="selectedKind === 'pie'" id="budget-allocation" :data="series.pie" :label="copy.seriesLabel.pie" />
+          <ChartDonut v-else id="acquisition-channels" :data="series.donut" :label="copy.seriesLabel.donut" />
         </ChartRadial>
-        <ChartLegend />
-        <ChartPlot><ChartRenderer /></ChartPlot>
-        <dl class="chart-workbench__state" aria-live="polite">
-          <div>
-            <dt>{{ copy.active }}</dt>
-            <dd>{{ state?.activeDatum == null ? copy.none : datumLabel(state.activeDatum) }}</dd>
-          </div>
-          <div>
-            <dt>{{ copy.selected }}</dt>
-            <dd>{{ state?.selection.type === 'points' && state.selection.ids[0] !== undefined ? datumLabel(state.selection.ids[0]) : copy.none }}</dd>
-          </div>
-        </dl>
+        <ChartPlot class="chart-example__plot"><ChartRenderer /></ChartPlot>
+        <p class="chart-example__detail" aria-live="polite">
+          <strong>{{ detailHeading(state) }}</strong>
+          <span>{{ detailText(state) }}</span>
+        </p>
       </ChartRoot>
 
-      <footer>{{ copy.help }}</footer>
+      <footer class="chart-example__help">{{ copy.help[selectedKind] }}</footer>
     </section>
   </ExampleFrame>
 </template>
 
 <style scoped>
-.chart-workbench {
+.chart-example {
   overflow: hidden;
   color: var(--vp-c-text-1);
   background: var(--vp-c-bg);
 }
 
-.chart-workbench__header {
-  display: grid;
+.chart-example__header {
+  display: flex;
   align-items: flex-start;
-  gap: 1rem;
-  padding: 1rem 1.1rem;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: 1.15rem 1.25rem 1rem;
   border-bottom: 1px solid var(--vp-c-divider);
 }
 
-.chart-workbench__header h3,
-.chart-workbench__header p { margin: 0; }
-.chart-workbench__header h3 { font-size: 1rem; line-height: 1.35; letter-spacing: -0.015em; }
-.chart-workbench__header p { max-width: 52ch; margin-top: 0.25rem; color: var(--vp-c-text-2); font-size: 0.74rem; line-height: 1.5; }
+.chart-example__header h3,
+.chart-example__header p { margin: 0; }
+.chart-example__header h3 { font-size: 1.08rem; line-height: 1.35; letter-spacing: -0.018em; }
+.chart-example__header > div > p:last-child { max-width: 56ch; margin-top: 0.3rem; color: var(--vp-c-text-2); font-size: 0.78rem; line-height: 1.55; }
 
-.chart-workbench__selector {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  gap: 0.3rem;
+.chart-example__eyebrow {
+  margin-bottom: 0.28rem !important;
+  color: var(--vp-c-brand-1);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
-.chart-workbench__selector button {
-  display: inline-flex;
-  min-height: 2rem;
-  align-items: center;
-  gap: 0.35rem;
+.chart-example__summary {
+  flex: none;
   border: 1px solid var(--vp-c-divider);
-  border-radius: 0.55rem;
-  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+  padding: 0.4rem 0.65rem;
   color: var(--vp-c-text-2);
   background: var(--vp-c-bg-soft);
-  font: inherit;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 650;
-  cursor: pointer;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
-.chart-workbench__selector button:hover { border-color: var(--vp-c-brand-1); color: var(--vp-c-text-1); }
-.chart-workbench__selector button[aria-pressed="true"] { border-color: var(--vp-c-brand-1); color: var(--vp-c-brand-1); background: var(--vp-c-brand-soft); }
-.chart-workbench__selector button:focus-visible,
-.chart-workbench__chart:focus-visible { outline: 2px solid var(--vp-c-brand-1); outline-offset: 3px; }
+.chart-example__surface {
+  display: grid;
+  min-width: 0;
+  background: color-mix(in srgb, var(--vp-c-bg-soft) 62%, var(--vp-c-bg));
+}
 
-.chart-workbench__chart {
-  position: relative;
-  height: clamp(17rem, 42vw, 23rem);
+.chart-example__plot {
+  height: clamp(18rem, 40vw, 22rem);
+  min-width: 0;
   overflow: hidden;
-  background: color-mix(in srgb, var(--vp-c-bg-soft) 72%, var(--vp-c-bg));
-  isolation: isolate;
 }
 
-.chart-workbench__chart [data-part="plot"] { height: 100%; }
+.chart-example__surface--radial .chart-example__plot {
+  height: clamp(19rem, 42vw, 23rem);
+}
 
-.chart-workbench__chart canvas {
+.chart-example__plot :deep(canvas) {
   display: block;
   width: 100%;
   height: 100%;
-  filter: hue-rotate(18deg) saturate(1.08);
 }
 
-.chart-workbench__state {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  display: grid;
-  min-width: 9.5rem;
-  margin: 0;
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 0.7rem;
-  color: var(--vp-c-text-1);
-  background: color-mix(in srgb, var(--vp-c-bg) 94%, transparent);
+.chart-example__plot :deep([data-chart-overlay='axis-value']) {
+  font-size: 11px;
+  opacity: 0.78;
 }
 
-.chart-workbench__state div { display: grid; grid-template-columns: 1fr auto; gap: 0.8rem; padding: 0.48rem 0.6rem; }
-.chart-workbench__state div + div { border-top: 1px solid var(--vp-c-divider); }
-.chart-workbench__state dt { color: var(--vp-c-text-2); font-size: 0.66rem; }
-.chart-workbench__state dd { margin: 0; color: var(--vp-c-brand-1); font-family: var(--vp-font-family-mono); font-size: 0.68rem; font-weight: 650; text-transform: capitalize; }
+.chart-example__plot :deep([data-chart-overlay='axis-label']) {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.78;
+}
 
-.chart-workbench__controls {
-  position: absolute;
-  top: 0.75rem;
-  left: 0.75rem;
-  z-index: 2;
+.chart-example__plot :deep([data-chart-overlay='grid-line']) {
+  stroke-opacity: 0.08;
+}
+
+.chart-example__controls {
   display: flex;
-  gap: 0.3rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  padding: 0.65rem 1rem;
+  border-top: 1px solid var(--vp-c-divider);
+  background: color-mix(in srgb, var(--vp-c-bg) 92%, transparent);
 }
 
-.chart-workbench__controls button {
-  width: 2rem;
-  height: 2rem;
+.chart-example__controls button {
+  min-height: 2rem;
   border: 1px solid var(--vp-c-divider);
-  border-radius: 0.45rem;
-  color: var(--vp-c-text-1);
-  background: color-mix(in srgb, var(--vp-c-bg) 94%, transparent);
+  border-radius: 0.5rem;
+  padding: 0.32rem 0.58rem;
+  color: var(--vp-c-text-2);
+  background: var(--vp-c-bg);
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
   cursor: pointer;
 }
 
-.chart-workbench footer {
-  padding: 0.7rem 1.1rem;
+.chart-example__controls button:hover { border-color: var(--vp-c-brand-1); color: var(--vp-c-text-1); }
+.chart-example__controls button:focus-visible { outline: 2px solid var(--vp-c-brand-1); outline-offset: 2px; }
+
+.chart-example__detail {
+  display: flex;
+  min-height: 2.9rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0;
+  padding: 0.68rem 1rem;
+  border-top: 1px solid var(--vp-c-divider);
+  color: var(--vp-c-text-2);
+  background: var(--vp-c-bg);
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
+.chart-example__detail strong {
+  flex: none;
+  color: var(--vp-c-brand-1);
+  font-size: 0.7rem;
+}
+
+.chart-example__detail span { text-align: right; }
+
+.chart-example__help {
+  padding: 0.72rem 1.25rem;
   border-top: 1px solid var(--vp-c-divider);
   color: var(--vp-c-text-2);
   font-size: 0.72rem;
@@ -372,11 +468,12 @@ const datumLabel = (id: string | number): string => String(id).replaceAll('-', '
 }
 
 @media (max-width: 720px) {
-  .chart-workbench__selector button { min-height: 2.75rem; flex: 1 1 auto; justify-content: center; }
-  .chart-workbench__state { top: 0.5rem; right: 0.5rem; min-width: 8.5rem; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .chart-workbench__selector button { transition: none; }
+  .chart-example__header { display: grid; gap: 0.8rem; }
+  .chart-example__summary { justify-self: start; white-space: normal; }
+  .chart-example__plot,
+  .chart-example__surface--radial .chart-example__plot { height: 18rem; }
+  .chart-example__controls { justify-content: flex-start; }
+  .chart-example__detail { align-items: flex-start; flex-direction: column; gap: 0.2rem; }
+  .chart-example__detail span { text-align: left; }
 }
 </style>

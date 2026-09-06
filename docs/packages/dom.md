@@ -1,47 +1,57 @@
+---
+title: DOM
+description: Connect Sectile interaction behavior to application-owned browser elements, forms, popups, and large surfaces.
+---
+
 # DOM
 
-`@sectile/dom` connects Sectile's interaction semantics to real browser elements. It handles keyboard and pointer input, focus, composition, forms, ARIA projection, and element lifecycle without choosing markup or visual styles for the application.
+`@sectile/dom` connects Sectile interaction behavior to browser elements that your application already renders. It translates keyboard, pointer, focus, and composition input; projects accessibility and state attributes; and owns the browser listeners and resources needed by the connection. Markup, application data, and visual styling remain application concerns.
+
+Use this package when the application owns its HTML or when a framework integration is not needed. For Vue templates and component lifecycle, use [`@sectile/vue`](/packages/vue) instead.
+
+## Install
 
 ```sh
 pnpm add @sectile/dom
 ```
 
-Import from a component subpath so the dependency stays explicit:
+Prefer focused component paths in application code so each DOM capability stays explicit:
 
 ```ts
 import { createCheckbox } from '@sectile/dom/checkbox'
+import { createPopover } from '@sectile/dom/popover'
 ```
 
-## Connect an existing element
+The [DOM API reference](/api/dom) lists every supported import path. Domain integrations such as Form, Temporal, Virtual, Tabular, and Chart require their corresponding optional package only when that integration is used.
 
-Create the markup your application needs, then pass the interactive element to a DOM factory.
+## Connect behavior to existing markup
+
+A direct `create*` factory takes the elements the application already owns and returns a live connection. This checkbox uses a button as its interactive element and a separate label to show the accepted state.
 
 ```html
-<button id="newsletter" type="button">
-  Receive product updates: <span id="newsletter-state"></span>
+<button class="newsletter-toggle" type="button" data-newsletter-toggle>
+  Receive product updates
 </button>
+<p>Current preference: <strong data-newsletter-state>off</strong></p>
 ```
 
 ```ts
 import { createCheckbox } from '@sectile/dom/checkbox'
 
-const element = document.querySelector<HTMLElement>('#newsletter')
-const stateLabel = document.querySelector<HTMLElement>('#newsletter-state')
+const element = document.querySelector<HTMLElement>('[data-newsletter-toggle]')
+const stateLabel = document.querySelector<HTMLElement>('[data-newsletter-state]')
 
 if (element === null || stateLabel === null) {
-  throw new Error('Checkbox markup is missing.')
+  throw new Error('Newsletter controls are missing')
 }
 
 const checkbox = createCheckbox({
   element,
   defaultValue: false,
-  onValueChange(value) {
-    console.log('newsletter', value)
-  },
 })
 
 const render = () => {
-  stateLabel.textContent = checkbox.state.checked ? 'on' : 'off'
+  stateLabel.textContent = checkbox.state.checked === true ? 'on' : 'off'
 }
 
 const unsubscribe = checkbox.subscribe(render)
@@ -53,209 +63,154 @@ window.addEventListener('pagehide', () => {
 }, { once: true })
 ```
 
-The factory registers the required listeners and immediately projects semantic state to the element. The checkbox above receives `role`, `aria-checked`, `data-state`, disabled state, and read-only state as they change.
+The connection handles browser input and keeps the element's semantic projection synchronized. In this example the element receives the checkbox role, `aria-checked`, and state data attributes as the value changes; the application only renders the extra status text it wants to show.
 
-## Connection contract
+Direct connections share a small lifecycle surface: `state` reads accepted state, `send()` sends semantic input, `update()` synchronizes an externally owned value where supported, `subscribe()` observes accepted updates, and `destroy()` releases the connection. Component-specific methods are added when a component needs operations such as collection registration or position updates.
 
-Every direct `create*` factory returns a ready connection with the same small lifecycle surface:
+## Keep application-owned state controlled
 
-| Member | Purpose |
-| --- | --- |
-| `state` | Read the current semantic state. |
-| `send(input)` | Send the component's normalized interaction input. |
-| `update(value)` | Synchronize an externally owned value when the component supports controlled state. |
-| `subscribe(listener)` | Observe accepted updates and receive an unsubscribe function. |
-| `destroy()` | Remove DOM listeners and release connection-owned resources. |
-
-Component-specific methods remain available on the same object. Use them when a component exposes richer operations such as focus movement, collection updates, or popup positioning.
-
-## State ownership
-
-Pass `defaultValue` when the connection should own its current value. Pass `value` with `onValueChange` when application state owns it.
+Use `defaultValue` when the DOM connection should own the initial value. Use `value` and the matching change callback when application state is authoritative.
 
 ```ts
+const settings = {
+  newsletter: false,
+}
+
 const checkbox = createCheckbox({
   element,
   value: settings.newsletter,
   onValueChange(nextValue) {
     settings.newsletter = nextValue
-    checkbox.update(nextValue)
+    checkbox.update(settings.newsletter)
   },
 })
 ```
 
-Controlled interactions report the proposed value without silently replacing application state. Calling `update` reconciles the connection after the owner accepts that value. See [State ownership](/guide/state-ownership) for the shared model.
+A controlled interaction proposes the next value through `onValueChange`; it does not silently replace the application's value. After the application accepts the proposal, `update()` synchronizes the DOM connection with that accepted value. The same ownership model is used across Sectile controls; see [State ownership](/guide/state-ownership).
 
-## Controllers and attribute projection
+## Connect a popup without giving up the markup
 
-Use a `create*Controller` when state ownership and rendering have separate lifecycles. Controllers do not require an element. Pair them with `get*Attributes` to project a snapshot into any DOM structure.
+Popup connections work with application-owned trigger and content elements. They coordinate open state, dismissal, focus, accessibility projection, and positioning while leaving the content structure and styles intact.
 
-```ts
-import {
-  createCheckboxController,
-  getCheckboxAttributes,
-} from '@sectile/dom/checkbox'
-
-const result = createCheckboxController({ defaultValue: 'mixed' })
-if (!result.ok) throw new TypeError(result.error.message)
-
-const snapshot = result.value.getSnapshot()
-const attributes = getCheckboxAttributes(snapshot.state, { required: true })
-```
-
-Complex components also expose component-specific event translators and effect projectors. These lower-level APIs are useful for custom renderers, delegated event systems, and hosts that cannot let a direct connection own the element.
-
-## Native browser behavior
-
-The DOM package preserves native behavior where HTML already has the right semantics:
-
-- Text fields keep native editing, selection, and IME composition.
-- Form controls project `name`, `value`, `required`, `disabled`, and form ownership where supported.
-- Keyboard handling avoids replacing browser behavior that belongs to the focused element.
-- Focus effects target real elements instead of simulating a separate focus model.
-
-Use the component's native element when possible. Choose a non-native host only when the product requires a different structure, then apply the returned ARIA and data attributes completely.
-
-## Floating surfaces
-
-Popover and tooltip connections use Floating UI for offset, collision flipping, shifting, available-size data, arrow placement, detached-anchor hiding, and open-only automatic updates. Boundary, padding, strategy, observers, and middleware remain configurable. Floating UI middleware is re-exported from the relevant component subpaths for custom positioning.
-
-Every trigger-owned popup also joins one layer stack per document. Mixed nesting across dialogs, popovers, selects, comboboxes, menus, cascade selects, and date pickers therefore shares topmost Escape handling, outside dismissal, descendant close propagation, and focus restoration.
-
-## Presence and visibility ownership
-
-`@sectile/dom/presence` is a focused browser-motion observer for renderers that keep a surface mounted through CSS exit motion. It does not write `hidden`, ARIA attributes, `inert`, or styles. The renderer owns those projections and calls `update(false, element)` only after its closed-state DOM has been committed, so the observer measures the exit styles that are actually rendered.
-
-```ts
-import { createPresence } from '@sectile/dom/presence'
-
-const presence = createPresence({
-  open: true,
-  element: content,
-  onPresentChange(present) {
-    if (!present) content.hidden = true
-  },
-})
-
-// First render the semantic closed state, then arm exit observation.
-content.dataset.state = 'closed'
-presence.update(false, content)
-```
-
-Reopening cancels the pending exit immediately. Element replacement and `disconnect()` release the old listeners and timer before a stale generation can publish. The observer waits for the longest finite transition or animation on the owning element and bounds its fallback wait; child motion does not own the parent surface lifetime.
-
-Direct DOM transient-surface connections manage functional `hidden` visibility synchronously by default so imperative consumers keep the existing focus, layering, and positioning contract. Public `manageVisibility: false` remains available on the popup, Select, and Toast APIs that already expose renderer-owned visibility. Vue also composes the DOM presence observer with Menu-family transient surfaces, Combobox, Cascade Select, and popup pickers through an internal renderer handoff, without adding new direct-DOM visibility options. When a connection owns `hidden`, disconnect restores the pre-connection attribute only if the consumer has not changed it since Sectile's last write.
-
-## Reorder
-
-`@sectile/dom/reorder` maps sequence and tree reorder semantics onto Alt-modified movement keys and pointer placement. Pointer capture and hit-testing stay in the DOM adapter; Core receives only stable identities and semantic before/after or parent placement.
-
-## Date and time controls
-
-Install `@sectile/temporal` when browser elements need date fields, time fields, calendars, or pickers. Each adapter family has a granular optional entry point, so consumers load only the selected family.
-
-```sh
-pnpm add @sectile/core @sectile/temporal @sectile/dom
+```html
+<button type="button" data-help-trigger>Delivery details</button>
+<div class="delivery-popover" data-help-popover hidden>
+  Orders placed before 15:00 ship on the same business day.
+</div>
 ```
 
 ```ts
-import { createCalendar } from '@sectile/dom/temporal/calendar'
-import { createDateField } from '@sectile/dom/temporal/date-field'
-import { createDatePicker } from '@sectile/dom/temporal/date-picker'
-```
+import { createPopover } from '@sectile/dom/popover'
 
-## Form coordination
+const trigger = document.querySelector<HTMLElement>('[data-help-trigger]')
+const root = document.querySelector<HTMLElement>('[data-help-popover]')
 
-Install the optional `@sectile/form` peer when an existing HTML form needs accessible errors, validation, managed submission, or coordinated reset. Ordinary `@sectile/dom` component imports do not require it.
-
-```sh
-pnpm add @sectile/core @sectile/form @sectile/dom
-```
-
-```ts
-import { createForm } from '@sectile/dom/form'
-```
-
-`createForm()` works with native inputs, Sectile controls, and both together while preserving browser form behavior. Follow the [DOM forms guide](/packages/form/dom/) for a complete example, dynamic fields, native navigation, and cleanup.
-
-## Virtualization host
-
-`@sectile/dom/virtual` connects any `@sectile/virtual` layout strategy to an explicit scrollport and surface. The connection owns browser scheduling, frame geometry, measurement, and physical scroll effects; the Virtual package continues to own layout semantics.
-
-```sh
-pnpm add @sectile/core @sectile/virtual @sectile/dom
-```
-
-```ts
-import {
-  createAxisMeasurementResolver,
-  createVirtualizer,
-  virtualItemStyle,
-  virtualSurfaceStyle,
-} from '@sectile/dom/virtual'
-import { linearLayoutStrategy } from '@sectile/virtual/linear-layout'
-
-const virtualizer = createVirtualizer({
-  scrollport: scrollElement,
-  surface: surfaceElement,
-  state: linearState,
-  strategy: linearLayoutStrategy,
-  overscan: 240,
-  viewportInsets: { top: 48 },
-  measure: createAxisMeasurementResolver('vertical'),
-  onStateChange(state) {
-    linearState = state
-  },
-  onPlanChange(plan, connection) {
-    Object.assign(surfaceElement.style, virtualSurfaceStyle(plan))
-    reconcileItems(plan.placements, (element, placement) => {
-      Object.assign(element.style, virtualItemStyle(placement, { width: true }))
-      return connection.registerItem(element, placement.id)
-    })
-  },
-})
-
-const unregisterHeader = virtualizer.registerFrame(headerElement)
-```
-
-Scroll, frame invalidation, measurements, and layout mutations are coalesced into one animation-frame transaction. `registerFrame()` tracks ordinary header or footer geometry without inserting those elements into the Virtual item domain. Item rectangles are read as one batch, the strategy applies one measurement generation, frame and layout anchor correction are composed, and the next plan is then published. `measure()` accepts explicit strategy measurements for track grids and other layouts whose geometry is not one rectangle per item. `mutate()` applies domain or geometry changes through the same anchor-preserving path, while `scrollTo()` requests an identity even when it is currently outside the render window.
-
-`createAxisMeasurementResolver()` reads the physical border-box rectangle with `getBoundingClientRect()`, matching the physical coordinates in a layout plan. A custom resolver receives the originating `ResizeObserverEntry` when content-box, device-pixel, or writing-mode-aware measurements are required. Reassigning a recycled element to another identity discards any observation queued for its previous identity.
-
-The default viewport uses non-negative physical `scrollLeft` and `scrollTop`. Pass `readViewport` and `writeScroll` when an RTL scroller or custom surface uses another coordinate model.
-
-## Styling hooks
-
-DOM connections provide behavior, not a theme. Style the element through your own classes and the projected state attributes.
-
-```css
-#newsletter {
-  border: 1px solid var(--control-border);
-  border-radius: 0.5rem;
+if (trigger === null || root === null) {
+  throw new Error('Delivery popover markup is missing')
 }
 
-#newsletter[data-state='checked'] {
+const popover = createPopover({
+  trigger,
+  root,
+  label: 'Delivery details',
+  side: 'bottom',
+  align: 'start',
+})
+
+window.addEventListener('pagehide', () => {
+  popover.destroy()
+}, { once: true })
+```
+
+The direct Popover connection manages its functional visibility by default and positions the content relative to the trigger. Dialogs, menus, selects, comboboxes, tooltips, drawers, and date pickers expose their own focused DOM entry points with the same application-owned-markup model.
+
+For CSS exit motion, see [Motion](/guides/motion). Renderer-owned visibility is available on the transient-surface APIs that explicitly expose it; the ordinary direct connection keeps visibility, focus, dismissal, and positioning coordinated for imperative DOM use.
+
+## Preserve native browser behavior
+
+Sectile does not replace browser editing behavior that HTML already provides. Text inputs keep native selection and IME composition, form controls keep their native form relationship, and focus effects target real elements.
+
+Choose native elements when they already match the intended control. Use a non-native element only when the product needs a different structure; the DOM connection then projects the accessibility and state attributes required for that structure.
+
+## Style projected state
+
+DOM connections do not provide a theme. Style application classes and the state attributes Sectile projects onto the elements.
+
+```css
+.newsletter-toggle {
+  border: 1px solid var(--control-border);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.newsletter-toggle[data-state='checked'] {
   background: var(--control-accent);
   color: var(--control-on-accent);
 }
 
-#newsletter[data-disabled] {
+.newsletter-toggle[data-disabled] {
   cursor: not-allowed;
   opacity: 0.5;
 }
 ```
 
-Attribute helpers for compound components additionally expose stable `data-scope` and `data-part` boundaries. See [Styling](/guide/styling) for the complete convention.
+Compound surfaces also expose stable `data-scope` and `data-part` hooks. [Styling](/guide/styling) covers the shared conventions, and [Motion](/guides/motion) covers transitions driven by public state attributes.
 
-## Factory failures
+## Destroy connections with the owning UI
 
-Use `create*` during normal application setup. It returns a ready connection and throws a typed Sectile error when configuration is invalid. Use the matching `tryCreate*` factory when construction failure must remain a recoverable `Result`.
+A connection should live for exactly as long as the UI that owns its elements. Call `destroy()` when a route, view, or owning component removes those elements. Unsubscribe application listeners at the same boundary.
 
 ```ts
-import { createCheckbox, tryCreateCheckbox } from '@sectile/dom/checkbox'
+const unsubscribe = checkbox.subscribe(render)
 
-const connection = createCheckbox(options)
-const recoverable = tryCreateCheckbox(options)
+function disposeNewsletterControls() {
+  unsubscribe()
+  checkbox.destroy()
+}
 ```
 
-No `unwrap` is needed around a host `create*` call.
+Destroying a connection releases the browser resources owned by that connection. If the application creates several independent connections, each one has its own cleanup boundary.
+
+## Add domain integrations only when needed
+
+The base DOM package depends on Core and does not require the larger domain packages. Install an optional peer only for the feature that uses it.
+
+| Need | Additional package | DOM entry point | Guide |
+| --- | --- | --- | --- |
+| Form validation and submission | `@sectile/form` | `@sectile/dom/form` | [DOM forms](/packages/form/dom/) |
+| Dates, times, calendars, pickers | `@sectile/temporal` | e.g. `@sectile/dom/temporal/date-picker` | [Temporal](/packages/temporal) |
+| Virtualized lists and surfaces | `@sectile/virtual` | `@sectile/dom/virtual` | [Virtual DOM connection](/packages/virtual/dom) |
+| Tables and grids | `@sectile/tabular` | `@sectile/dom/tabular` | [Tabular DOM composition](/packages/tabular/dom) |
+| Charts | `@sectile/chart` | `@sectile/dom/chart` | [DOM chart rendering](/packages/chart/dom) |
+
+These packages continue to own their renderer-neutral domain behavior. The DOM integration supplies browser elements, input, measurement, focus, rendering resources, and cleanup around that behavior.
+
+## Use lower-level APIs only when the lifecycle requires them
+
+Direct factories are the usual starting point. When state and element lifecycles must be separated, many component subpaths also expose lower-level controllers and attribute helpers. For example, `createCheckboxController()` can own checkbox state without an element, and `getCheckboxAttributes()` can project a snapshot into application-managed DOM.
+
+This level is useful for delegated event systems, custom renderers, or application infrastructure that cannot let one direct connection own an element. The [DOM API reference](/api/dom) is the canonical index of public package entry points; use the relevant component subpath when you need its lower-level public types and helpers.
+
+## Handle recoverable setup failures
+
+`create*` factories return a ready connection and throw when the supplied configuration is invalid. Use the matching `tryCreate*` factory when setup data comes from a recoverable boundary and construction failure should remain a typed result.
+
+```ts
+import { tryCreateCheckbox } from '@sectile/dom/checkbox'
+
+const result = tryCreateCheckbox({ element })
+
+if (!result.ok) {
+  console.error(result.error.code)
+} else {
+  const checkbox = result.value
+  window.addEventListener('pagehide', () => checkbox.destroy(), { once: true })
+}
+```
+
+## Continue by task
+
+- Browse [Components](/components/) for interaction previews and DOM usage code for individual controls.
+- Use [State ownership](/guide/state-ownership) when application state owns a component value.
+- Use [Styling](/guide/styling) and [Motion](/guides/motion) for public state hooks and transitions.
+- Use the [DOM API reference](/api/dom) when you need the exact public package path for a DOM capability.

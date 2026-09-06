@@ -88,6 +88,9 @@ class ManagedDOMLayers implements DOMLayerManager {
   }
 
   #executeClosures(ids: readonly string[], initiatingID?: string): void {
+    // Every callback completes an already-committed closure; drain before rethrowing.
+    let failed = false;
+    let firstError: unknown;
     for (const id of ids) {
       const close = this.#close.get(id);
       this.#close.delete(id);
@@ -96,9 +99,15 @@ class ManagedDOMLayers implements DOMLayerManager {
       this.#closing.add(id);
       try {
         close();
+      } catch (error) {
+        if (!failed) {
+          failed = true;
+          firstError = error;
+        }
       } finally {
         this.#closing.delete(id);
       }
     }
+    if (failed) throw firstError;
   }
 }

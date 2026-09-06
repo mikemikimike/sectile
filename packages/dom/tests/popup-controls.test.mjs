@@ -5,6 +5,7 @@ import { createDialog } from '../.verification-dist/dialog.js';
 import { createPopover } from '../.verification-dist/popover.js';
 import { createSelect } from '../.verification-dist/select.js';
 import { createTooltip } from '../.verification-dist/tooltip.js';
+import { getDOMLayerManager } from '../.verification-dist/internal/layer-manager.js';
 
 test('DOM popup facades preserve focus, announce, and visibility obligations', () => {
   const trigger = new Fake();
@@ -117,6 +118,90 @@ test('DOM layer manager closes a nested select with its owning dialog', () => {
   assert.equal(outer.getSnapshot().state.open, false);
   assert.equal(select.getSnapshot().state.open, false);
 });
+
+for (const [label, firstError] of [
+  ['Error', new Error('deepest close failed')],
+  ['undefined', undefined],
+  ['null', null],
+]) {
+  test(`DOM layer cascade drains cleanup and preserves the first ${label} through ownership churn`, () => {
+    const ownerDocument = {};
+    const manager = getDOMLayerManager(new Fake(ownerDocument));
+    for (let cycle = 0; cycle < 16; cycle += 1) {
+      const closed = [];
+      const reentrant = [];
+      const topmost = [];
+      for (const [id, parentID] of [
+        ['root', null], ['child', 'root'], ['grandchild', 'child'], ['leaf', 'grandchild'],
+      ]) {
+        const surface = new Fake(ownerDocument);
+        assert.equal(manager.register({
+          id, layer: { id, parentID }, surface, owner: surface,
+          close: () => {
+            closed.push(id);
+            topmost.push(manager.isTop('independent'));
+            reentrant.push([id, manager.close(id), manager.close('root')]);
+            if (id === 'leaf') throw firstError;
+            if (id === 'grandchild') throw new Error('later close failed');
+          },
+        }), true);
+      }
+      const surface = new Fake(ownerDocument);
+      assert.equal(manager.register({
+        id: 'independent', layer: { id: 'independent' }, surface, owner: surface,
+        close: () => closed.push('independent'),
+      }), true);
+
+      assert.throws(() => manager.close('root'), (error) => Object.is(error, firstError));
+      assert.deepEqual(closed, ['leaf', 'grandchild', 'child']);
+      assert.deepEqual(topmost, [true, true, true]);
+      assert.deepEqual(reentrant, [
+        ['leaf', true, false], ['grandchild', true, false], ['child', true, false],
+      ]);
+      for (const id of ['root', 'child', 'grandchild', 'leaf']) {
+        assert.equal(manager.close(id), false);
+      }
+      assert.equal(manager.dismiss('independent', 'escape'), true);
+      assert.deepEqual(closed, ['leaf', 'grandchild', 'child', 'independent']);
+      assert.equal(manager.isTop('independent'), false);
+    }
+  });
+}
+
+for (const reason of ['escape', 'interact-outside']) {
+  test(`DOM ${reason} dismissal unwinds its close guard and accepts a fresh registration`, () => {
+    const surface = new Fake({});
+    const manager = getDOMLayerManager(surface);
+    const failure = new Error('dismiss close failed');
+    const closed = [];
+    let reentrant;
+    assert.equal(manager.register({
+      id: 'root', layer: { id: 'root' }, surface, owner: surface,
+      close: () => closed.push('root'),
+    }), true);
+    assert.equal(manager.register({
+      id: 'child', layer: { id: 'child', parentID: 'root' }, surface, owner: surface,
+      close: () => {
+        closed.push('child');
+        reentrant = manager.close('child');
+        throw failure;
+      },
+    }), true);
+
+    assert.throws(() => manager.dismiss('child', reason), (error) => error === failure);
+    assert.equal(reentrant, true);
+    assert.equal(manager.close('child'), false);
+    assert.equal(manager.isTop('root'), true);
+    assert.equal(manager.register({
+      id: 'child', layer: { id: 'child', parentID: 'root' }, surface, owner: surface,
+      close: () => closed.push('replacement'),
+    }), true);
+    assert.equal(manager.dismiss('child', reason), true);
+    assert.equal(manager.close('root'), true);
+    assert.deepEqual(closed, ['child', 'replacement']);
+    assert.equal(manager.isTop('root'), false);
+  });
+}
 
 class Fake {
   attributes = new Map();

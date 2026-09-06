@@ -68,10 +68,21 @@ class ManagedTerminalLayerScope implements TerminalLayerScope {
     initiatingID: string | undefined,
     reason: LayerDismissReason | 'ancestor-closed',
   ): void {
+    // Every callback completes an already-committed closure; drain before rethrowing.
+    let failed = false;
+    let firstError: unknown;
     for (const id of ids) {
       const close = this.#close.get(id);
       this.#close.delete(id);
-      if (id !== initiatingID) close?.(reason);
+      try {
+        if (id !== initiatingID) close?.(reason);
+      } catch (error) {
+        if (!failed) {
+          failed = true;
+          firstError = error;
+        }
+      }
     }
+    if (failed) throw firstError;
   }
 }

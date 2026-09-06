@@ -482,6 +482,7 @@ test('line pointer and click interaction use nearest X regions across the plot h
 test('connection-owned overlay renders bounded axes, grid, values, labels, units, and legend', () => {
   const value = fixture();
   value.controller.dispatch({ type: 'set-active', id: 1 });
+  value.controller.dispatch({ type: 'set-cursor', id: '1' });
   value.controller.dispatch({ type: 'set-selection', selection: { type: 'points', ids: ['1'] } });
   const january = Date.UTC(2026, 0, 1);
   const february = Date.UTC(2026, 1, 1);
@@ -527,9 +528,11 @@ test('connection-owned overlay renders bounded axes, grid, values, labels, units
   assert.equal(active?.getAttribute('fill'), 'rgba(255, 0, 0, 1)');
   assert.equal(active?.getAttribute('stroke'), 'rgba(255, 0, 0, 1)');
   assert.equal(selected?.tagName, 'circle');
-  assert.equal(selected?.getAttribute('r'), '4');
+  assert.equal(selected?.getAttribute('r'), '5.5');
   assert.equal(selected?.getAttribute('fill'), 'rgba(255, 0, 0, 1)');
-  assert.equal(selected?.getAttribute('stroke'), 'rgba(255, 0, 0, 1)');
+  assert.equal(selected?.getAttribute('stroke'), 'currentColor');
+  assert.equal(selected?.getAttribute('stroke-width'), '2.5');
+  assert.equal(value.root.querySelectorAll('[data-chart-overlay="interaction-cursor"]').length, 0);
   connection.disconnect();
   assert.equal(value.root.querySelector('svg'), null);
 });
@@ -565,7 +568,7 @@ test('interaction overlay follows primitive geometry and projected colors', () =
           ...snapshot.state,
           activeDatum: 'bar',
           cursor: 'cell',
-          selection: { type: 'points', ids: ['slice'] },
+          selection: { type: 'points', ids: ['bar', 'cell', 'slice'] },
         },
       });
       const result = Reflect.get(target, property, target);
@@ -573,18 +576,20 @@ test('interaction overlay follows primitive geometry and projected colors', () =
     },
   });
   const connection = createDOMChart({ root: value.root, canvas: value.canvas, controller, renderer: value.renderer });
-  const active = value.root.querySelector('[data-chart-overlay="interaction-active"]');
-  const cursor = value.root.querySelector('[data-chart-overlay="interaction-cursor"]');
-  const selected = value.root.querySelector('[data-chart-overlay="interaction-selection"]');
-  assert.equal(active?.tagName, 'rect');
-  assert.deepEqual(['x', 'y', 'width', 'height'].map((name) => active?.getAttribute(name)), ['10', '20', '30', '40']);
-  assert.equal(active?.getAttribute('stroke'), 'rgba(255, 0, 0, 1)');
-  assert.equal(cursor?.tagName, 'rect');
-  assert.deepEqual(['x', 'y', 'width', 'height'].map((name) => cursor?.getAttribute(name)), ['50', '10', '20', '20']);
-  assert.equal(cursor?.getAttribute('stroke'), 'rgba(0, 0, 255, 1)');
-  assert.equal(selected?.tagName, 'path');
-  assert.match(selected?.getAttribute('d') ?? '', /A 30 30/u);
-  assert.equal(selected?.getAttribute('stroke'), 'rgba(0, 180, 90, 1)');
+  const selected = [...value.root.querySelectorAll('[data-chart-overlay="interaction-selection"]')];
+  assert.equal(selected.length, 3);
+  assert.equal(selected[0]?.tagName, 'rect');
+  assert.deepEqual(['x', 'y', 'width', 'height'].map((name) => selected[0]?.getAttribute(name)), ['10', '20', '30', '40']);
+  assert.equal(selected[1]?.tagName, 'rect');
+  assert.deepEqual(['x', 'y', 'width', 'height'].map((name) => selected[1]?.getAttribute(name)), ['50', '10', '20', '20']);
+  assert.equal(selected[2]?.tagName, 'path');
+  assert.match(selected[2]?.getAttribute('d') ?? '', /A 30 30/u);
+  for (const marker of selected) {
+    assert.equal(marker.getAttribute('stroke'), 'currentColor');
+    assert.equal(marker.getAttribute('stroke-width'), '3');
+  }
+  assert.equal(value.root.querySelectorAll('[data-chart-overlay="interaction-active"]').length, 0);
+  assert.equal(value.root.querySelectorAll('[data-chart-overlay="interaction-cursor"]').length, 0);
   connection.disconnect();
 });
 

@@ -113,7 +113,7 @@ function appendInteraction<ID extends StableID>(
         ? representative.id as ID
         : projection.identities[batch.identityIndices[index] as number];
       if (id === undefined) continue;
-      const kind = id === state.activeDatum ? 'active' : id === state.cursor ? 'cursor' : selected.has(id) ? 'selection' : null;
+      const kind = selected.has(id) ? 'selection' : id === state.activeDatum ? 'active' : id === state.cursor ? 'cursor' : null;
       if (kind === null) continue;
       const marker = interactionMarker(document, batch, index, kind, colors);
       if (marker === null) continue;
@@ -143,7 +143,7 @@ function interactionMarker(
     const circle = document.createElementNS(SVG_NAMESPACE, 'circle');
     circle.setAttribute('cx', String(point.x));
     circle.setAttribute('cy', String(point.y));
-    circle.setAttribute('r', kind === 'selection' ? '4' : '3.5');
+    circle.setAttribute('r', kind === 'selection' ? '5.5' : '3.5');
     marker = circle;
   } else if (batch.type === 'rectangle' || batch.type === 'cell') {
     const values = batch.type === 'rectangle' ? batch.rectangles : batch.cells;
@@ -164,13 +164,14 @@ function interactionMarker(
   }
   if (pointLike) {
     marker.setAttribute('fill', color);
-    marker.setAttribute('stroke', color);
-    marker.setAttribute('stroke-width', kind === 'selection' ? '1.5' : '1');
+    marker.setAttribute('stroke', kind === 'selection' ? 'currentColor' : color);
+    marker.setAttribute('stroke-width', kind === 'selection' ? '2.5' : '1');
   } else {
     marker.setAttribute('fill', kind === 'selection' ? 'none' : color);
     if (kind !== 'selection') marker.setAttribute('fill-opacity', kind === 'active' ? '0.16' : '0.1');
-    marker.setAttribute('stroke', color);
-    marker.setAttribute('stroke-width', kind === 'active' ? '2.5' : '2');
+    marker.setAttribute('stroke', kind === 'selection' ? 'currentColor' : color);
+    marker.setAttribute('stroke-width', kind === 'selection' ? '3' : kind === 'active' ? '2.5' : '2');
+    marker.setAttribute('stroke-linejoin', 'round');
   }
   marker.setAttribute('vector-effect', 'non-scaling-stroke');
   marker.setAttribute('data-chart-overlay', `interaction-${kind}`);

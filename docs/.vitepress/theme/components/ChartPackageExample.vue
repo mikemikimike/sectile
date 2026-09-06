@@ -410,6 +410,10 @@ const datumLabel = (id: string | number): string => detailFor(id);
   stroke-opacity: 0.08;
 }
 
+.chart-example__plot :deep([data-chart-overlay='legend']) {
+  display: none;
+}
+
 .chart-example__controls {
   display: flex;
   flex-wrap: wrap;

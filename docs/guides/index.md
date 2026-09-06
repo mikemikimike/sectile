@@ -4,10 +4,10 @@ Use these guides when you already have a component or package in mind and need t
 
 ## UI basics
 
-- [Styling](/guide/styling) — apply your design system with stable parts and state attributes.
+- [Styling](/guides/styling) — apply your design system with stable parts and state attributes.
 - [Motion](/guides/motion) — animate popup presence, expansion indicators, checked state, and Drawer swipes with reduced-motion support.
-- [Floating elements](/guide/positioning) — place popovers, selects, menus, and tooltips around an anchor.
-- [Controlled state](/guide/state-ownership) — let application state own a value without changing the component contract.
+- [Floating elements](/guides/positioning) — place popovers, selects, menus, and tooltips around an anchor.
+- [Controlled state](/guides/state-ownership) — let application state own a value without changing the component contract.
 
 ## By task
 

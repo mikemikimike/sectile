@@ -243,10 +243,10 @@ const guideSidebar: DefaultTheme.SidebarItem[] = [
   {
     text: 'UI basics',
     items: [
-      { text: 'Styling', link: '/guide/styling' },
+      { text: 'Styling', link: '/guides/styling' },
       { text: 'Motion', link: '/guides/motion' },
-      { text: 'Floating elements', link: '/guide/positioning' },
-      { text: 'Controlled state', link: '/guide/state-ownership' },
+      { text: 'Floating elements', link: '/guides/positioning' },
+      { text: 'Controlled state', link: '/guides/state-ownership' },
     ],
   },
   {
@@ -275,10 +275,10 @@ const koGuideSidebar: DefaultTheme.SidebarItem[] = [
   {
     text: 'UI 기본',
     items: [
-      { text: '스타일 적용', link: '/ko/guide/styling' },
+      { text: '스타일 적용', link: '/ko/guides/styling' },
       { text: '모션', link: '/ko/guides/motion' },
-      { text: '위치 지정', link: '/ko/guide/positioning' },
-      { text: '상태 제어', link: '/ko/guide/state-ownership' },
+      { text: '위치 지정', link: '/ko/guides/positioning' },
+      { text: '상태 제어', link: '/ko/guides/state-ownership' },
     ],
   },
   {

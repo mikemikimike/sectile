@@ -4,10 +4,10 @@
 
 ## UI 기본
 
-- [스타일 적용](/ko/guide/styling) — 안정적인 part와 state 속성으로 제품 디자인 시스템을 적용합니다.
+- [스타일 적용](/ko/guides/styling) — 안정적인 part와 state 속성으로 제품 디자인 시스템을 적용합니다.
 - [모션](/ko/guides/motion) — reduced motion을 지키면서 팝업 presence, 펼침 indicator, checked 상태, Drawer swipe를 애니메이션합니다.
-- [Floating 요소](/ko/guide/positioning) — Popover, Select, Menu, Tooltip을 anchor 주변에 배치합니다.
-- [상태 제어](/ko/guide/state-ownership) — 컴포넌트 계약을 바꾸지 않고 애플리케이션 상태가 값을 소유하게 합니다.
+- [Floating 요소](/ko/guides/positioning) — Popover, Select, Menu, Tooltip을 anchor 주변에 배치합니다.
+- [상태 제어](/ko/guides/state-ownership) — 컴포넌트 계약을 바꾸지 않고 애플리케이션 상태가 값을 소유하게 합니다.
 
 ## 작업별
 

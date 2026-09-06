@@ -167,6 +167,75 @@ test('screen writer updates changed rows without clearing the entire screen agai
   assert.match(chunks.at(-1), /\u001b\[\?1049l/);
 });
 
+for (const reuse of [false, true]) {
+  test(`screen writer owns raw row history when the next array is ${reuse ? 'reused' : 'fresh'}`, () => {
+    const chunks = [];
+    const writer = createTerminalScreenWriter({
+      write(chunk) { chunks.push(chunk); },
+    }, { clearOnStart: false });
+    const rows = ['old', 'keep', 'stale'];
+
+    writer.render(rows);
+    assert.match(chunks.join(''), /\u001b\[1;1Hold\u001b\[K/);
+    assert.equal(Object.isFrozen(rows), false);
+    const boundary = chunks.length;
+    rows[0] = 'new';
+    rows.length = 2;
+    writer.render(reuse ? rows : [...rows]);
+
+    assert.equal(chunks.slice(boundary).join(''),
+      '\u001b[?25l\u001b[1;1Hnew\u001b[K\u001b[3;1H\u001b[K\u001b[?25l');
+    assert.deepEqual(rows, ['new', 'keep']);
+    writer.close();
+  });
+}
+
+test('screen writer snapshots raw rows before calling output', () => {
+  const chunks = [];
+  const rows = ['first'];
+  const writer = createTerminalScreenWriter({
+    write(chunk) {
+      chunks.push(chunk);
+      rows[0] = 'next';
+    },
+  }, { clearOnStart: false });
+
+  writer.render(rows);
+  assert.match(chunks.join(''), /\u001b\[1;1Hfirst\u001b\[K/);
+  const boundary = chunks.length;
+  writer.render(rows);
+  assert.equal(chunks.slice(boundary).join(''),
+    '\u001b[?25l\u001b[1;1Hnext\u001b[K\u001b[?25l');
+  writer.close();
+});
+
+test('screen writer snapshots each raw row once per render', () => {
+  for (const size of [1_000, 10_000, 100_000]) {
+    let reads = 0;
+    let writes = 0;
+    const rows = new Array(size);
+    for (let row = 0; row < size; row += 1) {
+      Object.defineProperty(rows, row, {
+        get() { reads += 1; return 'same'; },
+      });
+    }
+    const writer = createTerminalScreenWriter({ write() { writes += 1; } });
+
+    writer.render(rows);
+    assert.equal(reads, size);
+    reads = 0;
+    writer.render(rows);
+    assert.equal(reads, size, 'diff history is writer-owned rather than reread from the caller');
+    writer.close();
+    const closedWrites = writes;
+    reads = 0;
+    writer.close();
+    writer.render(rows);
+    assert.equal(reads, 0);
+    assert.equal(writes, closedWrites);
+  }
+});
+
 test('screen writer clears stale rows after resize and restores the terminal once', () => {
   const chunks = [];
   const output = {

@@ -97,6 +97,63 @@
           "rationale": "A requested full screen output has row-by-column size."
         }
       }
+    },
+    {
+      "id": "screen.writer-snapshot",
+      "inherits": "linear-v1",
+      "source": "packages/terminal/src/node.ts",
+      "benchmarkIDs": [
+        "VAL-017:terminal-writer-snapshot"
+      ],
+      "specificationCeiling": "O(rRow)",
+      "contract": {
+        "variables": [
+          {
+            "name": "rRow",
+            "meaning": "raw caller-supplied screen row count",
+            "ceiling": "caller array length"
+          }
+        ],
+        "time": {
+          "bound": "O(rRow)",
+          "kind": "worst-case",
+          "runtimeState": "external"
+        },
+        "space": {
+          "auxiliary": "O(1)",
+          "output": "O(rRow)",
+          "retained": "O(rRow)"
+        },
+        "resources": {
+          "allocations": "O(rRow)",
+          "cacheEntries": "O(rRow)",
+          "listeners": "0",
+          "observers": "0",
+          "timers": "0",
+          "subscriptions": "0"
+        },
+        "assumptions": [
+          "Raw input is a string array with ordinary array iteration; each element read is O(1).",
+          "The bound covers row snapshot ownership; diff comparison and terminal serialization are separate operations."
+        ],
+        "ceilings": [
+          "One array of rRow immutable string references per accepted raw frame; retained until replacement or close."
+        ],
+        "deterministicWork": [
+          "Each raw row is read exactly once per render, including successive renders of the same caller array.",
+          "A closed writer reads zero input rows and emits zero output."
+        ],
+        "resourceRationale": "The writer owns one retained row snapshot. Raw input allocates one shallow array; strings are shared by value. Structured frames reuse their freshly serialized rows. close releases the retained snapshot.",
+        "proof": "createTerminalScreenWriter copies and freezes raw row references before any output callback. Diffing and retained history use that snapshot, so caller mutation cannot change a published frame. The copy is one pass over rRow rows.",
+        "adversarialWitness": "Successive renders of the same accessor-backed array at 1k, 10k, and 100k rows count exactly rRow caller reads per render; mutation and truncation between renders still update and clear the affected rows.",
+        "evidence": [
+          "packages/terminal/tests/screen.test.mjs"
+        ],
+        "fullScan": {
+          "allowed": true,
+          "rationale": "A mutable caller-owned row array requires one complete shallow snapshot to isolate the previous frame."
+        }
+      }
     }
   ]
 }

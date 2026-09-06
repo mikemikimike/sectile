@@ -206,9 +206,9 @@ export function createTerminalScreenWriter(
     appearance,
     render(frame: TerminalFrame | readonly string[]): void {
       if (closed) return;
-      start();
       const structured = isTerminalFrame(frame);
-      const next = structured ? serializeTerminalFrame(frame, appearance) : frame;
+      const next = structured ? serializeTerminalFrame(frame, appearance) : Object.freeze([...frame]);
+      start();
       const maximumRows = Math.max(previous.length, next.length);
       let payload = '\u001b[?25l';
       for (let row = 0; row < maximumRows; row += 1) {

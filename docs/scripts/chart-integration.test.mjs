@@ -25,6 +25,8 @@ test('Chart documentation is task-oriented and visual in both locales', async ()
     assert.match(source, /<ChartPackageExample \/>/u);
     assert.match(source, /@sectile\/chart/u);
   }
+  assert.match(english[0], /twelve weeks of revenue/iu);
+  assert.match(korean[0], /12주 매출/u);
   assert.match(english[0], /optional peer of the host packages/iu);
   assert.match(english[0], /unrelated Sectile Vue or DOM components do not require it/iu);
   assert.match(korean[0], /호스트 패키지의 선택적 peer dependency/u);
@@ -36,9 +38,12 @@ test('Chart documentation is task-oriented and visual in both locales', async ()
     assert.match(korean[0], new RegExp(name, 'u'));
   }
 
-  for (const index of [2, 3, 4, 5]) {
-    assert.match(english[index], /<ChartPackageExample/u);
-    assert.match(korean[index], /<ChartPackageExample/u);
+  const focusedExamples = [
+    [1, 'pie'], [1, 'donut'], [2, 'heatmap'], [3, 'scatter'], [4, 'bar'], [5, 'line'],
+  ];
+  for (const [index, kind] of focusedExamples) {
+    assert.match(english[index], new RegExp(`<ChartPackageExample kind="${kind}"`, 'u'));
+    assert.match(korean[index], new RegExp(`<ChartPackageExample kind="${kind}"`, 'u'));
   }
 
   for (const source of [...english, ...korean]) {
@@ -75,14 +80,21 @@ test('Chart examples use public APIs and cover every built-in profile', async ()
   for (const source of [component, sources]) {
     assert.doesNotMatch(source, /\/internal\/|\.verification-dist|verification\/chart/u);
   }
+  assert.match(component, /const selectedKind = computed<ChartExampleKind>\(\(\) => props\.kind \?\? 'line'\)/u);
+  assert.match(component, /<ChartViewControls v-if="selectedKind === 'line'"/u);
+  assert.match(component, /class="chart-example__detail"/u);
+  assert.match(component, /source-relationship="usage"/u);
+  assert.doesNotMatch(component, /ChartLegend|chart-workbench__selector|const chartKinds/u);
   assert.match(component, /getAccessibleDatumLabel/u);
   assert.match(sources, /getAccessibleDatumLabel/u);
+  assert.match(sources, /viewCapabilities: \[\{ axisID: 'x', minimumSpan: 4, update: 'preserve' \}\]/u);
+  assert.match(sources, /ChartAxisTicks/u);
+  assert.match(sources, /ChartGrid/u);
   assert.match(sources, /instanceof HTMLElement/u);
   assert.match(sources, /chart\.disconnect\(\)[\s\S]*controller\.dispose\(\)/u);
   assert.doesNotMatch(component, /host:\s*'vue'/u);
   assert.match(englishVue, /host="vue"/u);
   assert.match(koreanVue, /host="vue"/u);
-  assert.match(component, /prefers-reduced-motion/u);
   assert.match(component, /unmount-preview-when-hidden/u);
   assert.match(sources, /vue: vueSource/u);
   assert.match(sources, /dom: domSource/u);

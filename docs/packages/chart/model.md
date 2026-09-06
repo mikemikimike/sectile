@@ -3,6 +3,10 @@ title: Chart data and scales
 description: Map application records to chart axes, choose scales, keep IDs stable, and update data safely.
 ---
 
+<script setup>
+import ChartPackageExample from '../../.vitepress/theme/components/ChartPackageExample.vue'
+</script>
+
 # Data and scales
 
 A chart definition tells Sectile which records to draw and which fields belong on each axis. This example plots weekly revenue from the `date` and `amount` fields.
@@ -52,6 +56,16 @@ const layer = {
 Axis IDs must be unique within one chart. Layer IDs and record IDs must also be unique across all layers in that chart.
 
 For radial charts, records with `id`, `value`, and `label` fields work without accessors. Use `valueField` and `labelField` when your property names differ.
+
+## Compare parts of a whole
+
+Use a pie chart when the slices are the primary comparison. This quarterly budget example keeps the four departments visible as shares of one total.
+
+<ChartPackageExample kind="pie" />
+
+Use a donut when the same part-to-whole comparison benefits from a quieter center and a stronger outer ring. The interaction remains focused on inspecting or selecting one segment rather than adding axis controls that do not apply to radial data.
+
+<ChartPackageExample kind="donut" />
 
 ## Choose a scale for the field
 

@@ -1,3 +1,8 @@
+---
+title: Tabular
+description: 표와 편집 가능한 그리드, 계층형 그리드에서 쿼리·선택·데이터 원본·이동·편집 상태를 같은 규칙으로 다룹니다.
+---
+
 <script setup>
 import TabularFeatureMap from '../../.vitepress/theme/components/TabularFeatureMap.vue'
 import TabularExample from '../../.vitepress/theme/components/TabularExample.vue'
@@ -5,80 +10,94 @@ import TabularExample from '../../.vitepress/theme/components/TabularExample.vue
 
 # Tabular
 
-`@sectile/tabular`는 표 형식 데이터의 query, 선택, cursor, 편집과 계층 상태를 계산하는 렌더러 독립 core입니다. 화면에는 필요한 상호작용 밀도에 따라 DataTable, DataGrid, DataTreeGrid 중 하나를 사용합니다.
+`@sectile/tabular`은 표와 그리드의 동작을 화면 환경과 분리합니다. 쿼리, 현재 적용된 데이터, 행 선택, 셀 이동, 편집 의도, 열 상태, 계층 구조를 Vue나 기존 DOM, 애플리케이션이 직접 만드는 화면에서도 같은 규칙으로 다룰 수 있습니다.
+
+Vue 복합 컴포넌트가 필요하면 [`@sectile/vue`](/ko/packages/vue)를 사용하고, 애플리케이션이 기존 HTML을 소유하고 있다면 [`@sectile/dom`](/ko/packages/dom)을 사용합니다. 서버 로직, 테스트, 작업자, 별도 렌더러에서 화면 없이 상태와 데이터 조회 결과만 필요할 때는 Tabular를 직접 사용할 수 있습니다.
+
+## 설치
+
+사용하는 연결 방식에 맞는 패키지를 설치합니다.
 
 ```sh
+# 화면 환경과 무관한 상태와 동작
 pnpm add @sectile/tabular
+
+# 기존 브라우저 HTML에 연결
+pnpm add @sectile/dom @sectile/tabular
+
+# Vue 컴포넌트
+pnpm add @sectile/vue @sectile/tabular vue
 ```
 
-## 먼저 profile 선택하기
+`@sectile/tabular`의 실행 API는 `@sectile/tabular/data-table`처럼 용도별 하위 경로로 나뉩니다. 지원하는 공개 경로 전체는 [Tabular API 참조](/ko/api/tabular)에서 확인할 수 있습니다. 현재 Tabular에는 Terminal 연결이 없습니다.
 
-| 질문 | 선택 |
-| --- | --- |
-| 행을 읽고 비교하며 정렬·필터·선택하는가? | [DataTable](./tabular/data-table) |
-| 모든 셀을 방향키로 이동하고 편집하는가? | [DataGrid](./tabular/data-grid) |
-| grid에 부모·자식 branch도 필요한가? | [DataTreeGrid](./tabular/data-tree-grid) |
+## 사용 방식에 맞는 화면 고르기
+
+세 화면은 데이터 원본, 쿼리, 선택, 열, 데이터 버전 개념을 공유합니다. 사용자가 화면에서 얼마나 세밀하게 이동하고 편집해야 하는지에 따라 선택하면 됩니다.
+
+| 화면 | 적합한 경우 | 안내 |
+| --- | --- | --- |
+| DataTable | 행을 읽고 비교하거나 정렬·필터·선택하는 작업이 중심일 때 | [DataTable](./tabular/data-table) |
+| DataGrid | 모든 셀을 2차원 방향키 이동이나 편집 대상으로 다룰 때 | [DataGrid](./tabular/data-grid) |
+| DataTreeGrid | 그리드에 펼치고 접을 수 있는 부모·자식 계층도 필요할 때 | [DataTreeGrid](./tabular/data-tree-grid) |
 
 <TabularFeatureMap />
 
-### DataTable
+## 검색하고 선택할 수 있는 표 만들기
 
-Native table 의미, 검색·정렬, checkbox 선택과 form 연결이 중심입니다.
+DataTable은 표에 맞는 기본 상호작용을 유지하면서 쿼리와 선택 상태를 화면 환경 밖에서 관리합니다. 정렬, 필터, 체크박스 선택, 그룹 행, 편집 의도는 각각 따로 맞춰 관리할 필요 없이 같은 상태 흐름으로 갱신됩니다.
 
 <TabularExample kind="table-overview" />
 
-[DataTable의 모든 기능과 예제 →](./tabular/data-table)
+**사용 코드**는 페이지 상단의 **연결 방식**을 따릅니다. 미리보기에는 문서용 데이터와 표현 스타일이 포함되어 있으며, 사용 코드는 Vue 구성, DOM 연결, 화면 환경과 무관한 상태 처리처럼 공개 API를 사용하는 부분에 집중합니다.
 
-### DataGrid
+[DataTable 안내](./tabular/data-table)에서는 검색과 정렬, 검색 결과 전체 선택, 그룹 행, 편집 의도, 열 상태, 기본 폼 연결을 이어서 설명합니다.
 
-2차원 cursor, roving focus, edit/commit/cancel과 cursor 복구를 더합니다.
+## 모든 셀을 키보드로 이동하고 편집하기
+
+행 선택과 별개로 현재 셀의 위치가 중요하다면 DataGrid를 사용합니다. 방향키 이동, 편집·확정·취소, 행 선택, 현재 셀 복구를 서로 다른 상태로 관리하므로 데이터가 바뀌어도 애플리케이션이 키보드 위치를 직접 다시 계산할 필요가 없습니다.
 
 <TabularExample kind="grid-overview" />
 
-[DataGrid의 모든 기능과 예제 →](./tabular/data-grid)
+[DataGrid 안내](./tabular/data-grid)에서는 셀 이동 복구, 편집 가능한 셀, 독립적인 행 선택, 열 동작을 자세히 다룹니다.
 
-### DataTreeGrid
+## 그리드 동작을 유지하면서 계층 구조 추가하기
 
-DataGrid에 expansion, level·position metadata와 부모 context를 더합니다.
+DataTreeGrid는 셀 이동과 편집을 유지하면서 펼치고 접을 수 있는 계층 구조를 더합니다. 부모 행은 계층 정보를 보여주고, 실제 이동과 선택은 일반적인 그리드와 마찬가지로 보이는 셀을 기준으로 처리할 수 있습니다.
 
 <TabularExample kind="tree-overview" />
 
-[DataTreeGrid의 모든 기능과 예제 →](./tabular/data-tree-grid)
+[DataTreeGrid 안내](./tabular/data-tree-grid)에서는 펼치기와 접기, 현재 보이는 말단 행 선택, 편집, 가지를 접었을 때의 현재 셀 복구를 설명합니다.
 
-## 사용할 계층 선택하기
+## 서버의 정렬과 필터링에 연결하기
 
-| 필요한 범위 | 설치 | import |
-| --- | --- | --- |
-| 상태·query·projection 계산 | `@sectile/tabular` | `@sectile/tabular/data-*` |
-| 기존 HTML에 연결 | `@sectile/dom @sectile/tabular` | `@sectile/dom/tabular` |
-| Vue compound component | `@sectile/vue @sectile/tabular vue` | `@sectile/vue/data-table`, `@sectile/vue/data-grid`, `@sectile/vue/data-tree-grid` |
+쿼리가 바뀌면 현재 화면의 행을 즉석에서 다시 배열하는 대신 새로운 데이터 요청을 만듭니다. 같은 상호작용 상태를 메모리 데이터뿐 아니라 HTTP, RPC, 페이지 단위 조회, 서버에서 일부 범위만 가져오는 방식에도 연결할 수 있습니다.
 
-`@sectile/tabular`는 DOM, Vue, terminal을 알지 않습니다. `@sectile/dom`과 `@sectile/vue`에서는 optional peer dependency이므로 Tabular subpath를 사용할 때만 함께 설치합니다. Tabular에는 terminal host를 제공하지 않습니다.
+<TabularExample kind="remote-source" />
 
-각 예제의 **코드** 탭은 동일한 기능을 Vue·DOM·Core로 보여줍니다. 먼저 원하는 동작을 확인한 뒤 실제 환경의 코드를 선택하세요.
+새 요청을 기다리는 동안에는 마지막으로 적용된 결과를 계속 보여줄 수 있습니다. Tabular는 진행 중인 요청, 적용된 데이터, 취소, 실패를 구분하며 더 오래된 응답이 뒤늦게 도착해도 새 결과에 섞지 않습니다. 전송 방식, 인증, 캐시, 재시도 정책과 로딩·빈 결과·오류 화면은 애플리케이션이 담당합니다.
 
-## 다음으로 읽을 문서
+[비동기 데이터 원본](./tabular/data-source)에서는 요청 식별, 응답 형식, 페이지·범위 조회, 취소, 재시도를 자세히 설명합니다.
 
-| 하려는 일 | 문서 |
-| --- | --- |
-| ID, query, selection, revision 이해 | [공통 계약](./tabular/contracts) |
-| 서버 정렬·필터·페이지, loading, retry | [비동기 source](./tabular/data-source) |
-| 기존 element와 event 연결 | [DOM 연결](./tabular/dom) |
-| typed component, Provider, slot, SSR | [Vue 연결](./tabular/vue) |
-| 큰 view만 선택적으로 windowing | [가상화](./tabular/virtual) |
+## 결과가 실제로 클 때만 가상화하기
 
-## 책임 경계
+Tabular는 기본적으로 행이나 셀을 가상화하지 않습니다. 일반적인 크기의 표와 그리드는 현재 적용된 결과를 그대로 그릴 수 있습니다. 화면에 표시할 결과가 커서 일부 범위만 그려야 한다면 `@sectile/virtual`을 설치하고 선택 사항인 `@sectile/tabular/virtual` 연결을 사용해 Tabular의 결과를 Virtual 배치 상태와 조합합니다.
 
-Tabular는 같은 event와 state에 대해 결정적인 다음 state, projection과 command를 만듭니다. 응용 프로그램은 network, cache, 저장, loading·empty·error UI를 소유합니다. DOM/Vue host는 element, focus, form, 측정과 scroll을 소유합니다. 이 경계는 [공통 계약](./tabular/contracts)과 [비동기 source](./tabular/data-source)에서 실제 동작과 함께 설명합니다.
+쿼리와 그리드 동작은 측정과 스크롤 처리와 분리된 채 유지됩니다. DataTable, DataGrid, DataTreeGrid의 연결 방법은 [선택적 가상화](./tabular/virtual)에서 확인할 수 있습니다.
 
-## 공개 subpath
+## 연결 수준 선택하기
 
-| 경로 | 책임 |
-| --- | --- |
-| `/model` | ID, immutable model, controlled ownership, limit |
-| `/query` | filter, sort, group, aggregate, pivot descriptor |
-| `/source` | request/response, page/window, client source |
-| `/data-table` | 읽기 중심 table controller |
-| `/data-grid` | 셀 중심 grid controller |
-| `/data-tree-grid` | 계층형 grid controller |
-| `/virtual` | 소비자가 설치한 `@sectile/virtual`과 조합하는 선택적 adapter |
+Vue에서는 `@sectile/vue/data-table`, `@sectile/vue/data-grid`, `@sectile/vue/data-tree-grid`를 사용합니다. 각 화면의 컴포넌트 구성이 해당 상태를 함께 제공합니다. 기존 브라우저 HTML에는 `@sectile/dom/tabular`를 사용해 요소와 기본 이벤트를 같은 Tabular 상태에 연결합니다. 화면을 애플리케이션이 직접 그리거나 쿼리·데이터 원본·상태 처리만 필요하다면 `@sectile/tabular/*`를 직접 사용합니다.
+
+화면 환경과 무관한 Tabular 계층은 데이터를 가져오거나 편집 결과를 저장하지 않으며, DOM 포커스를 옮기거나 로딩·오류 화면을 그리지도 않습니다. 이런 작업은 Tabular가 상태와 명령을 반환한 뒤 애플리케이션이나 각 화면 환경이 수행합니다.
+
+## 작업별 안내
+
+- [DataTable](./tabular/data-table)은 읽기 중심 표, 쿼리 제어, 행 선택, 폼, 편집 의도를 다룹니다.
+- [DataGrid](./tabular/data-grid)는 셀 이동, 편집, 행 선택, 위치 복구를 다룹니다.
+- [DataTreeGrid](./tabular/data-tree-grid)는 계층형 그리드 이동과 펼치기·접기를 다룹니다.
+- [비동기 데이터 원본](./tabular/data-source)은 서버 정렬·필터, 페이지 조회, 취소, 로딩, 실패, 재시도를 다룹니다.
+- [Vue 구성](./tabular/vue)은 타입이 지정된 복합 컴포넌트, 제공자, 데이터 요청 실행, SSR을 다룹니다.
+- [DOM 구성](./tabular/dom)은 기존 요소, 이벤트 연결, 정리, 데이터 요청 실행을 다룹니다.
+- [선택적 가상화](./tabular/virtual)은 큰 결과를 `@sectile/virtual`과 함께 일부 범위만 그리는 방법을 다룹니다.
+- [Tabular API 참조](/ko/api/tabular)에는 지원하는 공개 import 경로가 정리되어 있습니다.

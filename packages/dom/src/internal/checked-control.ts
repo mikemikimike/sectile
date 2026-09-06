@@ -122,7 +122,18 @@ class DOMCheckedControlImpl<State, Event, Command extends object, Value> impleme
   public syncControlledValue(value: Value): Result<RevisionSnapshot<State>> {
     const result = this.#controller.syncControlledValue(value); if (result.ok) { this.updateAttributes(); this.#options.onUpdate?.(); } return result;
   }
-  public handleEvent(event: Event): boolean { const accepted = this.#controller.handleEvent(event); this.updateAttributes(); if (accepted) this.#options.onUpdate?.(); return accepted; }
+  public handleEvent(event: Event): boolean {
+    const previousRevision = this.#controller.getSnapshot().revision;
+    let accepted: boolean;
+    try {
+      accepted = this.#controller.handleEvent(event);
+    } catch (error) {
+      this.#completeCommittedThrow(previousRevision, error);
+    }
+    this.updateAttributes();
+    if (accepted) this.#options.onUpdate?.();
+    return accepted;
+  }
   public updateAttributes(): void {
     const value = this.#options.read(this.#controller.getSnapshot().state);
     applyCheckedControlAttributes(this.#options.element, getCheckedControlAttributes({
@@ -139,6 +150,16 @@ class DOMCheckedControlImpl<State, Event, Command extends object, Value> impleme
     this.#options.applyValue?.(this.#options.element, value);
   }
   public disconnect(): void { this.#options.element.removeEventListener('click', this.#click); }
+
+  #completeCommittedThrow(previousRevision: number, error: unknown): never {
+    if (this.#controller.getSnapshot().revision !== previousRevision) {
+      try { this.updateAttributes(); }
+      catch { /* Preserve the first publication error. */ }
+      try { this.#options.onUpdate?.(); }
+      catch { /* Preserve the first publication error. */ }
+    }
+    throw error;
+  }
 }
 
 function checkedControlAdapter<State, Event, Command, Value>(

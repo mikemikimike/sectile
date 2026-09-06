@@ -14,3 +14,25 @@ test('terminal checked controls enforce disabled and read-only policies', () => 
   assert.equal(readOnly.handleKeyboardInput({ key: 'space' }), false);
   assert.equal(readOnly.getSnapshot().state.checked, false);
 });
+test('terminal checked controls publish committed state after value callback errors', () => {
+  const callbackError = new Error('value callback failed');
+  const controls = [
+    { create: createCheckbox, change: 'onValueChange', value: false, state: 'checked' },
+    { create: createSwitch, change: 'onCheckedChange', value: false, state: 'checked' },
+    { create: createToggleButton, change: 'onPressedChange', value: false, state: 'pressed' },
+  ];
+
+  for (const { create, change, value, state } of controls) {
+    let updates = 0;
+    const control = create({
+      ...(change === 'onValueChange' ? { defaultValue: value } : change === 'onCheckedChange' ? { defaultChecked: value } : { defaultPressed: value }),
+      [change]: () => { throw callbackError; },
+      onUpdate: () => { updates += 1; throw new Error('secondary update callback failed'); },
+    });
+
+    assert.throws(() => control.handleKeyboardInput({ key: 'space' }), (error) => error === callbackError);
+    assert.equal(control.getSnapshot().revision, 1);
+    assert.equal(control.getSnapshot().state[state], true);
+    assert.equal(updates, 1);
+  }
+});

@@ -19,6 +19,30 @@ test('DOM checked controls project and enforce interaction state', () => {
   readOnlyElement.emit('click');
   assert.equal(readOnly.getSnapshot().state.checked, false);
 });
+test('DOM checked controls publish committed state after value callback errors', () => {
+  const callbackError = new Error('value callback failed');
+  const controls = [
+    { create: createCheckbox, change: 'onValueChange', attribute: 'aria-checked', value: false },
+    { create: createSwitch, change: 'onCheckedChange', attribute: 'aria-checked', value: false },
+    { create: createToggleButton, change: 'onPressedChange', attribute: 'aria-pressed', value: false },
+  ];
+
+  for (const { create, change, attribute, value } of controls) {
+    const element = new FakeElement();
+    let updates = 0;
+    const control = create({
+      element,
+      ...(change === 'onValueChange' ? { defaultValue: value } : change === 'onCheckedChange' ? { defaultChecked: value } : { defaultPressed: value }),
+      [change]: () => { throw callbackError; },
+      onUpdate: () => { updates += 1; throw new Error('secondary update callback failed'); },
+    });
+
+    assert.throws(() => element.emit('click'), (error) => error === callbackError);
+    assert.equal(control.getSnapshot().revision, 1);
+    assert.equal(element.attributes.get(attribute), 'true');
+    assert.equal(updates, 1);
+  }
+});
 test('DOM checkbox exposes a pure declarative attribute projection', () => {
   const controller = unwrap(createCheckboxController({ defaultValue: 'mixed', readOnly: true }));
   const attributes = getCheckboxAttributes(controller.getSnapshot().state, { readOnly: true, native: true });

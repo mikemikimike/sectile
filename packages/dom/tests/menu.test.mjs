@@ -73,6 +73,121 @@ test('DOM menu item replacement preserves one host owner and unregisters the pre
   menu.disconnect();
 });
 
+test('DOM menu click routing follows path depth at 1k, 10k, and 100k registrations', () => {
+  const { window } = menuDOM(500, 300);
+  for (const size of [1_000, 10_000, 100_000]) {
+    const root = new FakeElement();
+    const items = Array.from({ length: size }, (_, id) => ({ id, parentID: null }));
+    const elements = items.map(() => new FakeElement());
+    const descendant = window.document.createElement('span');
+    const unmatched = window.document.createElement('span');
+    let containsCalls = 0;
+    let invoked;
+    const menu = createMenu({ root, items, onInvoke: (id) => { invoked = id; } });
+    const contains = function (target) {
+      containsCalls += 1;
+      return this === elements.at(-1) && target === descendant;
+    };
+    for (let index = 0; index < size; index += 1) {
+      elements[index].contains = contains;
+      menu.setItemAttributes(elements[index], index);
+    }
+    const click = [...root.listeners.get('click')][0];
+    try {
+      for (const matched of [false, true]) {
+        const target = matched ? descendant : unmatched;
+        // A registered host beyond the root is never eligible for this listener.
+        const path = matched ? [target, elements.at(-1), root] : [target, root, elements[0]];
+        let steps = 0;
+        let reads = 0;
+        path[Symbol.iterator] = function* () {
+          for (let index = 0; index < this.length; index += 1) { steps += 1; yield this[index]; }
+        };
+        const before = menu.getSnapshot();
+        root.emit('click', { target, composedPath() { reads += 1; return path; } });
+        assert.equal(reads, 1, `size ${size}: one composed path read`);
+        assert.equal(steps, 2, `size ${size}: routing stops at the item or root`);
+        assert.equal(containsCalls, 0, `size ${size}: no registered-item scan`);
+        if (matched) assert.equal(invoked, size - 1);
+        else assert.equal(menu.getSnapshot(), before, 'unmatched routing dispatches no transition');
+      }
+      menu.destroy();
+      const before = menu.getSnapshot();
+      click({ target: elements[0], composedPath: () => [elements[0], root] });
+      assert.equal(menu.getSnapshot(), before, 'stale handlers cannot use cleared registrations');
+      assert.equal(root.listeners.get('click').size, 0);
+    } finally { menu.destroy(); }
+  }
+});
+
+test('DOM menu click routing uses exact live ownership through replacement and unregister', () => {
+  const root = new FakeElement();
+  const shared = new FakeElement();
+  const replacement = new FakeElement();
+  const text = { parentNode: shared };
+  shared.parentNode = root;
+  replacement.parentNode = root;
+  const invoked = [];
+  const menu = createMenu({ root, items: [{ id: 0 }, { id: '0' }], onInvoke: (id) => invoked.push(id) });
+  const click = (target, composedPath) => {
+    menu.handleEvent('open-popup');
+    root.emit('click', { target, ...(composedPath === undefined ? {} : { composedPath }) });
+  };
+  try {
+    menu.setItemAttributes(shared, 0);
+    click(text);
+    assert.deepEqual(invoked, [0]);
+    menu.setItemAttributes(shared, '0');
+    click(text, () => []);
+    assert.deepEqual(invoked, [0, '0']);
+    menu.setItemAttributes(replacement, '0');
+    click(text);
+    assert.deepEqual(invoked, [0, '0'], 'a replaced host no longer owns its old ID');
+    click(replacement);
+    assert.deepEqual(invoked, [0, '0', '0']);
+    menu.setItemAttributes(undefined, '0');
+    click(replacement);
+    click(null);
+    assert.deepEqual(invoked, [0, '0', '0']);
+  } finally { menu.destroy(); }
+});
+
+test('DOM menu descendant routing preserves submenu and disabled-item commands', () => {
+  const { window, root, trigger, file, child, submenu } = menuDOM(500, 300);
+  // Nested registered hosts must resolve to the closest host, not insertion order.
+  const disabled = window.document.createElement('button');
+  const disabledText = window.document.createTextNode('Disabled');
+  disabled.append(disabledText);
+  root.append(disabled);
+  const label = window.document.createElement('span');
+  file.prepend(label);
+  const leafLabel = window.document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  child.append(leafLabel);
+  const invoked = [];
+  const menu = createMenuButton({
+    root, trigger, position: false,
+    items: [{ id: 'file' }, { id: 'open', parentID: 'file' }, { id: 'disabled' }],
+    disabledItems: ['disabled'], onInvoke: (id) => invoked.push(id),
+  });
+  menu.setItemAttributes(file, 'file');
+  menu.setItemAttributes(child, 'open');
+  menu.setItemAttributes(disabled, 'disabled');
+  menu.setSubmenuAttributes(submenu, 'file');
+  const click = (target) => target.dispatchEvent(new window.MouseEvent('click', { bubbles: true, composed: true }));
+  try {
+    menu.send('open-popup');
+    click(disabledText);
+    assert.equal(menu.state.cursor.current, 'disabled');
+    assert.deepEqual(invoked, []);
+    click(label);
+    assert.deepEqual(menu.state.openPath, ['file']);
+    assert.equal(menu.state.cursor.current, 'open');
+    click(leafLabel);
+    assert.deepEqual(invoked, ['open']);
+    assert.equal(menu.state.open, false);
+  } finally { menu.destroy(); }
+});
+
 test('DOM menu button owns disabled, edge, typeahead, and controlled open state', () => {
   let now = 0;
   let external = false;

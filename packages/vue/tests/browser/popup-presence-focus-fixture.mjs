@@ -1,4 +1,5 @@
 import { createApp, h, nextTick, ref } from 'vue';
+import { createMenu } from '@sectile/dom/menu';
 import { DialogClose, DialogContent, DialogRoot, DialogTrigger } from '../../.verification-dist/dialog.js';
 import { PopoverClose, PopoverContent, PopoverRoot, PopoverTrigger } from '../../.verification-dist/popover.js';
 import { MenuButtonContent, MenuButtonRoot, MenuButtonTrigger, MenuItem, MenuSubContent } from '../../.verification-dist/menu.js';
@@ -18,7 +19,54 @@ export async function runPopupPresenceFocusScenarios() {
     'menu-submenu-controlled-retained-reopen-focus': await menuScenario(true, true),
     'menu-button-uncontrolled-positioned-retained-reopen-focus': await menuScenario(false, false, true),
     'menu-button-controlled-positioned-retained-reopen-focus': await menuScenario(true, false, true),
+    'menu-composed-click-routing': menuComposedClickScenario(),
   });
+}
+
+function menuComposedClickScenario() {
+  const host = document.createElement('div');
+  const root = document.createElement('div');
+  const openHost = document.createElement('div');
+  const closedHost = document.createElement('div');
+  const unmatched = document.createElement('span');
+  const inside = document.createElement('button');
+  const closedInside = document.createElement('button');
+  openHost.attachShadow({ mode: 'open' }).append(inside);
+  closedHost.attachShadow({ mode: 'closed' }).append(closedInside);
+  root.append(openHost, closedHost, unmatched);
+  host.append(root);
+  document.body.append(host);
+  const invoked = [];
+  const menu = createMenu({
+    root, items: [{ id: 'inside' }, { id: 'closed-host' }, { id: 'outside' }],
+    onInvoke: (id) => invoked.push(id),
+  });
+  menu.setItemAttributes(inside, 'inside');
+  menu.setItemAttributes(closedHost, 'closed-host');
+  menu.setItemAttributes(host, 'outside');
+  let retargeted = false;
+  const observe = (event) => { if (event.target === openHost) retargeted = true; };
+  root.addEventListener('click', observe);
+  try {
+    inside.click();
+    const openShadow = invoked.length === 1 && invoked[0] === 'inside' && retargeted;
+    menu.send('open-popup');
+    closedInside.click();
+    const closedShadow = invoked.length === 2 && invoked[1] === 'closed-host';
+    menu.send('open-popup');
+    const before = menu.getSnapshot();
+    unmatched.click();
+    const rootBoundary = invoked.length === 2 && menu.getSnapshot() === before;
+    menu.destroy();
+    inside.click();
+    const disconnected = invoked.length === 2;
+    return Object.freeze({ ok: openShadow && closedShadow && rootBoundary && disconnected,
+      openShadow, closedShadow, rootBoundary, disconnected });
+  } finally {
+    menu.destroy();
+    root.removeEventListener('click', observe);
+    host.remove();
+  }
 }
 
 async function popupScenario(kind, controlled) {

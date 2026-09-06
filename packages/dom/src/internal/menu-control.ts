@@ -112,7 +112,15 @@ class DOMMenuControl<ID extends StableID> implements MenuControl<ID> {
         })
       : undefined;
     this.#keydown = (event) => { if (this.#handleTypeahead(event)) { event.preventDefault(); return; } const semantic = toMenuEvent(event, options.kind, options.direction); if (semantic !== null && this.handleEvent(semantic)) event.preventDefault(); };
-    this.#click = (event) => { for (const [id, element] of this.#elements) if (event.target === element || (typeof Node !== 'undefined' && event.target instanceof Node && element.contains(event.target))) { const wasOpen = this.getSnapshot().state.openPath.includes(id); this.handleEvent({ type: 'focus', id }); if (this.#policies.disabled?.(id) !== true && (this.#tree.isLeaf(id) || !wasOpen)) this.handleEvent(this.#tree.isLeaf(id) ? 'invoke' : 'open-submenu'); return; } };
+    this.#click = (event) => {
+      const id = this.#findClickTarget(event);
+      if (id === undefined) return;
+      const wasOpen = this.getSnapshot().state.openPath.includes(id);
+      this.handleEvent({ type: 'focus', id });
+      if (this.#policies.disabled?.(id) !== true && (this.#tree.isLeaf(id) || !wasOpen)) {
+        this.handleEvent(this.#tree.isLeaf(id) ? 'invoke' : 'open-submenu');
+      }
+    };
     this.#triggerClick = () => { this.handleEvent(this.getSnapshot().state.open ? 'close-popup' : 'open-popup'); };
     options.root.addEventListener('keydown', this.#keydown); options.root.addEventListener('click', this.#click); options.trigger?.addEventListener('click', this.#triggerClick); this.#refresh();
   }
@@ -188,6 +196,32 @@ class DOMMenuControl<ID extends StableID> implements MenuControl<ID> {
     this.#pendingFocus = undefined;
     this.#elements.clear();
     this.#submenuControlIDs.clear();
+  }
+  #findClickTarget(event: MouseEvent): ID | undefined {
+    const path = event.composedPath?.();
+    if (path !== undefined && path.length > 0) {
+      for (const target of path) {
+        const id = this.#registeredItem(target);
+        if (id !== undefined) return id;
+        if (target === this.#options.root) break;
+      }
+      return undefined;
+    }
+    // Minimal event hosts may omit composedPath; parentNode also covers text targets.
+    let target = event.target as Node | null;
+    while (target != null) {
+      const id = this.#registeredItem(target);
+      if (id !== undefined) return id;
+      if (target === this.#options.root) break;
+      target = target.parentNode;
+    }
+    return undefined;
+  }
+  #registeredItem(target: EventTarget): ID | undefined {
+    const element = target as HTMLElement;
+    const id = this.#elementOwners.get(element);
+    // The forward registry is authoritative after replacement or disconnect.
+    return id !== undefined && this.#elements.get(id) === element ? id : undefined;
   }
   #projectItem(id: ID, element: HTMLElement, state: MenuState<ID>): void {
     element.dataset['level'] = String(this.#tree.depthOf(id) ?? 0);

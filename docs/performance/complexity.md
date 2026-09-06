@@ -10,7 +10,7 @@ Every runtime ESM export inherits an explicit package public contract. Hot inter
 |---|---:|---:|---:|
 | core | 380 | 26 | 54 |
 | chart | 80 | 0 | 14 |
-| dom | 424 | 181 | 19 |
+| dom | 424 | 181 | 20 |
 | form | 21 | 0 | 7 |
 | tabular | 33 | 0 | 8 |
 | temporal | 99 | 24 | 2 |
@@ -105,6 +105,7 @@ Every runtime ESM export inherits an explicit package public contract. Hot inter
 | dom:form.subscribe | connected | `O(1)` expected | `O(1)` | `O(1)` | `O(1)` | forbidden | VAL-016, VAL-017 |
 | dom:form.subscription-dispatch | connected | `O(sForm + uSource + sAffected)` worst-case | `O(sForm + uSource + sAffected)` | `O(1)` | `O(sForm + sField)` | forbidden | VAL-016, VAL-017 |
 | dom:form.unsubscribe | connected | `O(1)` expected | `O(1)` | `O(1)` | `O(1)` | forbidden | VAL-016, VAL-017 |
+| dom:menu.click-target | connected | `O(hPath)` expected | `O(hPath)` | `O(1)` | `O(1)` | forbidden | packages/dom/tests/menu.test.mjs, packages/vue/tests/dynamic-collections.dom.test.mjs, packages/vue/tests/browser/popup-presence-focus-fixture.mjs |
 | dom:menu.item-registration | connected | `O(1)` expected | `O(1)` | `O(1)` | `O(nRegistered)` | forbidden | VAL-009 |
 | dom:position.connect | connected | `O(aDom)` worst-case | `O(aDom)` | `O(1)` | `O(aDom)` | forbidden | VAL-016, VAL-017 |
 | dom:position.disconnect | connected | `O(aDom)` worst-case | `O(1)` | `O(1)` | `O(1)` | forbidden | VAL-016, VAL-017 |

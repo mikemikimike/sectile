@@ -22,7 +22,7 @@ const { CarouselRoot } = await import('../.verification-dist/carousel.js');
 const { CascadeSelectContent, CascadeSelectRoot, CascadeSelectTrigger } = await import('../.verification-dist/cascade-select.js');
 const { FeedRoot } = await import('../.verification-dist/feed.js');
 const { GridRoot } = await import('../.verification-dist/grid.js');
-const { MenuItem, MenuRoot, MenuSubContent } = await import('../.verification-dist/menu.js');
+const { MenuItem, MenuRoot, MenuSubContent, MenuButtonRoot, MenuButtonTrigger, MenuButtonContent, MenubarRoot, NavigationMenuRoot } = await import('../.verification-dist/menu.js');
 const { PaginationRoot } = await import('../.verification-dist/pagination.js');
 const { SelectContent, SelectRoot, SelectTrigger } = await import('../.verification-dist/select.js');
 const { ToolbarRoot } = await import('../.verification-dist/toolbar.js');
@@ -188,6 +188,42 @@ test('Vue menu bulk mount keeps item registration projection work linear', async
     if (mounted !== undefined) unmount(mounted.app, mounted.host);
   }
 });
+
+for (const Root of [MenuRoot, MenuButtonRoot, MenubarRoot, NavigationMenuRoot]) {
+  test(`Vue ${Root.name} routes adopted item descendants without scanning unrelated hosts`, async () => {
+    const items = Array.from({ length: 256 }, (_, index) => ({ id: `route-${index}`, parentID: null }));
+    const invoked = [];
+    const content = () => [
+      h('span', { 'data-unmatched': '' }, 'Separator'),
+      ...items.map(({ id }) => h(MenuItem, { value: id, asChild: true }, {
+        default: () => h('button', null, [h('span', { 'data-target': id }, id)]),
+      })),
+    ];
+    const { app, host } = mount(() => h(Root, {
+      items, onInvoke: (id) => invoked.push(id),
+      ...(Root === MenuButtonRoot ? { defaultOpen: true, position: false } : {}),
+    }, { default: () => Root === MenuButtonRoot
+      ? [h(MenuButtonTrigger), h(MenuButtonContent, null, { default: content })]
+      : content(),
+    }));
+    try {
+      await settle();
+      let containsCalls = 0;
+      for (const item of host.querySelectorAll('[data-sectile-menu-id]')) {
+        const contains = item.contains;
+        item.contains = function (target) { containsCalls += 1; return contains.call(this, target); };
+      }
+      host.querySelector('[data-unmatched]').dispatchEvent(new browserWindow.MouseEvent('click', { bubbles: true }));
+      await settle();
+      assert.deepEqual(invoked, []);
+      assert.equal(containsCalls, 0);
+      host.querySelector('[data-target="route-255"]').dispatchEvent(new browserWindow.MouseEvent('click', { bubbles: true }));
+      await settle();
+      assert.deepEqual(invoked, ['route-255']);
+      assert.equal(containsCalls, 0);
+    } finally { unmount(app, host); }
+  });
+}
 
 test('Vue menu unregisters a conditionally removed submenu from DOM ownership', async () => {
   const showSubmenu = ref(true);

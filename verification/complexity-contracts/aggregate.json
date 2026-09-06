@@ -25553,6 +25553,71 @@
     {
       "package": "dom",
       "surface": "hot",
+      "id": "menu.click-target",
+      "source": "packages/dom/src/internal/menu-control.ts",
+      "benchmarkIDs": [
+        "VAL-009:dom-menu-click-routing-work"
+      ],
+      "specificationCeiling": "O(hPath) expected",
+      "reviewedWeakening": null,
+      "contract": {
+        "variables": [
+          {
+            "name": "hPath",
+            "meaning": "event composed path length, or target ancestor depth for minimal event hosts",
+            "ceiling": "host event path depth"
+          }
+        ],
+        "time": {
+          "bound": "O(hPath)",
+          "kind": "expected",
+          "runtimeState": "connected"
+        },
+        "space": {
+          "auxiliary": "O(hPath)",
+          "output": "O(1)",
+          "retained": "O(1)"
+        },
+        "resources": {
+          "allocations": "one host-produced composed path; O(1) for the parentNode fallback",
+          "cacheEntries": "0 new entries",
+          "listeners": "0 new listeners",
+          "observers": "0",
+          "timers": "0",
+          "subscriptions": "0"
+        },
+        "assumptions": [
+          "WeakMap and Map lookups have expected constant cost; the existing element ownership indexes are reused.",
+          "This bound covers click target resolution only. Canonical transitions, state projection, and positioning remain separate operations."
+        ],
+        "ceilings": [
+          "At most one composedPath call and one traversal prefix ending at the nearest live registered host or the listening root."
+        ],
+        "benchmarkIDs": [
+          "VAL-017:linear-work"
+        ],
+        "deterministicWork": [
+          "A fixed two-target prefix takes two ownership probes at 1000, 10000, and 100000 registrations, for both unmatched and late-item descendant clicks.",
+          "Routing performs zero registered-element contains calls and no full registry traversal.",
+          "The forward index confirms live ownership after replacement, unregister, and disconnect; IDs are never string-coerced."
+        ],
+        "resourceRationale": "Only the event's temporary path is materialized; the adapter retains no event, path, new cache, or per-click callback. The minimal-host parentNode walk uses constant auxiliary space.",
+        "proof": "DOMMenuControl resolves a click through composedPath, or parentNode when the host supplies no path. Each candidate consults the existing reverse WeakMap and verifies its live forward Map entry. The walk stops at the first registered item or the root, never at an unrelated registered ancestor above the root. Core still owns focus, invoke, and submenu transitions.",
+        "adversarialWitness": "Fixed-depth misses and late-registration descendants across 1k/10k/100k items; exact numeric/textual IDs, replaced/unregistered hosts, nested SVG/text descendants, disabled items, submenu opening, and captured post-disconnect handlers. All four Vue menu roots exercise adopted descendants; Chromium checks open/closed shadow paths and the root boundary.",
+        "evidence": [
+          "packages/dom/tests/menu.test.mjs",
+          "packages/vue/tests/dynamic-collections.dom.test.mjs",
+          "packages/vue/tests/browser/popup-presence-focus-fixture.mjs"
+        ],
+        "fullScan": {
+          "allowed": false,
+          "rationale": "Only the event ancestor path is relevant to registered target lookup; unrelated menu registrations are not visited."
+        }
+      }
+    },
+    {
+      "package": "dom",
+      "surface": "hot",
       "id": "menu.item-registration",
       "source": "packages/dom/src/internal/menu-control.ts",
       "benchmarkIDs": [

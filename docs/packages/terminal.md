@@ -1,77 +1,196 @@
+---
+title: Terminal
+description: Connect Sectile interaction behavior to terminal input, application-owned TUI rendering, or the optional Node screen helpers.
+---
+
 # Terminal
 
-`@sectile/terminal` maps normalized terminal input and Unicode-aware rendering to the same component semantics used by other hosts.
+`@sectile/terminal` connects terminal keyboard input and text rendering to Sectile interaction state. Component connections handle the same selection, navigation, editing, and controlled-state rules as other hosts, while the terminal application decides how rows, panels, colors, routing, and application data are rendered.
+
+Use the component adapters with an existing TUI renderer, or combine them with the optional screen and Node helpers when a compact application can render directly to a TTY.
+
+## Install
 
 ```sh
 pnpm add @sectile/terminal
 ```
 
+Import the component or host capability you need:
+
 ```ts
-import * as checkbox from '@sectile/terminal/checkbox'
+import { createCheckbox } from '@sectile/terminal/checkbox'
+import { createTTYKeyboard } from '@sectile/terminal/node'
 ```
 
-Terminal adapters own host input and projection, not application styling or persistence.
+The [Terminal API reference](/api/terminal) lists the supported public import paths.
 
-## Product boundary
+## Connect a component to terminal input
 
-The package is primarily a semantic host adapter: it normalizes terminal input and projects Core effects so an application or an existing TUI renderer can share DOM interaction semantics. The `screen`, `layout`, `appearance`, and `node` subpaths form a small reference renderer for examples and compact applications. They are not a complete TUI framework and do not own application reconciliation, scrolling, routing, persistence, or process lifecycle.
-
-Integrations for larger applications should keep their renderer in charge of layout and I/O, translate its input into `TerminalKeyboardInput`, and use component connections as the semantic boundary.
-
-## Form boundary
-
-Sectile Form is available for DOM and Vue applications. `@sectile/terminal` does not expose a Form adapter or depend on `@sectile/form`.
-
-## Build a complete screen
-
-The optional screen layer turns a layout tree into a fixed terminal frame. Rows, columns, boxes, padding, gaps, clipping, and fill sizing are composed the same way across components. Application code still decides the visual structure.
+Terminal component connections do not require a screen implementation. An existing TUI can translate its keyboard events into `TerminalKeyboardInput`, pass them to the connection, then render the accepted state through its own view system.
 
 ```ts
-import { createTerminalAppearance } from '@sectile/terminal/appearance'
-import { createTerminalScreenWriter } from '@sectile/terminal/node'
+import { createCheckbox } from '@sectile/terminal/checkbox'
+import type { TerminalKeyboardInput } from '@sectile/terminal/keyboard'
+
+const analytics = createCheckbox({ defaultValue: false })
+
+function handleInput(input: TerminalKeyboardInput) {
+  if (!analytics.handleKeyboardInput(input)) return
+  renderSettings({ includeAnalytics: analytics.state.checked === true })
+}
+```
+
+`handleKeyboardInput()` returns `false` when the key is outside the component's interaction domain. The application can then route that input elsewhere. For this Checkbox, <kbd>Space</kbd> and <kbd>Enter</kbd> toggle the value; unrelated keys remain available to the surrounding terminal UI.
+
+A connection also exposes `state`, `subscribe()`, `update()`, and `destroy()` through the common Sectile facade. Component-specific methods handle terminal input and richer operations where needed.
+
+## Run the same interaction on a Node TTY
+
+For a Node terminal application, `createTTYKeyboard()` converts stdin keypresses into `TerminalKeyboardInput`. The optional screen helpers can turn a small layout tree into terminal cells, and `createTerminalScreenWriter()` writes the resulting frame.
+
+The following example assumes Node 24 or later and an interactive TTY. It toggles one Checkbox, redraws when the terminal is resized, and restores the TTY when the application closes.
+
+```ts
+import { createCheckbox } from '@sectile/terminal/checkbox'
+import {
+  createTerminalScreenWriter,
+  createTTYKeyboard,
+} from '@sectile/terminal/node'
 import {
   renderTerminalScreen,
   terminalBox,
   terminalColumn,
-  terminalRow,
   terminalText,
 } from '@sectile/terminal/screen'
+
+const analytics = createCheckbox({ defaultValue: false })
+const writer = createTerminalScreenWriter(process.stdout, {
+  alternateScreen: true,
+})
+
+let closed = false
+let keyboard: { close(): void } | undefined
+
+function render() {
+  const checked = analytics.state.checked === true
+  const mark = checked ? 'x' : ' '
+  const view = terminalBox(
+    terminalColumn([
+      terminalText('Project settings', { style: 'accent' }),
+      terminalText(`› [${mark}] Include analytics`, {
+        style: checked ? 'selected' : 'default',
+      }),
+      terminalText('Space/Enter toggles · q quits', { style: 'muted' }),
+    ], { gap: 1, width: 'fill', height: 'fill' }),
+    { title: 'Settings', padding: 1, width: 'fill', height: 'fill' },
+  )
+
+  writer.render(renderTerminalScreen(view, {
+    columns: process.stdout.columns ?? 80,
+    rows: process.stdout.rows ?? 24,
+    appearance: writer.appearance,
+  }))
+}
+
+const unsubscribe = analytics.subscribe(render)
+const keyboardResult = createTTYKeyboard(process.stdin, (input) => {
+  if (input.key === 'q') {
+    close()
+    process.exitCode = 0
+    return
+  }
+  analytics.handleKeyboardInput(input)
+})
+
+if (!keyboardResult.ok) {
+  unsubscribe()
+  analytics.destroy()
+  writer.close()
+  throw new Error(keyboardResult.error.message)
+}
+
+keyboard = keyboardResult.value
+const handleResize = () => render()
+process.stdout.on('resize', handleResize)
+
+function close() {
+  if (closed) return
+  closed = true
+  process.stdout.off('resize', handleResize)
+  keyboard?.close()
+  unsubscribe()
+  analytics.destroy()
+  writer.close()
+}
+
+process.once('SIGINT', () => {
+  close()
+  process.exitCode = 130
+})
+process.once('SIGTERM', () => {
+  close()
+  process.exitCode = 143
+})
+process.once('exit', close)
+
+render()
+```
+
+The application still owns process policy. A view that can unmount without ending the process should remove its own signal and resize listeners at that lifecycle boundary instead of treating process exit as component cleanup.
+
+## Keep application-owned values controlled
+
+Use a default value when the connection owns its current state. When application state is authoritative, pass the current value and accept proposed changes through the matching callback.
+
+```ts
+const settings = { includeAnalytics: false }
+
+const analytics = createCheckbox({
+  value: settings.includeAnalytics,
+  onValueChange(nextValue) {
+    settings.includeAnalytics = nextValue === true
+    analytics.update(settings.includeAnalytics)
+    renderSettings(settings)
+  },
+})
+```
+
+The callback receives a proposal. The Terminal connection reflects the new controlled value after the owner accepts it with `update()`.
+
+## Match keyboard behavior to the rendered shape
+
+Terminal navigation follows the spatial structure the user sees rather than a browser-specific key map.
+
+| Surface | Common keys |
+| --- | --- |
+| Vertical list | <kbd>↑</kbd> / <kbd>↓</kbd> |
+| Horizontal list | <kbd>←</kbd> / <kbd>→</kbd> |
+| Vertical hierarchy | <kbd>→</kbd> enters or expands; <kbd>←</kbd> or <kbd>Esc</kbd> returns |
+| Current level | <kbd>Home</kbd> / <kbd>End</kbd> |
+| Activation | <kbd>Enter</kbd> / <kbd>Space</kbd> |
+
+Individual component pages document additional editing, paging, and range commands. `@sectile/terminal/reorder` provides explicit movement inputs for reorderable sequences and trees, while `@sectile/terminal/layer-stack` coordinates dismissal order for application-owned popup layers.
+
+## Render text and color for terminal capabilities
+
+The screen helpers are optional. `terminalRow()`, `terminalColumn()`, `terminalBox()`, and `terminalText()` build a fixed frame; `createTerminalAppearance()` supplies semantic roles such as `accent`, `selected`, `current`, `disabled`, and `danger`.
+
+```ts
+import { createTerminalAppearance } from '@sectile/terminal/appearance'
 
 const appearance = createTerminalAppearance({
   theme: {
     accent: { foreground: 'bright-cyan', bold: true },
-    current: { foreground: 'black', background: 'bright-cyan' },
+    selected: { foreground: 'bright-green', bold: true },
   },
 })
-
-const view = terminalBox(
-  terminalColumn([
-    terminalText('Project settings', { style: 'accent' }),
-    terminalRow([
-      terminalText('Navigation', { width: 24 }),
-      terminalText('Editor', { width: 'fill' }),
-    ], { gap: 2, height: 'fill' }),
-  ], { gap: 1, width: 'fill', height: 'fill' }),
-  { title: 'Sectile', padding: 1, width: 'fill', height: 'fill' },
-)
-
-const writer = createTerminalScreenWriter(process.stdout, {
-  appearance,
-  alternateScreen: true,
-})
-
-writer.render(renderTerminalScreen(view, {
-  columns: process.stdout.columns,
-  rows: process.stdout.rows,
-  appearance,
-}))
 ```
 
-Use semantic theme roles for reusable styling and pass a style object only for a local exception. Color automatically falls back from truecolor to 256 colors, 16 colors, or plain text according to terminal capability.
+The Node writer detects available color and Unicode support when it creates its default appearance. Styling is reduced to supported terminal capabilities rather than requiring the application to emit terminal-specific escape sequences itself.
 
-## Caret and screen cursor
+## Keep editing Unicode-safe
 
-Editable text keeps its logical caret as a UTF-16 offset. Attach it to the text node and the renderer projects it through grapheme clusters, double-width characters, wrapping, padding, and clipping.
+Terminal text helpers measure grapheme clusters and rendered cell width rather than assuming one JavaScript code unit equals one terminal cell. Editable text can keep its logical caret as a UTF-16 offset and attach it to the rendered text node:
 
 ```ts
 terminalText(input, {
@@ -82,59 +201,32 @@ terminalText(input, {
 })
 ```
 
-The Node writer updates only changed rows after the first frame. It positions the real TTY cursor at the projected cell, applies its shape and visibility, and restores terminal state when closed. This avoids clearing and repainting the entire screen on every keypress.
+The screen renderer maps that offset through grapheme clusters, double-width characters, wrapping, padding, and clipping before the Node writer positions the physical terminal cursor.
 
-## TTY ownership and cleanup
+## Close the resources your application opened
 
-`createTTYKeyboard` acquires exclusive keyboard ownership of one stdin stream. A second active owner fails with `tty-input-already-owned`. Existing external `keypress` listeners remain installed, and `close()` removes only Sectile's listener, restores the stream's prior raw mode, and restores whether it was flowing or paused. Closing is idempotent; after it closes, another controller may acquire the stream.
+`createTTYKeyboard()` owns one active stdin TTY connection at a time. Its `close()` method removes the Sectile keypress listener and restores the stream's previous raw/flowing state. `createTerminalScreenWriter().close()` restores cursor visibility and leaves the alternate screen when one was opened.
 
-The application owns process signals and must close both input and output resources. The screen writer restores cursor visibility and leaves the alternate screen exactly once when `close()` is called after rendering.
+Component connections have their own `destroy()` method. Close input, output, component connections, subscriptions, and application-owned signal or resize listeners together when the owning terminal view ends.
 
-```ts
-import { createTTYKeyboard, createTerminalScreenWriter } from '@sectile/terminal/node'
+## Use date and time controls directly
 
-const keyboardResult = createTTYKeyboard(process.stdin, handleKeyboardInput)
-if (!keyboardResult.ok) throw new Error(keyboardResult.error.message)
+Terminal includes Temporal-backed date and time controls such as fields, calendars, and pickers. They use the same civil date/time semantics described in the [Temporal guide](/packages/temporal) while translating terminal-specific keyboard input locally.
 
-const keyboard = keyboardResult.value
-const writer = createTerminalScreenWriter(process.stdout, { alternateScreen: true })
-let closed = false
+Sectile Form currently has DOM and Vue integrations, not a Terminal Form adapter. Terminal applications coordinate form-level validation and submission in their application layer while individual Terminal controls retain their component behavior.
 
-function close(): void {
-  if (closed) return
-  closed = true
-  keyboard.close()
-  writer.close()
-}
+## Try the interaction in the browser
 
-process.once('SIGINT', () => { close(); process.exitCode = 130 })
-process.once('SIGTERM', () => { close(); process.exitCode = 143 })
-process.once('exit', close)
-process.stdout.on('resize', render)
-```
-
-Remove application-owned signal and resize listeners as part of the same lifecycle when the terminal view can unmount without ending the process.
-
-## Keyboard conventions
-
-The key map follows the shape shown by the terminal interface. Vertical lists use <kbd>↑</kbd>/<kbd>↓</kbd>, horizontal lists use <kbd>←</kbd>/<kbd>→</kbd>, and vertical hierarchies use <kbd>→</kbd> to enter and <kbd>←</kbd> or <kbd>Esc</kbd> to return. <kbd>Home</kbd>/<kbd>End</kbd> stay within the current level; keyboards without those keys can use <kbd>Fn</kbd>+<kbd>←</kbd>/<kbd>→</kbd> or <kbd>Ctrl</kbd>+<kbd>A</kbd>/<kbd>E</kbd>. <kbd>Fn</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> is accepted as <kbd>Page Up</kbd>/<kbd>Page Down</kbd>. <kbd>Enter</kbd> or <kbd>Space</kbd> opens a branch or activates a command.
-
-Component pages list extra editing, paging, and range shortcuts where applicable.
-
-`@sectile/terminal/reorder` exposes `move-up`, `move-down`, `move-start`, `move-end`, `indent`, and `outdent` as explicit sequence/tree movement keys. `@sectile/terminal/layer-stack` creates an application-owned layer scope so mixed terminal popups share topmost dismissal and descendant close order.
-
-## Try the terminal adapter
-
-This is a browser-hosted preview of terminal input and output, not a `sectile` CLI command. Its state transitions use the real `@sectile/terminal` checkbox connection. Click the row, or focus the preview and press <kbd>Space</kbd> or <kbd>Enter</kbd>.
+This preview uses a real `@sectile/terminal/checkbox` connection with a browser-hosted terminal display. It demonstrates the interaction only; it is not a Sectile command-line program. Focus the preview and press <kbd>Space</kbd> or <kbd>Enter</kbd>.
 
 <TerminalCheckboxDemo />
 
-## Try Bash in the browser
+## Handle recoverable setup failures
 
-Start an isolated Debian `/bin/bash`, then type commands at the prompt. The VM demonstrates the shell environment available to a browser-hosted terminal application; it cannot access files or shells on your computer. The first start downloads the runtime and streamed disk blocks.
+Direct `create*` factories return ready connections and throw for invalid construction. Use the matching `tryCreate*` factory when setup failure should remain a typed result. `createTTYKeyboard()` already returns a result because an interactive TTY may be unavailable or already owned.
 
-<BashTerminal />
+## Continue by task
 
-## Factory behavior
-
-Use `create*` to receive a ready connection. Use `tryCreate*` only when invalid setup must be handled as a recoverable `Result`. A host `create*` call never needs an additional `unwrap`.
+- Browse [Components](/components/) for Terminal interaction examples on supported components.
+- Use the [Temporal guide](/packages/temporal) for date and time value semantics.
+- Use the [Terminal API reference](/api/terminal) for exact component, keyboard, screen, appearance, and Node import paths.

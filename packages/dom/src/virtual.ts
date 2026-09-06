@@ -533,23 +533,22 @@ class DOMVirtualizer<
     const physicalTarget = this.#tryVirtual(() =>
       toScrollportPoint(target.value, prepared.value.nextFrame));
     if (!physicalTarget.ok) return physicalTarget;
-    const written = clampScrollPoint(this.#scrollport, physicalTarget.value);
-    this.#writeScroll(this.#scrollport, written);
-    const finalViewport = this.#readViewport(this.#scrollport);
-    const plan = this.#query(
+    const scrolled = this.#queryAfterScroll(
       state,
       this.#overscan,
       prepared.value.nextFrame,
-      finalViewport,
+      prepared.value.scrollportViewport,
+      physicalTarget.value,
     );
-    if (!plan.ok) return this.#failureAs(plan);
+    if (!scrolled.ok) return this.#failureAs(scrolled);
+    const { plan, viewport: finalViewport } = scrolled.value;
     this.#commitFrame(
       state,
       !Object.is(state, this.#state),
       this.#overscan,
       this.#viewportInsets,
       prepared.value.nextFrame,
-      plan.value,
+      plan,
     );
     return {
       ok: true,
@@ -727,8 +726,8 @@ class DOMVirtualizer<
       frameDelta.value,
     );
     if (!combined.ok) return combined;
-    let finalScrollportViewport = prepared.scrollportViewport;
     const scrollChanged = !isZeroPoint(combined.value);
+    let plan: DOMVirtualResult<VirtualLayoutPlan<ID>>;
     if (scrollChanged) {
       const target = this.#tryAddPoints(
         Object.freeze({
@@ -738,33 +737,37 @@ class DOMVirtualizer<
         combined.value,
       );
       if (!target.ok) return target;
-      this.#writeScroll(
-        this.#scrollport,
-        clampScrollPoint(this.#scrollport, target.value),
+      const scrolled = this.#queryAfterScroll(
+        input.state,
+        input.overscan,
+        prepared.nextFrame,
+        prepared.scrollportViewport,
+        target.value,
       );
-      finalScrollportViewport = this.#readViewport(this.#scrollport);
+      if (!scrolled.ok) return this.#failureAs(scrolled);
+      plan = { ok: true, value: scrolled.value.plan };
+    } else {
+      const viewport = this.#tryVirtual(() =>
+        toVirtualViewport(prepared.scrollportViewport, prepared.nextFrame));
+      if (!viewport.ok) return viewport;
+      const shouldQuery = input.forceQuery
+        || input.stateChanged
+        || prepared.frameDirty
+        || prepared.viewportDirty
+        || !sameOverscan(this.#overscan, input.overscan)
+        || !sameInsets(this.#viewportInsets, input.viewportInsets)
+        || !sameRect(this.#plan.viewport, viewport.value);
+      if (!shouldQuery) {
+        this.#geometryDirty = false;
+        this.#viewportDirty = false;
+        return { ok: true, value: this.#plan };
+      }
+      plan = this.#strategy.tryQuery(input.state, {
+        viewport: viewport.value,
+        ...(input.overscan === undefined ? {} : { overscan: input.overscan }),
+      });
+      if (!plan.ok) return this.#report(plan);
     }
-    const viewport = this.#tryVirtual(() =>
-      toVirtualViewport(finalScrollportViewport, prepared.nextFrame));
-    if (!viewport.ok) return viewport;
-    const shouldQuery = input.forceQuery
-      || input.stateChanged
-      || scrollChanged
-      || prepared.frameDirty
-      || prepared.viewportDirty
-      || !sameOverscan(this.#overscan, input.overscan)
-      || !sameInsets(this.#viewportInsets, input.viewportInsets)
-      || !sameRect(this.#plan.viewport, viewport.value);
-    if (!shouldQuery) {
-      this.#geometryDirty = false;
-      this.#viewportDirty = false;
-      return { ok: true, value: this.#plan };
-    }
-    const plan = this.#strategy.tryQuery(input.state, {
-      viewport: viewport.value,
-      ...(input.overscan === undefined ? {} : { overscan: input.overscan }),
-    });
-    if (!plan.ok) return this.#report(plan);
     this.#commitFrame(
       input.state,
       input.stateChanged,
@@ -774,6 +777,40 @@ class DOMVirtualizer<
       plan.value,
     );
     return plan;
+  }
+
+  #queryAfterScroll(
+    state: State,
+    overscan: number | Partial<VirtualInsets> | undefined,
+    frame: VirtualSurfaceFrame,
+    previousViewport: VirtualRect,
+    target: VirtualPoint,
+  ): DOMVirtualResult<Readonly<{
+    plan: VirtualLayoutPlan<ID>;
+    viewport: VirtualRect;
+  }>> {
+    const previousX = previousViewport.x;
+    const previousY = previousViewport.y;
+    const queried = this.#tryVirtual(() => {
+      let accepted = false;
+      try {
+        this.#writeScroll(this.#scrollport, clampScrollPoint(this.#scrollport, target));
+        const viewport = this.#readViewport(this.#scrollport);
+        const plan = this.#strategy.tryQuery(state, {
+          viewport: toVirtualViewport(viewport, frame),
+          ...(overscan === undefined ? {} : { overscan }),
+        });
+        if (!plan.ok) return plan;
+        accepted = true;
+        return { ok: true as const, value: { plan: plan.value, viewport } };
+      } finally {
+        // Restore through the same coordinate model before any failure is reported.
+        if (!accepted) {
+          this.#writeScroll(this.#scrollport, Object.freeze({ x: previousX, y: previousY }));
+        }
+      }
+    });
+    return queried.ok ? this.#report(queried.value) : queried;
   }
 
   #commitFrame(

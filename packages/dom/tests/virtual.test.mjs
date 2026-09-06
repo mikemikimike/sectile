@@ -375,6 +375,202 @@ test('axis measurement and surface style use physical item and plan geometry', (
   );
 });
 
+for (const [operation, target, stateChanged] of [
+  ['mutate', { x: 35, y: 140 }, true],
+  ['measure', { x: 15, y: 120 }, true],
+  ['setState', { x: 10, y: 130 }, true],
+  ['setOverscan', { x: 15, y: 120 }, true],
+  ['setViewportInsets', { x: 10, y: 90 }, false],
+  ['flush', { x: 15, y: 120 }, true],
+  ['scheduled measurement', { x: 15, y: 120 }, true],
+  ['scheduled geometry', { x: 10, y: 130 }, false],
+  ['scrollTo', { x: 35, y: 140 }, false],
+]) {
+  test(`virtual ${operation} restores rejected scroll settlement before reporting and can retry`, () => {
+    const rejected = failure('virtual-layout-window-mismatch');
+    const nextState = Object.freeze({ generation: 1 });
+    let reject = false;
+    let queries = 0;
+    const fixture = createFixture({
+      originY: 100, scrollLeft: 10, scrollTop: 110,
+      tryQuery: (state, input) => {
+        queries += 1;
+        return reject ? rejected : success(plan(state, input.viewport));
+      },
+      tryMutate: () => mutation(nextState, { x: 25, y: 30 }),
+      tryMeasure: (_state, batch) => {
+        assert.deepEqual(batch.measurements, [5]);
+        return mutation(nextState, { x: 5, y: 10 });
+      },
+      tryScrollTarget: () => success({ x: 35, y: 40 }),
+    });
+    const trace = [];
+    const connection = createVirtualizer({
+      ...fixture.options,
+      measure: ({ entry }) => entry.measurement,
+      onStateChange: () => trace.push('state'),
+      onPlanChange: () => trace.push('plan'),
+      onError: (error) => {
+        assert.equal(error, rejected.error);
+        assert.equal(connection.getState(), beforeState);
+        assert.equal(connection.getPlan(), beforePlan);
+        assert.deepEqual([fixture.scrollport.scrollLeft, fixture.scrollport.scrollTop], [10, 110]);
+        trace.push('error');
+      },
+    });
+    const beforeState = connection.getState();
+    const beforePlan = connection.getPlan();
+    const item = new FakeElement();
+    connection.registerItem(item, 'item');
+    const queueMeasurement = () => fixture.itemObserver().emit([{ target: item, measurement: 5 }]);
+    const actions = {
+      mutate: () => connection.mutate({ type: 'change' }),
+      measure: () => connection.measure([5]),
+      setState: () => {
+        fixture.surface.originY = 120;
+        connection.refresh();
+        return connection.setState(nextState);
+      },
+      setOverscan: () => { queueMeasurement(); return connection.setOverscan(10); },
+      setViewportInsets: () => connection.setViewportInsets({ top: 20 }),
+      flush: () => { queueMeasurement(); return connection.flush(); },
+      'scheduled measurement': () => { queueMeasurement(); fixture.runFrame(); },
+      'scheduled geometry': () => {
+        fixture.surface.originY = 120;
+        fixture.geometryObserver().emit([{ target: fixture.surface }]);
+        fixture.runFrame();
+      },
+      scrollTo: () => connection.scrollTo('item', 'start'),
+    };
+
+    reject = true;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      trace.length = 0;
+      queries = 0;
+      fixture.resetEvidence();
+      const result = actions[operation]();
+      if (!operation.startsWith('scheduled')) {
+        assert.equal(result.ok, false);
+        assert.equal(result.error, rejected.error);
+      }
+      assert.equal(connection.getState(), beforeState);
+      assert.equal(connection.getPlan(), beforePlan);
+      assert.deepEqual(fixture.scrollport.writes, [target, { x: 10, y: 110 }]);
+      assert.deepEqual(trace, ['error']);
+      assert.equal(queries, 1);
+      assert.equal(fixture.pendingFrames(), 0);
+    }
+
+    reject = false;
+    trace.length = 0;
+    queries = 0;
+    fixture.resetEvidence();
+    const accepted = actions[operation]();
+    if (!operation.startsWith('scheduled')) assert.equal(accepted.ok, true);
+    assert.deepEqual(fixture.scrollport.writes, [target]);
+    assert.deepEqual([fixture.scrollport.scrollLeft, fixture.scrollport.scrollTop], [target.x, target.y]);
+    assert.equal(connection.getState(), stateChanged ? nextState : beforeState);
+    assert.notEqual(connection.getPlan(), beforePlan);
+    assert.equal(connection.getPlan().generation, stateChanged ? 1 : 0);
+    assert.deepEqual(trace, stateChanged ? ['state', 'plan'] : ['plan']);
+    assert.equal(queries, 1);
+    connection.disconnect();
+    assert.equal(fixture.pendingFrames(), 0);
+    assert.equal(fixture.scrollport.listeners.size, 0);
+    assert.deepEqual(fixture.geometryObserver().observed, []);
+    assert.deepEqual(fixture.itemObserver().observed, []);
+  });
+}
+
+for (const phase of ['query rejection', 'invalid viewport', 'query throw', 'reader throw', 'writer throw']) {
+  test(`virtual scroll rollback uses custom coordinates after ${phase}, even when onError throws`, () => {
+    for (const operation of ['mutate', 'scrollTo']) {
+      let broken = false;
+      const original = new Error(phase);
+      const errorCallback = new Error('onError failed');
+      const writes = [];
+      const reported = [];
+      const fixture = createFixture({
+        originY: 100, scrollLeft: -10, scrollTop: 110,
+        scrollWidth: 45, clientWidth: 20,
+        tryQuery: (state, input) => {
+          if (broken && phase === 'query throw') throw original;
+          if (broken && phase === 'query rejection') return failure('virtual-layout-window-mismatch');
+          return success(plan(state, input.viewport));
+        },
+        tryMutate: () => mutation(Object.freeze({ generation: 1 }), { x: 25, y: 30 }),
+        tryScrollTarget: () => success({ x: 35, y: 40 }),
+      });
+      // Reuse one viewport object to exercise snapshot isolation at the host boundary.
+      const viewport = {};
+      const connection = createVirtualizer({
+        ...fixture.options,
+        readViewport: (scrollport) => {
+          if (broken && scrollport.scrollLeft !== -10 && phase === 'reader throw') throw original;
+          return Object.assign(viewport, {
+            x: -scrollport.scrollLeft, y: scrollport.scrollTop,
+            width: broken && scrollport.scrollLeft !== -10 && phase === 'invalid viewport' ? -1 : 20,
+            height: 80,
+          });
+        },
+        writeScroll: (scrollport, point) => {
+          writes.push({ ...point });
+          // Model normalized RTL coordinates and host-side scroll snapping.
+          scrollport.scrollTo({ left: -Math.floor(point.x / 10) * 10, top: point.y });
+          if (broken && point.x !== 10 && phase === 'writer throw') throw original;
+        },
+        onError: (error) => {
+          reported.push(error.code);
+          assert.deepEqual([fixture.scrollport.scrollLeft, fixture.scrollport.scrollTop], [-10, 110]);
+          assert.equal(connection.getPlan(), beforePlan);
+          assert.equal(connection.getState(), beforeState);
+          throw errorCallback;
+        },
+      });
+      const beforePlan = connection.getPlan();
+      const beforeState = connection.getState();
+      const run = () => operation === 'mutate'
+        ? connection.mutate({ type: 'change' }) : connection.scrollTo('item');
+      broken = true;
+      const reportedFailure = phase === 'query rejection' || phase === 'invalid viewport';
+      assert.throws(run, (error) => error === (reportedFailure ? errorCallback : original));
+      assert.deepEqual(writes, [{ x: 25, y: 140 }, { x: 10, y: 110 }]);
+      assert.deepEqual([fixture.scrollport.scrollLeft, fixture.scrollport.scrollTop], [-10, 110]);
+      assert.equal(connection.getPlan(), beforePlan);
+      assert.equal(connection.getState(), beforeState);
+      assert.deepEqual(reported, reportedFailure
+        ? [phase === 'query rejection' ? 'virtual-layout-window-mismatch' : 'virtual-layout-geometry-invalid']
+        : []);
+
+      broken = false;
+      writes.length = 0;
+      assert.equal(run().ok, true);
+      assert.deepEqual(writes, [{ x: 25, y: 140 }]);
+      assert.deepEqual(connection.getPlan().viewport, { x: 20, y: 40, width: 20, height: 80 });
+      connection.disconnect();
+    }
+  });
+}
+
+test('accepted virtual scroll settlement stays committed when plan publication throws', () => {
+  let failPublication = false;
+  const error = new Error('plan callback failed');
+  const nextState = Object.freeze({ generation: 1 });
+  const fixture = createFixture({
+    tryMutate: () => mutation(nextState, { x: 25, y: 30 }),
+  });
+  const connection = createVirtualizer({
+    ...fixture.options,
+    onPlanChange: () => { if (failPublication) throw error; },
+  });
+  failPublication = true;
+  assert.throws(() => connection.mutate({ type: 'change' }), (thrown) => thrown === error);
+  assert.equal(connection.getState(), nextState);
+  assert.deepEqual(fixture.scrollport.writes, [{ x: 25, y: 30 }]);
+  assert.deepEqual(connection.getPlan().viewport, { x: 25, y: 30, width: 100, height: 80 });
+  connection.disconnect();
+});
+
 function createFixture(options = {}) {
   const scrollport = new FakeScrollport({
     width: options.clientWidth ?? 100,

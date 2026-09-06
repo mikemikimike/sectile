@@ -869,11 +869,12 @@
         "deterministicWork": [
           "at most one scheduled animation frame per connection",
           "one surface-frame read per geometry-invalidated transaction",
-          "one measurement batch, one physical scroll write, one final query, and one plan publication"
+          "one measurement batch, at most one correction write and one final query, and one accepted plan publication",
+          "a failed post-write query or viewport read adds one restoration write before error reporting and publishes no state or plan"
         ],
-        "resourceRationale": "One connection retains two observers, one scroll listener, one pending frame, registered elements, changed entries, and the current placement index.",
-        "proof": "Geometry and item callbacks coalesce into one generation-guarded frame; the transaction resolves only changed entries, composes frame and layout deltas, performs at most one physical write, then indexes each emitted placement once.",
-        "adversarialWitness": "A header resize and every changed mounted item arrive before the same frame and still produce one write, query, state publication, and plan publication.",
+        "resourceRationale": "One connection retains two observers, one scroll listener, one pending frame, registered elements, changed entries, and the current placement index. Scroll settlement adds only constant transaction-local state.",
+        "proof": "Geometry and item callbacks coalesce into one generation-guarded frame; the transaction resolves only changed entries, composes frame and layout deltas, and performs one correction write and query. A rejected post-write query restores the two saved physical coordinates through the configured writer before error reporting. Accepted frames index each emitted placement once; ordinary uncorrected scroll adds no transaction allocation or geometry read.",
+        "adversarialWitness": "A header resize and changed mounted items still produce one successful write and query. Repeated mutation, measurement, inset, frame, and target-scroll rejections restore the old scroll/state/plan; custom RTL coordinates, host snapping, reused viewport objects, and throwing error callbacks preserve the same rollback boundary.",
         "evidence": [
           "VAL-004",
           "VAL-010"

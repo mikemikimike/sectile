@@ -10,7 +10,7 @@
     "errorRemoved": "breaking"
   },
   "baseline": {
-    "publicSignatureFingerprint": "35414af44b934db66d5d5eb093f55545a5a9480968fa8ec3a043aa6eacac43a0",
+    "publicSignatureFingerprint": "ff2e049f0c0980c15c375f27aacfa52425b96df1cc3fc4b58123a0efd7269381",
     "subpaths": [
       ".",
       "./accordion",
@@ -520,6 +520,6 @@
   ],
   "acceptance": {
     "classification": "type-change-reviewed",
-    "reason": "WI-003-adds-optional-host-effect-publication-before-notify"
+    "reason": "WI-003-adds-optional-host-effect-publication-hook-for-terminal-popup-completion"
   }
 }

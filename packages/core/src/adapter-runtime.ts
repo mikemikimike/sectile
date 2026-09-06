@@ -256,6 +256,7 @@ export interface ControlledComponentControllerOptions<
   readonly reducer: EventReducer<State, Event, Command, Code>;
   readonly create: (value: Value, reference: State) => Result<State, Code>;
   readonly read: (state: State) => Value;
+  readonly publishEffect?: (command: Command) => void;
   readonly onChange?: (value: Value, previous: Value) => void;
   readonly interaction?: InteractionStateInput;
   readonly interactionIntent?: (event: Event) => 'navigate' | 'mutate';
@@ -283,6 +284,7 @@ export function createControlledComponentController<
       if (!Object.is(before, after)) options.onChange?.(after, before);
     },
     toEffect: (command) => command,
+    ...(options.publishEffect === undefined ? {} : { publishEffect: options.publishEffect }),
     ...(options.interaction === undefined ? {} : { interaction: options.interaction }),
     ...(options.interactionIntent === undefined
       ? {}

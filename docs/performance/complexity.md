@@ -8,7 +8,7 @@ Every runtime ESM export inherits an explicit package public contract. Hot inter
 
 | Package | Runtime export keys | Aliases | Internal hot operations |
 |---|---:|---:|---:|
-| core | 380 | 26 | 54 |
+| core | 380 | 26 | 56 |
 | chart | 80 | 0 | 14 |
 | dom | 424 | 181 | 24 |
 | form | 21 | 0 | 7 |
@@ -79,6 +79,8 @@ Every runtime ESM export inherits an explicit package public contract. Hot inter
 | core:sequence.patch-lookup | trusted | `O(dPatch)` expected | `O(dPatch)` | `O(1)` | `O(1)` | forbidden | VAL-016, VAL-017 |
 | core:text.replace | external | `O(nText + nInsert + nOut)` worst-case | `O(1)` | `O(nOut)` | `O(nOut)` | allowed | VAL-016, VAL-017 |
 | core:text.replace-canonical | trusted | `O(nInsert + nOut)` worst-case | `O(1)` | `O(nOut)` | `O(nOut)` | allowed | VAL-016, VAL-017 |
+| core:toast.construct | external | `O(n + l)` expected | `O(n + l)` | `O(k + l)` | `O(k + l)` | allowed | packages/core/tests/composites/toast.test.mjs |
+| core:toast.transition | trusted | `O(1 + s + l + k)` expected | `O(1 + s + l + k)` | `O(1 + s + l + k)` | `O(1 + s + l + k)` | allowed | packages/core/tests/composites/toast.test.mjs |
 | core:tree.construct | external | `O(n + k)` expected | `O(n)` | `O(k)` | `O(k)` | allowed | VAL-016, VAL-017 |
 | core:tree.subtree-interval | trusted | `O(1)` expected | `O(1)` | `O(1)` | `O(n)` | forbidden | VAL-016, VAL-017 |
 | core:tree.views | trusted | `O(n)` worst-case | `O(n)` | `O(n)` | `O(n)` | allowed | VAL-016, VAL-017 |

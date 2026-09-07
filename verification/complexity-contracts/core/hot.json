@@ -2178,6 +2178,57 @@
       }
     },
     {
+      "id": "toast.construct",
+      "inherits": "linear-v1",
+      "source": "packages/core/src/toast.ts",
+      "benchmarkIDs": ["GH-24:toast-validation-work"],
+      "specificationCeiling": "O(n + l)",
+      "contract": {
+        "variables": [
+          { "name": "n", "meaning": "input toast items before visible truncation", "ceiling": "finite input length; maxVisible may be Infinity" },
+          { "name": "l", "meaning": "text code units normalized across input items", "ceiling": "total input title, description and kind lengths" },
+          { "name": "k", "meaning": "items retained after visible truncation", "ceiling": "k <= n and k <= maxVisible when finite" }
+        ],
+        "time": { "bound": "O(n + l)", "kind": "expected", "runtimeState": "external" },
+        "space": { "auxiliary": "O(n + l)", "output": "O(k + l)", "retained": "O(k + l)" },
+        "resources": { "allocations": "O(n + l)", "cacheEntries": "O(1)", "listeners": "0", "observers": "0", "timers": "0", "subscriptions": "0" },
+        "assumptions": ["Stable ID Set membership is expected constant time; text normalization costs are proportional to code units.", "Input descriptors remain stable within the synchronous operation; arbitrary caller accessor cost is separate."],
+        "ceilings": ["Each input identity is read once by normalization and checked against one constructor-local membership Set.", "Duplicate and field validation includes items preceding the retained visible slice."],
+        "deterministicWork": ["At 1000, 4000 and 16000 items, constructor input ID getters are read exactly n times rather than n(n+1)/2 times."],
+        "resourceRationale": "The normalized array and uniqueness Set are temporary construction state. Output items and arrays are frozen. One weak canonical-state mark uses the shared Core registry and does not retain discarded input or old states.",
+        "proof": "tryCreateToastState normalizes each item, checks/adds its captured ID in a Set and appends once. It no longer searches the accumulated output prefix. After policy validation and visible slicing, it binds the immutable result to the Toast factory owner.",
+        "adversarialWitness": "Large unique numeric IDs, duplicate numeric 0/-0 versus distinct string 0, and duplicates before a one-item visible slice.",
+        "evidence": ["packages/core/tests/composites/toast.test.mjs"],
+        "fullScan": { "allowed": true, "rationale": "Externally supplied items require complete normalization and uniqueness validation once before publication." }
+      }
+    },
+    {
+      "id": "toast.transition",
+      "inherits": "linear-v1",
+      "source": "packages/core/src/toast.ts",
+      "benchmarkIDs": ["GH-24:toast-transition-work"],
+      "specificationCeiling": "O(1 + s + l + k)",
+      "contract": {
+        "variables": [
+          { "name": "n", "meaning": "current toast item count", "ceiling": "finite state length; maxVisible may be Infinity" },
+          { "name": "s", "meaning": "state collection cardinality requiring validation, lookup or materialized projection", "ceiling": "zero for canonical pause/resume and paused or zero-elapsed ticks; at most n otherwise" },
+          { "name": "l", "meaning": "text code units normalized in external state or changed input", "ceiling": "zero for canonical flag/inert-tick events; input text lengths otherwise" },
+          { "name": "k", "meaning": "emitted announcement or dismissal commands", "ceiling": "k <= n + 1" }
+        ],
+        "time": { "bound": "O(1 + s + l + k)", "kind": "expected", "runtimeState": "trusted" },
+        "space": { "auxiliary": "O(1 + s + l + k)", "output": "O(1 + s + l + k)", "retained": "O(1 + s + l + k)" },
+        "resources": { "allocations": "O(1 + s + l + k)", "cacheEntries": "O(1)", "listeners": "0", "observers": "0", "timers": "0", "subscriptions": "0" },
+        "assumptions": ["Canonical provenance proves a factory-owned immutable state; foreign state always takes the existing full constructor-validation path.", "Space bounds describe additional state and commands; constant-size events share the already-retained immutable item collection.", "Policies are stable within a call and may change between calls. Their visible-limit validity is checked even for canonical state."],
+        "ceilings": ["Canonical pause/resume and inert ticks perform zero item normalization and zero state mapping.", "Successful operations on externally supplied mutable arrays do not grant canonical provenance to their result."],
+        "deterministicWork": ["At 1000, 4000 and 16000 canonical items, pause/resume and inert ticks invoke zero trim calls and zero Array.map callbacks and preserve item-array identity.", "The same constant-size event witness passes after push, update, tick, dismiss and dismiss-all producers.", "Foreign-state mutation after a successful pause still produces the existing duplicate/title/duration rejection."],
+        "resourceRationale": "The shared weak registry binds only factory states and results derived from already canonical states. The update helper retains no previous-state reference. Content-changing events retain their existing bounded scans and immutable array output; no additional per-state membership index is constructed. Core owns no timer or listener.",
+        "proof": "applyToastEvent checks the shared Toast provenance before reconstructing state for validation. Canonical input bypasses that reconstruction but still checks policies. Foreign input invokes linear tryCreateToastState. The update helper propagates provenance only when the previous state was already canonical, preventing aliasing-based trust laundering. Existing item scans, array copies and command projection remain linear in the selected collection/output.",
+        "adversarialWitness": "Large queues under unbounded defaults, every canonical producer, caller-owned mutable item arrays, changed per-call limits, overflow command order, duplicate IDs, invalid elapsed time and controlled zero-remaining-time proposals.",
+        "evidence": ["packages/core/tests/composites/toast.test.mjs"],
+        "fullScan": { "allowed": true, "rationale": "Foreign state needs validation, and content-changing events may scan or materialize their collection. Canonical flag changes and inert ticks do neither." }
+      }
+    },
+    {
       "id": "tree.construct",
       "inherits": "linear-v1",
       "source": "packages/core/src/structures/tree.ts",

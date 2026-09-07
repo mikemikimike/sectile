@@ -1,6 +1,6 @@
 import { unwrap } from './result.js';
 import type { Result, StableID } from './shared.js';
-import { fail, ok } from './internal/kernel/foundation.js';
+import { bindCanonicalState, fail, hasCanonicalState, ok } from './internal/kernel/foundation.js';
 
 /** User-defined notification category projected to `data-kind`. */
 export type ToastKind = string;
@@ -18,35 +18,39 @@ export function createToastState<ID extends StableID>(items: readonly ToastInput
 
 export function tryCreateToastState<ID extends StableID>(items: readonly ToastInput<ID>[] = [], paused = false, policies: ToastPolicies = {}): Result<ToastState<ID>> {
   const normalized: ToastItem<ID>[] = [];
+  const ids = new Set<ID>();
   for (const item of items) {
     const result = normalizeToast(item, policies.defaultDurationMs ?? 5_000);
     if (!result.ok) return result;
-    if (normalized.some((candidate) => candidate.id === item.id)) return fail('construction', 'toast-id-duplicate', 'Toast identifiers must be unique.');
+    if (ids.has(result.value.id)) return fail('construction', 'toast-id-duplicate', 'Toast identifiers must be unique.');
+    ids.add(result.value.id);
     normalized.push(result.value);
   }
   const maxVisible = policies.maxVisible ?? Number.POSITIVE_INFINITY;
   if (maxVisible !== Number.POSITIVE_INFINITY && (!Number.isInteger(maxVisible) || maxVisible < 1)) return fail('construction', 'toast-max-visible-invalid', 'Toast maxVisible must be a positive integer.');
-  return ok(Object.freeze({ items: Object.freeze(normalized.slice(-maxVisible)), paused }));
+  return ok(bindCanonicalState(tryCreateToastState, Object.freeze({ items: Object.freeze(normalized.slice(-maxVisible)), paused })));
 }
 
 export function applyToastEvent<ID extends StableID>(state: ToastState<ID>, event: ToastEvent<ID>, policies: ToastPolicies = {}): Result<ToastUpdate<ID>> {
-  const valid = tryCreateToastState(state.items.map((item) => ({ id: item.id, title: item.title, ...(item.description === null ? {} : { description: item.description }), kind: item.kind, durationMs: item.durationMs })), state.paused, policies);
-  if (!valid.ok) return fail('transition-rejection', valid.error.code, valid.error.message);
-  if (event === 'pause' || event === 'resume') return update(Object.freeze({ items: state.items, paused: event === 'pause' }));
-  if (event === 'dismiss-all') return update(Object.freeze({ items: Object.freeze([]), paused: state.paused }), state.items.map((item) => ({ type: 'toast-dismissed', id: item.id, reason: 'manual' as const })));
+  if (!hasCanonicalState(tryCreateToastState, state)) {
+    const valid = tryCreateToastState(state.items.map((item) => ({ id: item.id, title: item.title, ...(item.description === null ? {} : { description: item.description }), kind: item.kind, durationMs: item.durationMs })), state.paused, policies);
+    if (!valid.ok) return fail('transition-rejection', valid.error.code, valid.error.message);
+  }
+  const maxVisible = policies.maxVisible ?? Number.POSITIVE_INFINITY;
+  if (maxVisible !== Number.POSITIVE_INFINITY && (!Number.isInteger(maxVisible) || maxVisible < 1)) return fail('transition-rejection', 'toast-max-visible-invalid', 'Toast maxVisible must be a positive integer.');
+  if (event === 'pause' || event === 'resume') return update(state, Object.freeze({ items: state.items, paused: event === 'pause' }));
+  if (event === 'dismiss-all') return update(state, Object.freeze({ items: Object.freeze([]), paused: state.paused }), state.items.map((item) => ({ type: 'toast-dismissed', id: item.id, reason: 'manual' as const })));
   if (event.type === 'dismiss') {
     if (!state.items.some((item) => item.id === event.id)) return fail('transition-rejection', 'toast-id-missing', 'The toast to dismiss does not exist.');
-    return update(Object.freeze({ items: Object.freeze(state.items.filter((item) => item.id !== event.id)), paused: state.paused }), [{ type: 'toast-dismissed', id: event.id, reason: 'manual' }]);
+    return update(state, Object.freeze({ items: Object.freeze(state.items.filter((item) => item.id !== event.id)), paused: state.paused }), [{ type: 'toast-dismissed', id: event.id, reason: 'manual' }]);
   }
   if (event.type === 'push') {
     if (state.items.some((item) => item.id === event.toast.id)) return fail('transition-rejection', 'toast-id-duplicate', 'Toast identifiers must be unique.');
     const normalized = normalizeToast(event.toast, policies.defaultDurationMs ?? 5_000);
     if (!normalized.ok) return fail('transition-rejection', normalized.error.code, normalized.error.message);
-    const maxVisible = policies.maxVisible ?? Number.POSITIVE_INFINITY;
-    if (maxVisible !== Number.POSITIVE_INFINITY && (!Number.isInteger(maxVisible) || maxVisible < 1)) return fail('transition-rejection', 'toast-max-visible-invalid', 'Toast maxVisible must be a positive integer.');
     const next = [...state.items, normalized.value];
     const overflow = next.length > maxVisible ? next.splice(0, next.length - maxVisible) : [];
-    return update(Object.freeze({ items: Object.freeze(next), paused: state.paused }), [...overflow.map((item) => ({ type: 'toast-dismissed' as const, id: item.id, reason: 'overflow' as const })), { type: 'announce-toast', id: normalized.value.id, kind: normalized.value.kind }]);
+    return update(state, Object.freeze({ items: Object.freeze(next), paused: state.paused }), [...overflow.map((item) => ({ type: 'toast-dismissed' as const, id: item.id, reason: 'overflow' as const })), { type: 'announce-toast', id: normalized.value.id, kind: normalized.value.kind }]);
   }
   if (event.type === 'update') {
     const index = state.items.findIndex((item) => item.id === event.id);
@@ -56,10 +60,10 @@ export function applyToastEvent<ID extends StableID>(state: ToastState<ID>, even
     const normalized = normalizeToast({ id: current.id, title: event.toast.title ?? current.title, ...(description === null ? {} : { description }), kind: event.toast.kind ?? current.kind, durationMs: event.toast.durationMs === undefined ? current.durationMs : event.toast.durationMs }, policies.defaultDurationMs ?? 5_000);
     if (!normalized.ok) return fail('transition-rejection', normalized.error.code, normalized.error.message);
     const items = [...state.items]; items[index] = normalized.value;
-    return update(Object.freeze({ items: Object.freeze(items), paused: state.paused }));
+    return update(state, Object.freeze({ items: Object.freeze(items), paused: state.paused }));
   }
   if (!Number.isFinite(event.elapsedMs) || event.elapsedMs < 0) return fail('transition-rejection', 'toast-elapsed-invalid', 'Toast elapsed time must be finite and non-negative.');
-  if (state.paused || event.elapsedMs === 0) return update(state);
+  if (state.paused || event.elapsedMs === 0) return update(state, state);
   const dismissed: ToastCommand<ID>[] = [];
   const items = state.items.flatMap((item): readonly ToastItem<ID>[] => {
     if (item.remainingMs === null) return [item];
@@ -68,7 +72,7 @@ export function applyToastEvent<ID extends StableID>(state: ToastState<ID>, even
     if (remainingMs === 0) { dismissed.push({ type: 'toast-dismissed', id: item.id, reason: 'timeout' }); return []; }
     return [Object.freeze({ ...item, remainingMs })];
   });
-  return update(Object.freeze({ items: Object.freeze(items), paused: state.paused }), dismissed);
+  return update(state, Object.freeze({ items: Object.freeze(items), paused: state.paused }), dismissed);
 }
 
 function normalizeToast<ID extends StableID>(input: ToastInput<ID>, defaultDurationMs: number | null): Result<ToastItem<ID>> {
@@ -78,4 +82,8 @@ function normalizeToast<ID extends StableID>(input: ToastInput<ID>, defaultDurat
   if (durationMs !== null && (!Number.isFinite(durationMs) || durationMs <= 0)) return fail('construction', 'toast-duration-invalid', 'Toast duration must be positive and finite, or null.');
   return ok(Object.freeze({ id: input.id, title, description: input.description?.trim() || null, kind: input.kind?.trim() || 'info', durationMs, remainingMs: durationMs }));
 }
-function update<ID extends StableID>(state: ToastState<ID>, commands: readonly ToastCommand<ID>[] = []): Result<ToastUpdate<ID>> { return ok(Object.freeze({ state, commands: Object.freeze([...commands]) })); }
+function update<ID extends StableID>(previous: ToastState<ID>, state: ToastState<ID>, commands: readonly ToastCommand<ID>[] = []): Result<ToastUpdate<ID>> {
+  // Foreign states may alias mutable items; successful validation alone cannot make them trusted.
+  if (hasCanonicalState(tryCreateToastState, previous)) bindCanonicalState(tryCreateToastState, state);
+  return ok(Object.freeze({ state, commands: Object.freeze([...commands]) }));
+}

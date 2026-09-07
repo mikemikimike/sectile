@@ -1,5 +1,23 @@
 # @sectile/terminal
 
+## 0.14.3
+
+### Changes
+
+- fix(choice): preserve explicitly cleared highlights (11336e71)
+- fix(feed): preserve explicit null cursors across window updates (914a2849)
+- fix(terminal): reuse measurements in stack-safe screen traversal (d60640ed)
+- refactor(tooling): enforce declared workspace boundaries (b234dbc8)
+- refactor(build): share package compiler and reproducibility runners (f04f338d)
+- refactor(types): consolidate public declaration checks (1ade9204)
+- fix(terminal): bound screen allocation before rendering (a7674f8c)
+- fix(terminal): isolate TTY keypress decoder ownership (53d6dbfa)
+- fix(menu): complete retained reopen focus handoff (13a834f9)
+- fix(terminal): complete popup callback publication (1e7bd88c)
+- fix(checked-controls): complete committed callback publication (bbd2a570)
+- fix(layer-stack): drain cleanup after callback errors (7557e56f)
+- fix(terminal): isolate screen writer row snapshots (e8d610bd)
+
 ## 0.14.2
 
 ### Changes

@@ -1,5 +1,21 @@
 # @sectile/core
 
+## 0.14.3
+
+### Changes
+
+- fix(core): reject oversized layer stacks before materialization (09883447)
+- fix(choice): preserve explicitly cleared highlights (11336e71)
+- fix(feed): preserve explicit null cursors across window updates (914a2849)
+- fix(core): avoid repeated Toast state validation (72706b9b)
+- fix(core): preserve resource ceilings in derived sequences (ab2168d0)
+- fix(tooling): complete Core verification ownership migration (50f0774e)
+- refactor(tooling): enforce declared workspace boundaries (b234dbc8)
+- refactor(build): share package compiler and reproducibility runners (f04f338d)
+- refactor(types): consolidate public declaration checks (1ade9204)
+- fix(core): release facade subscribers after disconnect errors (93cd9ef6)
+- fix(terminal): complete popup callback publication (1e7bd88c)
+
 ## 0.14.2
 
 ### Changes

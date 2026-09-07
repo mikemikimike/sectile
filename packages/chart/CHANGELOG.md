@@ -1,5 +1,13 @@
 # @sectile/chart
 
+## 0.15.2
+
+### Changes
+
+- refactor(tooling): enforce declared workspace boundaries (b234dbc8)
+- refactor(build): share package compiler and reproducibility runners (f04f338d)
+- refactor(types): consolidate public declaration checks (1ade9204)
+
 ## 0.15.1
 
 ### Changes

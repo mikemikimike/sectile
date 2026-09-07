@@ -1,5 +1,27 @@
 # @sectile/dom
 
+## 0.16.2
+
+### Changes
+
+- perf(chart): reduce renderer and passive component bundle cost (4a516d8c)
+- fix(menu): bound submenu registration to affected owners (5783cc98)
+- fix(choice): preserve explicitly cleared highlights (11336e71)
+- fix(feed): preserve explicit null cursors across window updates (914a2849)
+- fix(grid): project only changed host state (14f33eaf)
+- refactor(tooling): enforce declared workspace boundaries (b234dbc8)
+- refactor(build): share package compiler and reproducibility runners (f04f338d)
+- refactor(types): consolidate public declaration checks (1ade9204)
+- fix(menu): project only changed interaction state (d2257b33)
+- fix(dom): resolve menu clicks through registered event paths (fdaa71f5)
+- fix(menu): complete retained reopen focus handoff (13a834f9)
+- fix(dom): restore virtual scroll after rejected queries (25ac99a5)
+- fix(checked-controls): complete committed callback publication (bbd2a570)
+- fix(layer-stack): drain cleanup after callback errors (7557e56f)
+- fix(dom): emphasize Chart selection state (94ff6c3f)
+- fix(dom): align Chart overlay with canvas viewport (341f949e)
+- fix(dom): improve Chart interaction rendering (c11ee554)
+
 ## 0.16.1
 
 ### Changes

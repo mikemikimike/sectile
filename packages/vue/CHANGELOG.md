@@ -1,5 +1,19 @@
 # @sectile/vue
 
+## 0.16.2
+
+### Changes
+
+- perf(chart): reduce renderer and passive component bundle cost (4a516d8c)
+- fix(menu): bound submenu registration to affected owners (5783cc98)
+- fix(grid): project only changed host state (14f33eaf)
+- refactor(tooling): enforce declared workspace boundaries (b234dbc8)
+- refactor(build): share package compiler and reproducibility runners (f04f338d)
+- refactor(types): consolidate public declaration checks (1ade9204)
+- fix(menu): project only changed interaction state (d2257b33)
+- fix(dom): resolve menu clicks through registered event paths (fdaa71f5)
+- fix(menu): complete retained reopen focus handoff (13a834f9)
+
 ## 0.16.1
 
 ### Changes

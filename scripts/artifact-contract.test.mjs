@@ -143,14 +143,18 @@ test('shared package builder preserves other outputs and fails closed on invalid
   const fixture = await mkdtemp(join(root, '.tmp', 'build-contract-'));
   const compiler = createRequire(join(root, 'packages/core/package.json')).resolve('typescript/package.json');
   const tooling = createRequire(import.meta.url).resolve('@sectile/tooling/package.json');
-  const run = (...args) => {
-    const entry = createRequire(join(fixture, 'package.json')).resolve('@sectile/tooling/build');
+  let linked = false;
+  const runTool = (file, ...args) => {
+    const entry = linked
+      ? join(fixture, 'node_modules/@sectile/tooling', file)
+      : join(dirname(tooling), file);
     const result = spawnSync(process.execPath, [entry, ...args], {
       cwd: fixture, encoding: 'utf8', timeout: 30_000,
     });
     assert.ifError(result.error);
     return result;
   };
+  const run = (...args) => runTool('build.mjs', ...args);
   const pass = (...args) => {
     const result = run(...args);
     assert.equal(result.status, 0, result.stdout + result.stderr);
@@ -161,7 +165,9 @@ test('shared package builder preserves other outputs and fails closed on invalid
     await mkdir(join(fixture, 'node_modules/@sectile'), { recursive: true });
     await symlink(dirname(compiler), join(fixture, 'node_modules/typescript'), 'junction');
     await symlink(dirname(tooling), join(fixture, 'node_modules/@sectile/tooling'), 'junction');
-    await writeFile(join(fixture, 'package.json'), JSON.stringify({ name: '@sectile/build-fixture', type: 'module', devDependencies: { '@sectile/tooling': 'workspace:*', typescript: '7.0.2' } }));
+    await writeFile(join(fixture, 'package.json'), JSON.stringify({ name: '@sectile/build-fixture', type: 'module',
+      exports: { '.': { types: './dist/index.d.ts', import: './dist/index.js' } },
+      devDependencies: { '@sectile/tooling': 'workspace:*', typescript: '7.0.2' } }));
     await writeFile(join(fixture, 'tsconfig.json'), JSON.stringify({
       extends: '@sectile/tooling/tsconfig.base.json',
       compilerOptions: { noEmit: true, lib: ['ES2022'] }, include: ['src/**/*.ts'],
@@ -179,6 +185,54 @@ test('shared package builder preserves other outputs and fails closed on invalid
     const verification = await readFile(join(fixture, '.verification-dist/index.js'), 'utf8');
     assert.ok((await readFile(join(fixture, '.verification-dist/internal/reference/oracle.js'), 'utf8')).includes('oracle'));
     assert.equal((await readdir(join(fixture, '.verification-dist'), { recursive: true })).some((path) => /\.(?:map|d\.ts)$/u.test(path)), false);
+    assert.equal(await readFile(join(fixture, 'dist/index.js'), 'utf8'), production);
+
+    // Package-manager binaries can pass a symlink path instead of its real target.
+    const directConfig = JSON.parse(pass('production', '--show-config').stdout);
+    linked = true;
+    assert.deepEqual(JSON.parse(pass('production', '--show-config').stdout), directConfig);
+    await rm(join(fixture, 'dist'), { recursive: true });
+    pass('production');
+    assert.equal(await readFile(join(fixture, 'dist/index.js'), 'utf8'), production);
+    assert.equal(await readFile(join(fixture, '.verification-dist/index.js'), 'utf8'), verification);
+    await rm(join(fixture, '.verification-dist'), { recursive: true });
+    pass('verification');
+    assert.equal(await readFile(join(fixture, '.verification-dist/index.js'), 'utf8'), verification);
+    const reproducible = runTool('reproducible-build.mjs', '--prepared');
+    assert.equal(reproducible.status, 0, reproducible.stdout + reproducible.stderr);
+    assert.equal(JSON.parse(reproducible.stdout).status, 'passed');
+    assert.notEqual(runTool('reproducible-build.mjs', '--invalid').status, 0);
+    const written = runTool('public-signatures.mjs', '--write');
+    assert.equal(written.status, 0, written.stdout + written.stderr);
+    assert.match(written.stdout, /public signatures updated/u);
+    const checked = runTool('public-signatures.mjs');
+    assert.equal(checked.status, 0, checked.stdout + checked.stderr);
+    assert.match(checked.stdout, /public signatures passed/u);
+    const declaration = await readFile(join(fixture, 'dist/index.d.ts'), 'utf8');
+    await writeFile(join(fixture, 'dist/index.d.ts'), 'export declare const value: string;\n');
+    const drift = runTool('public-signatures.mjs');
+    assert.notEqual(drift.status, 0);
+    assert.match(drift.stderr, /public signature drift/u);
+    await writeFile(join(fixture, 'dist/index.d.ts'), declaration);
+
+    const { pathToFileURL } = await import('node:url');
+    const imports = ['build.mjs', 'reproducible-build.mjs', 'public-signatures.mjs']
+      .map((file) => `import ${JSON.stringify(pathToFileURL(join(fixture, 'node_modules/@sectile/tooling', file)).href)};`)
+      .join('\n');
+    const consumer = join(fixture, 'src/import-tools.mjs');
+    await writeFile(consumer, imports);
+    const imported = spawnSync(process.execPath, [consumer], {
+      cwd: join(fixture, 'src'), encoding: 'utf8', timeout: 30_000,
+    });
+    assert.ifError(imported.error);
+    assert.equal(imported.status, 0, imported.stdout + imported.stderr);
+    assert.equal(imported.stdout, '', 'imports must not run any CLI');
+    const stdinImport = spawnSync(process.execPath, ['--input-type=module', '-'], {
+      cwd: join(fixture, 'src'), input: imports, encoding: 'utf8', timeout: 30_000,
+    });
+    assert.ifError(stdinImport.error);
+    assert.equal(stdinImport.status, 0, stdinImport.stdout + stdinImport.stderr);
+    assert.equal(stdinImport.stdout, '', 'stdin imports must not require an entrypoint file');
     assert.equal(await readFile(join(fixture, 'dist/index.js'), 'utf8'), production);
     assert.notEqual(run('unknown-mode').status, 0);
     assert.equal(await readFile(join(fixture, 'dist/index.js'), 'utf8'), production);

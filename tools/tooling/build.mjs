@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
@@ -65,4 +65,5 @@ async function main() {
   if (command.production) await compactJavaScript(command.output);
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();
+if (process.argv[1] && existsSync(process.argv[1])
+  && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) await main();

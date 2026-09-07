@@ -84,6 +84,17 @@ test('release retries prepare tagged artifacts and load the complete current pub
   assert.ok(workflow.includes('node scripts/release-metadata.mjs title "$RELEASE_TAG"'));
   assert.ok(workflow.includes('--notes-from-tag --title "$RELEASE_TITLE"'));
   assert.match(workflow, /jobs:\n  prepare:/u);
+  const preparation = workflow.slice(workflow.indexOf('  prepare:'), workflow.indexOf('\n  publish:'));
+  const restore = preparation.slice(preparation.indexOf('      - name: Load build entrypoints'), preparation.indexOf('      - run: pnpm install'));
+  assert.ok(restore.includes('git merge-base --is-ancestor "$RELEASE_TOOLING_REF" origin/main'));
+  assert.ok(restore.includes('git restore --source="$RELEASE_TOOLING_REF" --'));
+  assert.deepEqual(restore.match(/tools\/tooling\/[a-z-]+\.mjs/gu), [
+    'tools/tooling/build.mjs', 'tools/tooling/reproducible-build.mjs', 'tools/tooling/public-signatures.mjs',
+  ]);
+  assert.equal(restore.includes('packages/'), false, 'recovery must leave tagged product source intact');
+  assert.ok(workflow.includes('RELEASE_TOOLING_REF: ${{ github.workflow_sha }}'));
+  assert.equal(workflow.match(/git restore --source="\$RELEASE_TOOLING_REF"/gu).length, 2);
+  assert.ok(preparation.includes('ref: ${{ inputs.tag }}'));
   assert.match(workflow, /run: pnpm release:check/u);
   assert.ok(workflow.includes('run: pnpm --recursive --workspace-concurrency=1 --filter @sectile/docs^... build'));
   assert.match(workflow, /run: pnpm --filter @sectile\/docs build/u);

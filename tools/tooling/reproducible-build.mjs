@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { existsSync, realpathSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -53,7 +54,8 @@ async function files(directory) {
   return result.sort();
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && existsSync(process.argv[1])
+  && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   const args = process.argv.slice(2);
   assert.ok(args.length === 0 || (args.length === 1 && args[0] === '--prepared'), 'Usage: sectile-check-build [--prepared]');
   console.log(JSON.stringify(await verifyReproducibleBuild(process.cwd(), { prepared: args[0] === '--prepared' }), null, 2));

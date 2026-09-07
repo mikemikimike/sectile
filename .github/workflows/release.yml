@@ -20,6 +20,7 @@ concurrency:
 
 env:
   RELEASE_TAG: ${{ inputs.tag }}
+  RELEASE_TOOLING_REF: ${{ github.workflow_sha }}
 
 jobs:
   prepare:
@@ -39,6 +40,13 @@ jobs:
           git fetch origin main --tags
           git rev-parse --verify "refs/tags/${RELEASE_TAG}^{commit}"
           git merge-base --is-ancestor "refs/tags/${RELEASE_TAG}^{commit}" origin/main
+      - name: Load build entrypoints from workflow revision
+        run: |
+          git merge-base --is-ancestor "$RELEASE_TOOLING_REF" origin/main
+          git restore --source="$RELEASE_TOOLING_REF" -- \
+            tools/tooling/build.mjs \
+            tools/tooling/reproducible-build.mjs \
+            tools/tooling/public-signatures.mjs
       - run: pnpm install --frozen-lockfile
       - run: pnpm release:check "$RELEASE_TAG"
       - name: Pack release npm artifacts
@@ -78,10 +86,11 @@ jobs:
         with:
           name: npm-packages-${{ inputs.tag }}
           path: release-artifacts
-      - name: Load current publication tooling
+      - name: Load publication tooling from workflow revision
         run: |
           git fetch origin main
-          git restore --source=origin/main -- \
+          git merge-base --is-ancestor "$RELEASE_TOOLING_REF" origin/main
+          git restore --source="$RELEASE_TOOLING_REF" -- \
             scripts/publish-packages.mjs \
             scripts/release-metadata.mjs \
             scripts/lib/npm-registry-artifact.mjs \

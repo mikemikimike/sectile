@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { existsSync, realpathSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -123,7 +124,8 @@ function hash(value) {
   return createHash('sha256').update(value).digest('hex');
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && existsSync(process.argv[1])
+  && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   const args = process.argv.slice(2);
   assert.ok(args.length === 0 || (args.length === 1 && args[0] === '--write'), 'Usage: sectile-check-signatures [--write]');
   const current = await syncPublicSignatures(process.cwd(), args[0] === '--write');

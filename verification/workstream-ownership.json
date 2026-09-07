@@ -33,9 +33,7 @@
       "verification/breaking-changes/fragments/dom.json", "verification/breaking-changes/fragments/vue.json"
     ],
     "WI-026": [
-      "packages/core/scripts/build.mjs", "packages/dom/scripts/build.mjs", "packages/form/scripts/build.mjs",
-      "packages/tabular/scripts/build.mjs", "packages/temporal/scripts/build.mjs", "packages/terminal/scripts/build.mjs",
-      "packages/virtual/scripts/build.mjs", "packages/vue/scripts/build.mjs", "verification/source-maps/"
+      "scripts/build.mjs", "verification/source-maps/"
     ],
     "WI-030": [
       "packages/core/src/", "packages/core/package.json", "verification/core-layers/",

@@ -55,7 +55,11 @@ For each coherent batch execute only:
 1. the narrowest affected package production build;
 2. `git diff --check`.
 
-Production builds use `tsconfig.build.json` and own implementation typechecking.
+Production builds use the package's `tsconfig.json` through the shared
+`scripts/build.mjs` runner and own implementation typechecking. A package with
+a distinct production input set expresses only that difference in an inherited
+`tsconfig.build.json` overlay; language and environment policy stay in the
+package project.
 Static source inspection and validation-code authoring may continue. Do not run
 tests, full workspace builds, performance or heap probes,
 bundle/install gates, browser checks, generated inventory updates, generated

@@ -1,18 +1,4 @@
 {
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "allowImportingTsExtensions": false,
-    "composite": false,
-    "declaration": true,
-    "declarationMap": false,
-    "emitDeclarationOnly": false,
-    "noEmit": false,
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "sourceMap": true,
-    "inlineSourceMap": false,
-    "inlineSources": false
-  },
-  "include": ["src/**/*.ts"],
+  "extends": "./tsconfig.json",
   "exclude": ["src/internal/reference/**/*.ts"]
 }

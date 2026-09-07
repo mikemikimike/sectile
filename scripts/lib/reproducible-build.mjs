@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import { join, relative, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 export async function verifyReproducibleBuild(packageRoot, options = {}) {
   const root = resolve(packageRoot);
@@ -21,7 +22,7 @@ export async function verifyReproducibleBuild(packageRoot, options = {}) {
 }
 
 async function buildAndFingerprint(root, output) {
-  const result = spawnSync(process.execPath, [join(root, 'scripts', 'build.mjs'), 'production'], {
+  const result = spawnSync(process.execPath, [fileURLToPath(new URL('../build.mjs', import.meta.url)), 'production'], {
     cwd: root,
     encoding: 'utf8',
   });

@@ -91,12 +91,88 @@ test('workspace verification reuses package build artifacts instead of repeating
   assert.match(reproducibility, /verifyReproducibleBuild/u);
 });
 
-test('host package tests build isolated verification artifacts', async () => {
-  for (const directory of ['dom', 'terminal', 'vue']) {
-    const manifest = await readJSON(join(root, 'packages', directory, 'package.json'));
-    assert.equal(manifest.scripts['build:verification'], 'node scripts/build.mjs verification');
-    assert.match(manifest.scripts.test, /run build:verification/u);
+test('package build modes share effective source policy and isolate their outputs', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const { packageBuildCommand, readBuildConfig } = await import('./build.mjs');
+  for (const directory of publishedPackageDirectories) {
+    const packageRoot = join(root, 'packages', directory);
+    const command = packageBuildCommand(packageRoot);
+    const source = spawnSync(process.execPath, [command.args[0], '--project', 'tsconfig.json', '--showConfig'], {
+      cwd: packageRoot, encoding: 'utf8', timeout: 30_000,
+    });
+    assert.ifError(source.error);
+    assert.equal(source.status, 0, source.stdout + source.stderr);
+    const policy = JSON.parse(source.stdout).compilerOptions;
+    for (const mode of ['production', 'verification']) {
+      const config = readBuildConfig(packageRoot, mode);
+      for (const option of ['target', 'module', 'moduleResolution', 'lib', 'types', 'strict', 'skipLibCheck']) {
+        assert.deepEqual(config.compilerOptions[option], policy[option], `${directory} ${mode}: ${option}`);
+      }
+      assert.equal(config.compilerOptions.outDir, mode === 'production' ? './dist' : './.verification-dist');
+      assert.equal(config.compilerOptions.declaration, mode === 'production');
+      assert.equal(config.compilerOptions.sourceMap, mode === 'production');
+      assert.equal(config.compilerOptions.noEmitOnError, true);
+      if (directory === 'core' || directory === 'chart') {
+        assert.equal(config.files.some((path) => path.includes('/internal/reference/')), mode === 'verification');
+      }
+    }
   }
+});
+
+test('shared package builder preserves other outputs and fails closed on invalid input', async () => {
+  const { mkdir, mkdtemp, readdir, rm, symlink, writeFile } = await import('node:fs/promises');
+  const { spawnSync } = await import('node:child_process');
+  const { createRequire } = await import('node:module');
+  const { dirname } = await import('node:path');
+  await mkdir(join(root, '.tmp'), { recursive: true });
+  const fixture = await mkdtemp(join(root, '.tmp', 'build-contract-'));
+  const compiler = createRequire(join(root, 'packages/core/package.json')).resolve('typescript/package.json');
+  const run = (...args) => {
+    const result = spawnSync(process.execPath, [join(root, 'scripts/build.mjs'), ...args], {
+      cwd: fixture, encoding: 'utf8', timeout: 30_000,
+    });
+    assert.ifError(result.error);
+    return result;
+  };
+  const pass = (...args) => {
+    const result = run(...args);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    return result;
+  };
+  try {
+    await mkdir(join(fixture, 'src/internal/reference'), { recursive: true });
+    await mkdir(join(fixture, 'node_modules'), { recursive: true });
+    await symlink(dirname(compiler), join(fixture, 'node_modules/typescript'), 'junction');
+    await writeFile(join(fixture, 'package.json'), JSON.stringify({ name: '@sectile/build-fixture', type: 'module' }));
+    await writeFile(join(fixture, 'tsconfig.json'), JSON.stringify({
+      extends: join(root, 'tsconfig.base.json'),
+      compilerOptions: { noEmit: true, lib: ['ES2022'] }, include: ['src/**/*.ts'],
+    }));
+    await writeFile(join(fixture, 'tsconfig.build.json'), JSON.stringify({
+      extends: './tsconfig.json', exclude: ['src/internal/reference/**/*.ts'],
+    }));
+    await writeFile(join(fixture, 'src/index.ts'), 'export const value: number = 1;\n');
+    await writeFile(join(fixture, 'src/internal/reference/oracle.ts'), 'export const oracle: number = 2;\n');
+    pass('production');
+    const production = await readFile(join(fixture, 'dist/index.js'), 'utf8');
+    assert.ok((await readFile(join(fixture, 'dist/index.d.ts'), 'utf8')).includes('value'));
+    assert.equal((await readdir(join(fixture, 'dist'), { recursive: true })).some((path) => path.includes('oracle')), false);
+    pass('verification');
+    const verification = await readFile(join(fixture, '.verification-dist/index.js'), 'utf8');
+    assert.ok((await readFile(join(fixture, '.verification-dist/internal/reference/oracle.js'), 'utf8')).includes('oracle'));
+    assert.equal((await readdir(join(fixture, '.verification-dist'), { recursive: true })).some((path) => /\.(?:map|d\.ts)$/u.test(path)), false);
+    assert.equal(await readFile(join(fixture, 'dist/index.js'), 'utf8'), production);
+    assert.notEqual(run('unknown-mode').status, 0);
+    assert.equal(await readFile(join(fixture, 'dist/index.js'), 'utf8'), production);
+    pass('production', '--show-config');
+    assert.equal(await readFile(join(fixture, 'dist/index.js'), 'utf8'), production);
+    await writeFile(join(fixture, 'src/index.ts'), 'export const value: unknown = document;\n');
+    const rejected = run('production');
+    assert.notEqual(rejected.status, 0);
+    assert.match(rejected.stdout + rejected.stderr, /Cannot find name 'document'/u);
+    await assert.rejects(readFile(join(fixture, 'dist/index.js')), { code: 'ENOENT' });
+    assert.equal(await readFile(join(fixture, '.verification-dist/index.js'), 'utf8'), verification);
+  } finally { await rm(fixture, { recursive: true, force: true }); }
 });
 
 test('Vue tests use managed Happy DOM windows', async () => {

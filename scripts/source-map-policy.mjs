@@ -2,19 +2,21 @@
 import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { readBuildConfig } from './build.mjs';
 import { inspectSourceMapPackages, packageNames, validateSourceMapBudget } from './lib/source-map-policy.mjs';
 
 const mode = process.argv[2] ?? 'check';
 assert.ok(mode === 'check' || mode === 'record', `unknown source-map mode: ${mode}`);
 for (const packageName of packageNames) {
-  const config = JSON.parse(await readFile(resolve('packages', packageName, 'tsconfig.build.json'), 'utf8'));
+  const packageRoot = resolve('packages', packageName);
+  const config = readBuildConfig(packageRoot, 'production');
   assert.deepEqual({
     sourceMap: config.compilerOptions.sourceMap,
     declarationMap: config.compilerOptions.declarationMap,
     inlineSourceMap: config.compilerOptions.inlineSourceMap,
     inlineSources: config.compilerOptions.inlineSources,
   }, { sourceMap: true, declarationMap: false, inlineSourceMap: false, inlineSources: false }, `${packageName}: publish source-map compiler policy drifted`);
-  const verificationConfig = JSON.parse(await readFile(resolve('packages', packageName, 'tsconfig.verify-build.json'), 'utf8'));
+  const verificationConfig = readBuildConfig(packageRoot, 'verification');
   assert.equal(verificationConfig.compilerOptions.sourceMap, false, `${packageName}: verification builds must remain map-free`);
   assert.equal(verificationConfig.compilerOptions.declarationMap, false, `${packageName}: verification declarations must remain map-free`);
 }

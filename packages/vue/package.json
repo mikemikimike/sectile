@@ -414,8 +414,8 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "node scripts/build.mjs production",
-    "build:verification": "node scripts/build.mjs verification",
+    "build": "node ../../scripts/build.mjs production",
+    "build:verification": "node ../../scripts/build.mjs verification",
     "benchmark:collections": "pnpm --silent run build && node benchmarks/collection-reconciliation.mjs",
     "benchmark:chart": "pnpm --silent run build && node benchmarks/chart-reconciliation.mjs",
     "check:controlled-reconciliation": "node scripts/check-controlled-reconciliation.mjs",
@@ -425,7 +425,7 @@
     "typecheck:public": "pnpm --silent run build && pnpm --silent run typecheck:public:prepared",
     "typecheck:public:prepared": "tsc --project type-tests/tsconfig.json --pretty false && node ../../scripts/typecheck-sfc.mjs --project type-tests/tsconfig.vue.json --noEmit",
     "test": "pnpm --silent run build:verification && node --test --test-concurrency=4 tests/*.test.mjs",
-    "verify:reproducible-build": "node scripts/check-reproducible-build.mjs"
+    "verify:reproducible-build": "node ../../scripts/check-reproducible-builds.mjs vue"
   },
   "dependencies": {
     "@sectile/core": "workspace:^",

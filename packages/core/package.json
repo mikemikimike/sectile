@@ -374,13 +374,13 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "node scripts/build.mjs production",
-    "build:verification": "node scripts/build.mjs verification",
+    "build": "node ../../scripts/build.mjs production",
+    "build:verification": "node ../../scripts/build.mjs verification",
     "typecheck": "tsc --project tsconfig.json --pretty false",
     "test": "pnpm --silent run build:verification && node --test --test-concurrency=4 tests/*/*.test.mjs",
     "benchmark": "pnpm run build && node benchmarks/structures.mjs",
     "verify:theory": "node scripts/verify-theory.mjs",
-    "verify:reproducible-build": "node scripts/check-reproducible-build.mjs",
+    "verify:reproducible-build": "node ../../scripts/check-reproducible-builds.mjs core",
     "check:contracts": "node scripts/check-contracts.mjs",
     "check:public-api": "node scripts/check-public-api.mjs",
     "check:api-stability": "node scripts/check-api-stability.mjs",

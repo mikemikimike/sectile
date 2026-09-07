@@ -86,7 +86,7 @@ function tryCreateFeedConnection<ID extends StableID>(
   const runtime = createSemanticController<FeedState<ID>, FeedEvent<ID>, FeedCommand<ID>, FeedCommand<ID>>({
     initial: tryCreateFeedState(
       items.value,
-      options.defaultHighlightedValue ?? options.items[0] ?? null,
+      options.defaultHighlightedValue === undefined ? items.value.at(0) : options.defaultHighlightedValue,
       options.revision ?? 0,
       null,
       { start: options.start ?? 0, total: options.total ?? options.setSize ?? null },
@@ -150,7 +150,9 @@ class DOMFeed<ID extends StableID> implements FeedConnection<ID> {
       ...(window.requestGeneration === undefined ? {} : { requestGeneration: window.requestGeneration }),
       ...(window.start === undefined ? {} : { start: window.start }),
       ...(window.total === undefined ? {} : { total: window.total }),
-      current: window.highlightedValue ?? resolveCurrent(items.value, this.getSnapshot().state.cursor.current),
+      current: window.highlightedValue === undefined
+        ? resolveCurrent(items.value, this.getSnapshot().state.cursor.current)
+        : window.highlightedValue,
     });
     if (!state.ok) return state;
     this.#model.value = items.value;

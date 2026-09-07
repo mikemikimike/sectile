@@ -176,7 +176,9 @@ export function synchronizeFeedWindow<ID extends StableID>(
     total: replacement.total === undefined ? state.total : replacement.total,
   });
   if (!synchronized.ok) return synchronized;
-  const current = replacement.current ?? state.cursor.current ?? items.at(0);
+  const current = replacement.current === undefined
+    ? state.cursor.current ?? items.at(0)
+    : replacement.current;
   if (current !== null && !items.contains(current)) {
     return fail('transition-rejection', 'feed-cursor-outside-window', 'Replacement cursor must identify an item in the new feed window.');
   }

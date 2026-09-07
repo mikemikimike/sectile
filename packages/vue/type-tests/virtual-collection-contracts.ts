@@ -11,20 +11,20 @@ import type {
   VirtualListExpose,
   VirtualListPublicProps,
   VirtualListSlotProps,
-} from '../.verification-dist/virtual-list.js';
+} from '@sectile/vue/virtual/list';
 import type {
   VirtualGridPublicProps,
   VirtualGridSlotProps,
-} from '../.verification-dist/virtual-grid.js';
+} from '@sectile/vue/virtual/grid';
 import type {
   VirtualMasonryPublicProps,
   VirtualMasonrySlotProps,
-} from '../.verification-dist/virtual-masonry.js';
+} from '@sectile/vue/virtual/masonry';
 import type {
   VirtualSpatialPublicProps,
   VirtualSpatialSizeOwnership,
   VirtualSpatialSlotProps,
-} from '../.verification-dist/virtual-spatial.js';
+} from '@sectile/vue/virtual/spatial';
 
 type NumberValue = Readonly<{ id: number; label: string }>;
 type StringValue = Readonly<{ id: string; label: string }>;

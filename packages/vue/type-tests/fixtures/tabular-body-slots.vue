@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { useDataTable, createDataTableComponents, type DataTableSourceResolver } from '../../.verification-dist/data-table.js';
-import { useDataGrid, createDataGridComponents, type DataGridSourceResolver } from '../../.verification-dist/data-grid.js';
-import { useDataTreeGrid, createDataTreeGridComponents, type DataTreeGridSourceResolver } from '../../.verification-dist/data-tree-grid.js';
+import { useDataTable, createDataTableComponents, type DataTableSourceResolver } from '@sectile/vue/data-table';
+import { useDataGrid, createDataGridComponents, type DataGridSourceResolver } from '@sectile/vue/data-grid';
+import { useDataTreeGrid, createDataTreeGridComponents, type DataTreeGridSourceResolver } from '@sectile/vue/data-tree-grid';
 
 interface Cells {
   readonly name: string;

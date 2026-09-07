@@ -116,7 +116,7 @@ const targetLabel = fullRepositoryVerification || (compatibility && explicitTarg
 
 const packagePipelines = Object.freeze({
   '@sectile/core': [
-    'test', 'build', 'check:contracts', 'check:public-api',
+    'test', 'build', 'typecheck:public:prepared', 'check:contracts', 'check:public-api',
     'check:api-stability', 'check:semantic-api', 'check:laws', 'check:naming',
     'check:layout', 'check:module-dag', 'check:import-boundaries', 'check:dist-boundary',
     'check:subpaths', 'check:package', releaseRequested ? 'check:verification:determinism' : 'check:verification',
@@ -126,13 +126,13 @@ const packagePipelines = Object.freeze({
     'test', 'build', 'check:laws', 'check:package', 'check:public-api',
   ],
   '@sectile/temporal': ['test', 'build', 'check:laws', 'check:package'],
-  '@sectile/virtual': ['test', 'build', 'check:laws', 'check:package'],
+  '@sectile/virtual': ['test', 'build', 'typecheck:public:prepared', 'check:laws', 'check:package'],
   '@sectile/tabular': ['test', 'build', 'check:laws', 'check:package', 'check:implementation'],
-  '@sectile/dom': ['test', 'build'],
-  '@sectile/terminal': ['test', 'build'],
+  '@sectile/dom': ['test', 'build', 'typecheck:public:prepared'],
+  '@sectile/terminal': ['test', 'build', 'typecheck:public:prepared'],
   '@sectile/vue': [
-    'test', 'typecheck:public:prepared', 'check:controlled-reconciliation',
-    'check:hydration-contract', 'build',
+    'test', 'build', 'typecheck:public:prepared', 'check:controlled-reconciliation',
+    'check:hydration-contract',
   ],
 });
 

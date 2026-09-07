@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FormRoot, defineFormSubmission } from '../../.verification-dist/form.js';
+import { FormRoot, defineFormSubmission } from '@sectile/vue/form';
 
 const schema = {
   '~standard': {

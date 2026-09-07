@@ -48,16 +48,19 @@ test('runtime tests consume verification artifacts instead of production dist', 
   assert.deepEqual(offenders, []);
 });
 
-test('package scripts stay local and leave verification orchestration to the workspace', async () => {
+test('package script entrypoints resolve inside the repository', async () => {
+  const { access } = await import('node:fs/promises');
+  const { relative, resolve } = await import('node:path');
   for (const directory of publishedPackageDirectories) {
-    const manifest = await readJSON(join(root, 'packages', directory, 'package.json'));
+    const packageRoot = join(root, 'packages', directory);
+    const manifest = await readJSON(join(packageRoot, 'package.json'));
     assert.equal(manifest.scripts.verify, undefined, `${manifest.name} owns a composite verify script`);
     for (const [task, command] of Object.entries(manifest.scripts)) {
-      assert.equal(
-        /(?:\.\.\/)+scripts\//u.test(command),
-        false,
-        `${manifest.name} ${task} reaches outside its package`,
-      );
+      for (const match of command.matchAll(/(?:^|&&\s+)node\s+([^\s]+\.mjs)\b/gu)) {
+        const entry = resolve(packageRoot, match[1]);
+        assert.equal(relative(root, entry).startsWith('..'), false, `${manifest.name} ${task}`);
+        await access(entry);
+      }
     }
   }
 });
@@ -75,7 +78,7 @@ test('workspace verification reuses package build artifacts instead of repeating
   assert.match(chart.scripts['typecheck:public'], /run build && pnpm --silent run typecheck:public:prepared/u);
 
   const vue = await readJSON(join(root, 'packages', 'vue', 'package.json'));
-  assert.match(vue.scripts['typecheck:public'], /run build:verification && pnpm --silent run typecheck:public:prepared/u);
+  assert.match(vue.scripts['typecheck:public'], /run build && pnpm --silent run typecheck:public:prepared/u);
   assert.ok(vue.scripts['typecheck:public:prepared'].includes('type-tests/tsconfig.json'));
 
   const core = await readJSON(join(root, 'packages', 'core', 'package.json'));

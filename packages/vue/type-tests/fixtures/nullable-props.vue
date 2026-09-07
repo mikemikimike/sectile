@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { SelectRoot } from '../../.verification-dist/select.js';
-import { SpinButtonRoot } from '../../.verification-dist/spin-button.js';
+import { SelectRoot } from '@sectile/vue/select';
+import { SpinButtonRoot } from '@sectile/vue/spin-button';
 </script>
 
 <template>

@@ -16,7 +16,7 @@ import {
   type UseVirtualizerOptions,
   type VirtualizerOperationResult,
   type VirtualizerRootExpose,
-} from '../.verification-dist/virtual-core.js';
+} from '@sectile/vue/virtual/core';
 
 declare const state: Ref<TrackGridLayoutState>;
 declare const scrollport: ShallowRef<HTMLElement | null | undefined>;

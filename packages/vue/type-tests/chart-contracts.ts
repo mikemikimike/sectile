@@ -7,7 +7,7 @@ import {
   useChartAxisSelector,
   useChartLayerSelector,
   useChartSelector,
-} from '../.verification-dist/chart.js';
+} from '@sectile/vue/chart';
 import type {
   ChartAxisProps,
   ChartCartesianLayerProps,
@@ -17,8 +17,8 @@ import type {
   ChartRootProps,
   UseChartOptions,
   UseChartResult,
-} from '../.verification-dist/chart.js';
-import type { VirtualListIDResolver } from '../.verification-dist/virtual-list.js';
+} from '@sectile/vue/chart';
+import type { VirtualListIDResolver } from '@sectile/vue/virtual/list';
 
 type ID = 1 | 2 | 'time' | 'value' | 'series';
 type Datum = { readonly id: 1 | 2; readonly recordedAt: Date | number; readonly amount: number };

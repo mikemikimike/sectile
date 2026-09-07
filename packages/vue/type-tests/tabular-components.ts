@@ -12,7 +12,7 @@ import {
   type DataTableQuery,
   type DataTableRootProps,
   type DataTableSelectionControlProps,
-} from '../.verification-dist/data-table.js';
+} from '@sectile/vue/data-table';
 import {
   useDataGrid,
   createDataGridComponents,
@@ -20,7 +20,7 @@ import {
   type DataGridBodySlotProps,
   type DataGridCellProps,
   type DataGridRootExpose,
-} from '../.verification-dist/data-grid.js';
+} from '@sectile/vue/data-grid';
 import {
   useDataTreeGrid,
   createDataTreeGridComponents,
@@ -28,7 +28,7 @@ import {
   type DataTreeGridCellProps,
   type DataTreeGridRowDisclosureProps,
   type DataTreeGridSourceResolver,
-} from '../.verification-dist/data-tree-grid.js';
+} from '@sectile/vue/data-tree-grid';
 
 interface UserCells { readonly name: string; readonly active: boolean; readonly profile: { readonly name: string }; readonly items: readonly { readonly price: number }[] }
 interface UserGroupCells { readonly label: string; readonly memberCount: number }

@@ -386,10 +386,11 @@
   "scripts": {
     "build": "node scripts/build.mjs production",
     "build:verification": "node scripts/build.mjs verification",
-    "typecheck:public": "pnpm --silent run build && tsc --project type-tests/tsconfig.json --pretty false",
+    "typecheck:public": "pnpm --silent run build && pnpm --silent run typecheck:public:prepared",
     "typecheck": "tsc --project tsconfig.json --pretty false",
     "test": "pnpm --silent run build:verification && node --test --test-concurrency=4 tests/*.test.mjs",
-    "verify:reproducible-build": "node scripts/check-reproducible-build.mjs"
+    "verify:reproducible-build": "node scripts/check-reproducible-build.mjs",
+    "typecheck:public:prepared": "tsc --project type-tests/tsconfig.json --pretty false"
   },
   "dependencies": {
     "@sectile/core": "workspace:^"

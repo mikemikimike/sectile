@@ -99,21 +99,6 @@ test('controlled component controller drains committed effects before change cal
   }
 });
 
-test('controlled component effect publication satisfies the public declaration contract', async () => {
-  const { spawnSync } = await import('node:child_process');
-  const result = spawnSync(process.execPath, [
-    'node_modules/typescript/lib/tsc.js',
-    '--project', 'tests/runtime/tsconfig.types.json',
-    '--pretty', 'false',
-  ], {
-    cwd: new URL('../../', import.meta.url),
-    encoding: 'utf8',
-    timeout: 30_000,
-  });
-  assert.ifError(result.error);
-  assert.equal(result.status, 0, `${result.stdout ?? ''}${result.stderr ?? ''}`);
-});
-
 test('collection component controller replaces one domain generation and retains equal owners', () => {
   const first = Object.freeze({ ids: Object.freeze(['a', 'b']) });
   const second = Object.freeze({ ids: Object.freeze(['b', 'c']) });

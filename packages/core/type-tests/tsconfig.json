@@ -1,9 +1,9 @@
 {
-  "extends": "../../../../tsconfig.base.json",
+  "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
     "lib": ["ES2022"],
     "isolatedDeclarations": false,
     "noEmit": true
   },
-  "include": ["adapter-runtime.types.ts"]
+  "include": ["**/*.ts"]
 }

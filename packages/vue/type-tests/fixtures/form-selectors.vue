@@ -9,7 +9,7 @@ import {
   useFormFieldController,
   useFormFieldSelector,
   useFormSelector,
-} from '../../.verification-dist/form.js';
+} from '@sectile/vue/form';
 
 const dirty = useFormSelector((state) => state.dirty);
 dirty.value satisfies boolean;

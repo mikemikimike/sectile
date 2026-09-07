@@ -397,7 +397,9 @@
     "check:verification": "node scripts/check-verification.mjs",
     "check:verification:determinism": "node scripts/check-verification.mjs --determinism",
     "update:api-stability": "node scripts/update-api-stability.mjs",
-    "update:semantic-api": "node scripts/update-semantic-api.mjs"
+    "update:semantic-api": "node scripts/update-semantic-api.mjs",
+    "typecheck:public": "pnpm --silent run build && pnpm --silent run typecheck:public:prepared",
+    "typecheck:public:prepared": "tsc --project type-tests/tsconfig.json --pretty false"
   },
   "devDependencies": {
     "typescript": "7.0.2"

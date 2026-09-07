@@ -25,7 +25,7 @@ import {
   ChartXAxis,
   ChartYAxis,
   ChartZoomControl,
-} from '../../.verification-dist/chart.js';
+} from '@sectile/vue/chart';
 
 type ID = number | 'month' | 'revenue' | 'sales' | 'forecast' | 'accounts' | 'density' | 'region-share' | 'channel-share';
 

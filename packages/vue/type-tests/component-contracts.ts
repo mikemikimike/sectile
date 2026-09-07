@@ -8,19 +8,19 @@ import type { DateFieldOptions } from '@sectile/dom/temporal/date-field';
 import type { DateTimeFieldOptions } from '@sectile/dom/temporal/date-time-field';
 import type { NumberFieldOptions } from '@sectile/dom/number-field';
 import type { TimeFieldOptions } from '@sectile/dom/temporal/time-field';
-import { DateField, type DateValue } from '../.verification-dist/date-field.js';
+import { DateField, type DateValue } from '@sectile/vue/temporal/date-field';
 import {
   defineFormSubmission as defineVueFormSubmission,
-} from '../.verification-dist/form.js';
+} from '@sectile/vue/form';
 import {
   DatePickerContent,
   DatePickerRoot,
   type DatePickerRootSlotProps,
   type DatePickerValueChangeHandler,
-} from '../.verification-dist/date-picker.js';
-import { DateTimeField } from '../.verification-dist/date-time-field.js';
-import type { DateTimeRange } from '../.verification-dist/date-time-range-picker.js';
-import { MenuButtonRoot, MenuRoot } from '../.verification-dist/menu.js';
+} from '@sectile/vue/temporal/date-picker';
+import { DateTimeField } from '@sectile/vue/temporal/date-time-field';
+import type { DateTimeRange } from '@sectile/vue/temporal/date-time-range-picker';
+import { MenuButtonRoot, MenuRoot } from '@sectile/vue/menu';
 import {
   MeterGroupRoot,
   MeterGroupSegment,
@@ -28,25 +28,25 @@ import {
   type MeterGroupRootProps,
   type MeterGroupRootSlotProps,
   type MeterGroupSegmentSlotProps,
-} from '../.verification-dist/meter-group.js';
-import { MeterRoot, type MeterRootProps, type MeterRootSlotProps } from '../.verification-dist/meter.js';
-import { NumberField, type NumberFieldProps } from '../.verification-dist/number-field.js';
-import { PopoverRoot } from '../.verification-dist/popover.js';
-import { SelectRoot } from '../.verification-dist/select.js';
-import { ComboboxRoot } from '../.verification-dist/combobox.js';
-import { CascadeSelectRoot } from '../.verification-dist/cascade-select.js';
+} from '@sectile/vue/meter-group';
+import { MeterRoot, type MeterRootProps, type MeterRootSlotProps } from '@sectile/vue/meter';
+import { NumberField, type NumberFieldProps } from '@sectile/vue/number-field';
+import { PopoverRoot } from '@sectile/vue/popover';
+import { SelectRoot } from '@sectile/vue/select';
+import { ComboboxRoot } from '@sectile/vue/combobox';
+import { CascadeSelectRoot } from '@sectile/vue/cascade-select';
 import {
   SpinButtonInput,
   SpinButtonRoot,
   type SpinButtonInputProps,
-} from '../.verification-dist/spin-button.js';
-import { TimeField } from '../.verification-dist/time-field.js';
-import { TooltipRoot } from '../.verification-dist/tooltip.js';
-import { useToast, type UseToastReturn } from '../.verification-dist/toast.js';
-import { VirtualGrid, type VirtualGridProps, type VirtualGridSlotProps } from '../.verification-dist/virtual-grid.js';
-import { VirtualList, type VirtualListProps, type VirtualListSlotProps } from '../.verification-dist/virtual-list.js';
-import { VirtualMasonry, type VirtualMasonryProps, type VirtualMasonrySlotProps } from '../.verification-dist/virtual-masonry.js';
-import { VirtualSpatial, type VirtualSpatialProps, type VirtualSpatialSlotProps } from '../.verification-dist/virtual-spatial.js';
+} from '@sectile/vue/spin-button';
+import { TimeField } from '@sectile/vue/temporal/time-field';
+import { TooltipRoot } from '@sectile/vue/tooltip';
+import { useToast, type UseToastReturn } from '@sectile/vue/toast';
+import { VirtualGrid, type VirtualGridProps, type VirtualGridSlotProps } from '@sectile/vue/virtual/grid';
+import { VirtualList, type VirtualListProps, type VirtualListSlotProps } from '@sectile/vue/virtual/list';
+import { VirtualMasonry, type VirtualMasonryProps, type VirtualMasonrySlotProps } from '@sectile/vue/virtual/masonry';
+import { VirtualSpatial, type VirtualSpatialProps, type VirtualSpatialSlotProps } from '@sectile/vue/virtual/spatial';
 
 type Assert<T extends true> = T;
 type Equal<Left, Right> =

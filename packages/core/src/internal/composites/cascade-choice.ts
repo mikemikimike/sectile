@@ -59,7 +59,7 @@ export function tryCreateCascadeChoiceState<ID extends StableID>(
   errors: CascadeChoiceErrorProfile,
 ): Result<CascadeChoiceState<ID>> {
   const value = input.value ?? null;
-  const highlighted = input.highlighted ?? value;
+  const highlighted = input.highlighted === undefined ? value : input.highlighted;
   if (value !== null && !tree.has(value)) {
     return fail('construction', errors.valueOutsideTree, `${errors.label} value must exist in the tree.`, { value });
   }

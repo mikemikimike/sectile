@@ -3,7 +3,10 @@ import test from 'node:test';
 import { createSequence } from '../../.verification-dist/structures/sequence.js';
 import { applyCheckboxGroupEvent, createCheckboxGroupState } from '../../.verification-dist/checkbox-group.js';
 import { applyToggleGroupEvent, createToggleGroupState, tryCreateToggleGroupState } from '../../.verification-dist/toggle-group.js';
-import { applySelectEvent, createSelectState } from '../../.verification-dist/select.js';
+import { applySelectEvent, createSelectState, tryCreateSelectState } from '../../.verification-dist/select.js';
+import { createTree } from '../../.verification-dist/structures/tree.js';
+import { createCascadeListState, applyCascadeListEvent } from '../../.verification-dist/cascade-list.js';
+import { createCascadeSelectState, applyCascadeSelectEvent } from '../../.verification-dist/cascade-select.js';
 import {
   applyPaginationEvent,
   createPaginationModel,
@@ -53,6 +56,53 @@ test('select keeps navigation open and closes only after selection', () => {
   assert.equal(selected.state.open, false);
   assert.deepEqual(selected.state.choice.selection.selected, ['b']);
   assert.deepEqual(selected.commands.at(-1), { type: 'close-popup' });
+});
+
+test('Select preserves independent null cursors through construction and popup transitions', () => {
+  const items = createSequence([0, '0', 'last']);
+  for (const value of [null, 0, '0', 'last']) {
+    for (const input of [{}, { current: undefined }, { current: null }, { current: 0 }]) {
+      const state = createSelectState(items, { value, ...input });
+      assert.equal(state.choice.cursor.current, input.current === undefined ? value : input.current);
+      assert.deepEqual(state.choice.selection.selected, value === null ? [] : [value]);
+    }
+    let state = createSelectState(items, { value, current: null });
+    for (const event of ['open', 'close', 'toggle']) {
+      state = unwrap(applySelectEvent(items, state, event)).state;
+      assert.equal(state.choice.cursor.current, null);
+      assert.deepEqual(state.choice.selection.selected, value === null ? [] : [value]);
+    }
+    const moved = unwrap(applySelectEvent(items, state, 'next', { eligible: (id) => id !== 0 }));
+    assert.equal(moved.state.choice.cursor.current, '0');
+    assert.deepEqual(moved.state.choice.selection.selected, value === null ? [] : [value]);
+  }
+  assert.equal(tryCreateSelectState(items, { value: 'missing', current: null }).ok, false);
+  assert.equal(tryCreateSelectState(items, { value: 'last', current: 'missing' }).ok, false);
+});
+
+test('Cascade choices preserve null highlights while retaining selected paths and branch navigation', () => {
+  const tree = createTree([{ id: 'root', parentID: null }, { id: 0, parentID: 'root' }, { id: '0', parentID: 'root' }]);
+  for (const [create, apply] of [[createCascadeListState, applyCascadeListEvent], [createCascadeSelectState, applyCascadeSelectEvent]]) {
+    for (const value of [null, 0, '0']) {
+      for (const input of [{}, { highlighted: undefined }, { highlighted: null }, { highlighted: 0 }]) {
+        const state = create(tree, { value, ...input });
+        assert.equal(state.value, value);
+        assert.equal(state.highlighted, input.highlighted === undefined ? value : input.highlighted);
+        assert.deepEqual(state.path, value === null ? [] : ['root']);
+      }
+    }
+    const state = create(tree, { value: '0', highlighted: null });
+    assert.equal(unwrap(apply(tree, state, 'right')).state.highlighted, null);
+    assert.equal(unwrap(apply(tree, state, 'left')).state.highlighted, null);
+    const moved = unwrap(apply(tree, state, 'next', { eligible: (id) => id !== 0 }));
+    assert.equal(moved.state.highlighted, '0');
+    assert.equal(moved.state.value, '0');
+    const branch = unwrap(apply(tree, create(tree, { highlighted: 'root' }), 'right'));
+    assert.equal(branch.state.highlighted, 0);
+    assert.deepEqual(branch.state.path, ['root']);
+    const chosen = unwrap(apply(tree, branch.state, 'select'));
+    assert.equal(chosen.state.value, 0);
+  }
 });
 
 test('pagination derives page count, bounded movement, and item ranges from totals', () => {

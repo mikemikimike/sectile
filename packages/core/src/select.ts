@@ -27,7 +27,7 @@ export function createSelectState<ID extends StableID>(domain: Sequence<ID>, inp
 
 export function tryCreateSelectState<ID extends StableID>(domain: Sequence<ID>, input: SelectStateInput<ID> = {}): Result<SelectState<ID>> {
   if (input.open !== undefined && typeof input.open !== 'boolean') return fail('construction', 'invalid-select-open', 'Select open state must be boolean.');
-  const choice = createLinearChoiceState(domain, { selected: input.value === undefined || input.value === null ? [] : [input.value], current: input.current ?? input.value ?? null });
+  const choice = createLinearChoiceState(domain, { selected: input.value === undefined || input.value === null ? [] : [input.value], current: input.current === undefined ? input.value ?? null : input.current });
   return choice.ok ? ok(Object.freeze({ open: input.open ?? false, choice: choice.value })) : choice;
 }
 

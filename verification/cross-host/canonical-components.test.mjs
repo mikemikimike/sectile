@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createSequence } from '@sectile/core/sequence';
+import { createSelect as createDOMSelect } from '@sectile/dom/select';
+import { createSelect as createTerminalSelect } from '@sectile/terminal/select';
+import { createCascadeList as createDOMCascadeList } from '@sectile/dom/cascade-list';
+import { createCascadeList as createTerminalCascadeList } from '@sectile/terminal/cascade-list';
+import { createCascadeSelect as createDOMCascadeSelect } from '@sectile/dom/cascade-select';
+import { createCascadeSelect as createTerminalCascadeSelect } from '@sectile/terminal/cascade-select';
 import { applyCheckboxGroupEvent, createCheckboxGroupState } from '@sectile/core/checkbox-group';
 import { applyRatingEvent, createRatingState } from '@sectile/core/rating';
 import { applyStepperEvent, createStepperState } from '@sectile/core/stepper';
@@ -90,6 +96,116 @@ test('rating hosts preserve canonical clear and direct-set traces', () => {
   DOM.disconnect();
 });
 
+const nullableChoiceFactories = [
+  ['DOM Select', createDOMSelect, true], ['Terminal Select', createTerminalSelect, true],
+  ['DOM CascadeList', createDOMCascadeList, false], ['Terminal CascadeList', createTerminalCascadeList, false],
+  ['DOM CascadeSelect', createDOMCascadeSelect, true], ['Terminal CascadeSelect', createTerminalCascadeSelect, true],
+];
+const choiceItems = [0, '0', 'last'];
+const choiceOptions = () => ({
+  root: new FakeElement(), trigger: new FakeElement(), popup: new FakeElement(), position: false,
+  items: choiceItems, nodes: choiceItems.map((id) => ({ id, parentID: null })),
+});
+function readChoice(control) {
+  const state = control.state;
+  return state.choice === undefined
+    ? { value: state.value, highlight: state.highlighted }
+    : { value: state.choice.selection.selected[0] ?? null, highlight: state.choice.cursor.current };
+}
+
+for (const [name, create, popup] of nullableChoiceFactories) {
+  test(`${name} distinguishes absent, default and controlled null highlights`, () => {
+    const cases = [
+      [{ value: 'last' }, 'last', 'last'],
+      [{ value: 'last', highlightedValue: undefined }, 'last', 'last'],
+      [{ value: 'last', highlightedValue: null, defaultHighlightedValue: 0 }, 'last', null],
+      [{ value: 'last', defaultHighlightedValue: null }, 'last', null],
+      [{ defaultValue: 'last', defaultHighlightedValue: 0 }, 'last', 0],
+      [{ value: null, defaultValue: 'last' }, null, null],
+      [{ value: 0, defaultValue: 'last', highlightedValue: '0' }, 0, '0'],
+    ];
+    for (const [input, value, highlight] of cases) {
+      const control = create({ ...choiceOptions(), ...input });
+      try {
+        assert.deepEqual(readChoice(control), { value, highlight });
+        if (typeof control.setItemAttributes === 'function') {
+          for (const id of choiceItems) {
+            const element = new FakeElement();
+            control.setItemAttributes(element, id);
+            assert.equal(element.tabIndex, highlight === id ? 0 : -1);
+            assert.equal(element.getAttribute('aria-selected'), String(value === id));
+            if (name.includes('Cascade')) assert.equal('highlighted' in element.dataset, highlight === id);
+          }
+        }
+      } finally { control.destroy(); }
+    }
+  });
+
+  test(`${name} preserves every ownership shape during null synchronization and navigation`, async () => {
+    for (let shape = 0; shape < (popup ? 8 : 4); shape += 1) {
+      const ownsValue = (shape & 1) !== 0;
+      const ownsHighlight = (shape & 2) !== 0;
+      const ownsOpen = (shape & 4) !== 0;
+      const valueChanges = [], highlightChanges = [], snapshots = [];
+      const control = create({
+        ...choiceOptions(), disabledItems: [0],
+        ...(ownsValue ? { value: 'last' } : { defaultValue: 'last' }),
+        ...(ownsHighlight ? { highlightedValue: null } : { defaultHighlightedValue: null }),
+        ...(ownsOpen ? { open: false } : {}),
+        onValueChange: (value) => valueChanges.push(value),
+        onHighlightedValueChange: (value) => highlightChanges.push(value),
+      });
+      const accepted = {
+        ...(ownsValue ? { value: 'last' } : {}),
+        ...(ownsHighlight ? { highlightedValue: null } : {}),
+        ...(ownsOpen ? { open: false } : {}),
+      };
+      control.subscribe((snapshot) => snapshots.push(snapshot));
+      try {
+        assert.deepEqual(readChoice(control), { value: 'last', highlight: null });
+        const synced = control.syncControlledValues(accepted);
+        assert.equal(synced.ok, true);
+        assert.deepEqual(readChoice(control), { value: 'last', highlight: null });
+        assert.equal(snapshots.length, 1);
+        assert.deepEqual(highlightChanges, []);
+        const before = control.getSnapshot();
+        const mismatch = control.syncControlledValues({ ...accepted, highlightedValue: ownsHighlight ? undefined : null });
+        assert.equal(mismatch.error.code, 'controlled-shape-mismatch');
+        assert.equal(control.getSnapshot(), before);
+        assert.equal(snapshots.length, 1);
+        if (ownsHighlight) {
+          assert.equal(control.syncControlledValues({ ...accepted, highlightedValue: 'missing' }).ok, false);
+          assert.equal(control.getSnapshot(), before);
+          assert.equal(control.syncControlledValues({ ...accepted, highlightedValue: '0' }).ok, true);
+          assert.equal(readChoice(control).highlight, '0');
+          assert.equal(control.syncControlledValues(accepted).ok, true);
+          assert.equal(readChoice(control).highlight, null);
+        }
+        if (popup) {
+          assert.equal(control.send('open'), true);
+          assert.equal(readChoice(control).highlight, null);
+          assert.equal(control.send('close'), true);
+          assert.equal(readChoice(control).highlight, null);
+        } else {
+          assert.equal(control.send('right'), true);
+          assert.equal(readChoice(control).highlight, null);
+        }
+        assert.equal(control.send('next'), true);
+        assert.deepEqual(readChoice(control), { value: 'last', highlight: ownsHighlight ? null : '0' });
+        assert.deepEqual(highlightChanges, ['0']);
+        assert.deepEqual(valueChanges, []);
+        if (ownsHighlight) {
+          assert.equal(control.syncControlledValues({ ...accepted, highlightedValue: '0' }).ok, true);
+        }
+        assert.equal(control.send('select'), true);
+        assert.equal(readChoice(control).value, ownsValue ? 'last' : '0');
+        assert.deepEqual(valueChanges, ['0']);
+      } finally { control.destroy(); }
+      await Promise.resolve();
+    }
+  });
+}
+
 function assertCanonicalSnapshot(connection, state, revision) {
   const snapshot = connection.getSnapshot();
   assert.deepEqual(snapshot.state, state);
@@ -97,6 +213,9 @@ function assertCanonicalSnapshot(connection, state, revision) {
 }
 
 class FakeElement {
+  id = '';
+  hidden = false;
+  style = {};
   attributes = new Map();
   dataset = {};
   listeners = new Map();

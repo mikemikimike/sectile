@@ -82,8 +82,9 @@ function tryCreateCascadeListConnection<ID extends StableID>(
       ? 'mutate'
       : 'navigate',
     initial: tryCreateCascadeListState(domain.value.tree, {
-      value: options.value ?? options.defaultValue ?? null,
-      highlighted: options.highlightedValue ?? options.defaultHighlightedValue ?? options.value ?? options.defaultValue ?? null,
+      value: options.value === undefined ? options.defaultValue ?? null : options.value,
+      ...(options.highlightedValue !== undefined ? { highlighted: options.highlightedValue }
+        : options.defaultHighlightedValue !== undefined ? { highlighted: options.defaultHighlightedValue } : {}),
     }),
     reducer: (state, event) => applyCascadeListEvent(domain.value.tree, state, event, policies),
     reconcile: (previous, proposed) => tryCreateCascadeListState(domain.value.tree, {

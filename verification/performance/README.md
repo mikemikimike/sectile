@@ -134,3 +134,45 @@ differ because comparison exists to evaluate code changes.
 calibration, and retained run artifacts with one isolated process, without
 selecting or comparing an authoritative baseline. It cannot produce work-item
 evidence or replace a baseline.
+
+## Recovered full certification reference
+
+The full reference in environment partition
+`933652c83112df2b038ebf25ee0f49bb867b465e448838e959f3227b14ab8380`
+measures the published package state at `release-2026-09-05.2`
+(`b87e69be6fec8dd7071010f5185911fb74b9c970`). The exact npm artifacts below
+were checked against registry SHA-512 integrity and their Git release manifests,
+then extracted into an isolated root with local dependency links confined to
+that artifact set. The measurement harness, root tool manifest and lockfile
+were copied unchanged from `4a516d8c113d569eede553b110bcca90d91058b4`.
+This measures previously shipped JavaScript with the current protocol.
+
+The reference uses measurement protocol 10, statistics protocol 2, GC protocol
+2, ten isolated processes and the full 228-metric catalog. Its selector file is
+`all-owners__all-types__all-domains__all-scales__all-evidence.json`, with SHA-256
+`13adedda5d51de1bbbae5140eb47f33bc516a3008a801629691de16b799d5314` and build
+fingerprint `071f66ae6f28794953f1ed84313ee84fc94a9cac135b851183f027f61ad64476`.
+The report was promoted unchanged through the existing `performance:promote`
+command. Earlier environment partitions remain intact.
+
+| Published artifact | Version | Tarball SHA-256 |
+|---|---|---|
+| `@sectile/core` | 0.14.2 | `78b407477a7f4c02b25fd403938828f0e6a787016370c55b1ab59b9e12c57fda` |
+| `@sectile/chart` | 0.15.1 | `62c5359ed5528aa1b74581daae00ee8e7fc5855282e9aeb3ff3a7db9693cc526` |
+| `@sectile/form` | 0.14.2 | `f92dd446304dcf54139971015b31c7de80563231be1d07f2d2f83544f9f506eb` |
+| `@sectile/tabular` | 0.15.0 | `690cd1bebb607db900c6eefb529732ec9cb5ab8f6bc83178ba172dd31640f451` |
+| `@sectile/temporal` | 0.14.2 | `a39195f020906039022930dbc6ccbe3cab49a47b92af3f1b975278b87b70eb28` |
+| `@sectile/virtual` | 0.15.0 | `e854914da82028107efc1eab558ddbe20699685257e7726e5133af63ff6eccdd` |
+| `@sectile/dom` | 0.16.1 | `3076541d7477308b3cc119ab6f273caa707e8e0f5ab11ff2730abb5652cae707` |
+| `@sectile/terminal` | 0.14.2 | `4a95755492312d82f4dbc711668d97fde0237ed9694379e7f1d56df23e33ee00` |
+| `@sectile/vue` | 0.16.1 | `d59599eef451ebf4e7bfcbda420f41e0ffef5d5451ad4ac2baad336f4a36874b` |
+
+The preserved current report from run
+`2026-09-07T12-50-43-241Z-136859-cf8a2a0f` has build fingerprint
+`8cda85c3456d5eda10c0a21223ddb5ed25eccebdbb089927623ff74feb4b231c`.
+Its runtime, hardware, harness and protocol metadata match this reference.
+The original report validator and comparator passed with zero regressions,
+including the nine package footprints, using the existing calibrated 5% band
+and existing memory-comparison rules. Default baseline selection also resolves
+to this recovered reference. The current candidate therefore remains distinct
+from the previously published code supplying the reference measurements.

@@ -33,7 +33,7 @@ import {
   releaseSetSequence,
 } from './lib/release-set.mjs';
 import { publishedPackageDirectories } from './lib/published-packages.mjs';
-import { execFileSyncPortable } from './lib/portable-process.mjs';
+import { execFileSyncPortable } from '../tools/tooling/portable-process.mjs';
 import { loadPublishedPackageGraph } from './lib/workspace-graph.mjs';
 import {
   createReleaseWorktree,

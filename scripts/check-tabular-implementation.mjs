@@ -2,11 +2,16 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
+import { root } from './lib/repository.mjs';
+
+const packageRoot = join(root, 'packages/tabular');
+const args = process.argv.slice(2);
+assert.ok(args.length === 0 || (args.length === 1 && args[0] === '--write'), 'Usage: check-tabular-implementation.mjs [--write]');
 
 const groups = ['model', 'source', 'columns', 'selection', 'advanced', 'profiles', 'virtual', 'virtual-witnesses'];
 const evidence = [];
 for (const group of groups) {
-  const path = `verification/${group}.json`;
+  const path = join(packageRoot, `verification/${group}.json`);
   const bytes = await readFile(path);
   const parsed = JSON.parse(bytes);
   assert.equal(parsed.package, '@sectile/tabular');
@@ -14,7 +19,7 @@ for (const group of groups) {
   evidence.push({ group, tests: parsed.tests.length, sha256: hash(bytes) });
 }
 
-const benchmark = JSON.parse(await readFile('verification/benchmark.json', 'utf8'));
+const benchmark = JSON.parse(await readFile(join(packageRoot, 'verification/benchmark.json'), 'utf8'));
 assert.equal(benchmark.status, 'passed');
 assert.deepEqual(benchmark.scales.map((entry) => entry.recordCount), [1_000, 10_000, 100_000]);
 assert.ok(benchmark.scales.every((entry) => entry.completed === true && entry.operationCount > 0));
@@ -27,17 +32,17 @@ assert.deepEqual(benchmark.generationChurn, {
   status: 'passed',
 });
 
-const consumer = JSON.parse(await readFile('../../verification/consumer-install/tabular.json', 'utf8'));
+const consumer = JSON.parse(await readFile(join(root, 'verification/consumer-install/tabular.json'), 'utf8'));
 assert.equal(consumer.status, 'passed');
 const footprint = { javascriptBytes: 0, declarationBytes: 0, sourceMapBytes: 0 };
-for (const path of await files('dist')) {
+for (const path of await files(join(packageRoot, 'dist'))) {
   const bytes = (await stat(path)).size;
   if (path.endsWith('.d.ts')) footprint.declarationBytes += bytes;
   else if (path.endsWith('.map')) footprint.sourceMapBytes += bytes;
   else if (path.endsWith('.js')) footprint.javascriptBytes += bytes;
 }
 
-const manifest = JSON.parse(await readFile('package.json', 'utf8'));
+const manifest = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8'));
 const implementation = {
   schemaVersion: 1,
   package: '@sectile/tabular',
@@ -63,13 +68,16 @@ const implementation = {
   footprint: {
     ...footprint,
     packedBytes: consumer.packedFootprint['@sectile/tabular'].bytes,
-    declarationFiles: (await files('dist')).filter((path) => path.endsWith('.d.ts')).length,
+    declarationFiles: (await files(join(packageRoot, 'dist'))).filter((path) => path.endsWith('.d.ts')).length,
     publicSubpaths: Object.keys(manifest.exports).length,
   },
   consumerScenarios: consumer.scenarios.map((scenario) => scenario.id),
 };
-await writeFile('verification/implementation-verification.json', `${JSON.stringify(implementation, null, 2)}\n`);
-console.log(`Tabular implementation evidence passed: ${evidence.reduce((total, entry) => total + entry.tests, 0)} tests, ${benchmark.scales.length} scales`);
+const output = `${JSON.stringify(implementation, null, 2)}\n`;
+const outputPath = join(packageRoot, 'verification/implementation-verification.json');
+if (args[0] === '--write') await writeFile(outputPath, output);
+else assert.equal(await readFile(outputPath, 'utf8'), output, 'Tabular implementation evidence drifted; review and run pnpm update:tabular-implementation.');
+console.log(`Tabular implementation evidence ${args[0] === '--write' ? 'updated' : 'passed'}: ${evidence.reduce((total, entry) => total + entry.tests, 0)} tests, ${benchmark.scales.length} scales`);
 
 async function files(directory) {
   const result = [];

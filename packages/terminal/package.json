@@ -379,11 +379,11 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "node ../../scripts/build.mjs production",
-    "build:verification": "node ../../scripts/build.mjs verification",
+    "build": "sectile-build production",
+    "build:verification": "sectile-build verification",
     "typecheck": "tsc --project tsconfig.json --pretty false",
     "test": "pnpm --silent run build:verification && node --test --test-concurrency=4 tests/*.test.mjs",
-    "verify:reproducible-build": "node ../../scripts/check-reproducible-builds.mjs terminal",
+    "verify:reproducible-build": "sectile-check-build",
     "typecheck:public": "pnpm --silent run build && pnpm --silent run typecheck:public:prepared",
     "typecheck:public:prepared": "tsc --project type-tests/tsconfig.json --pretty false"
   },
@@ -392,6 +392,7 @@
     "@sectile/temporal": "workspace:^"
   },
   "devDependencies": {
+    "@sectile/tooling": "workspace:*",
     "@types/node": "26.2.0",
     "typescript": "7.0.2"
   }

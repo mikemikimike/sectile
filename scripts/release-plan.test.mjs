@@ -88,6 +88,8 @@ function releaseFixture(context) {
   mkdirSync(join(root, 'scripts'), { recursive: true });
   cpSync(join(repositoryRoot, 'scripts', 'release.mjs'), join(root, 'scripts', 'release.mjs'));
   cpSync(join(repositoryRoot, 'scripts', 'lib'), join(root, 'scripts', 'lib'), { recursive: true });
+  mkdirSync(join(root, 'tools', 'tooling'), { recursive: true });
+  cpSync(join(repositoryRoot, 'tools', 'tooling', 'portable-process.mjs'), join(root, 'tools', 'tooling', 'portable-process.mjs'));
   for (const directory of publishedPackageDirectories) {
     const packageRoot = join(root, 'packages', directory);
     mkdirSync(packageRoot, { recursive: true });

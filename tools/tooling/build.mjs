@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
@@ -5,7 +6,7 @@ import { rm } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { compactJavaScript } from './lib/compact-javascript.mjs';
+import { compactJavaScript } from './compact-javascript.mjs';
 
 /** Keep language, environment and input policy in the package's TypeScript project. */
 export function packageBuildCommand(packageRoot, mode = 'production') {

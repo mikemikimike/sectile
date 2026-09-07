@@ -1,8 +1,9 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { assertCompatibleSource } from './source-metadata.mjs';
+import { root } from '../lib/repository.mjs';
 
-const packageRoot = resolve(import.meta.dirname, '..');
+const packageRoot = resolve(root, 'benchmarks/virtual-ecosystem');
 const expectedFamilies = Object.freeze(['flow-grid', 'masonry', 'track-grid', 'spatial']);
 const inputPaths = process.argv.slice(2).map((path) => resolve(path));
 const outputPath = resolve(packageRoot, 'results/chrome-151-macos-arm64-layouts.json');

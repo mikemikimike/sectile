@@ -414,18 +414,18 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "node ../../scripts/build.mjs production",
-    "build:verification": "node ../../scripts/build.mjs verification",
+    "build": "sectile-build production",
+    "build:verification": "sectile-build verification",
     "benchmark:collections": "pnpm --silent run build && node benchmarks/collection-reconciliation.mjs",
     "benchmark:chart": "pnpm --silent run build && node benchmarks/chart-reconciliation.mjs",
     "check:controlled-reconciliation": "node scripts/check-controlled-reconciliation.mjs",
     "check:hydration-contract": "node scripts/check-hydration-contract.mjs",
     "serve:browser-verification": "pnpm --silent run build && node scripts/serve-browser-verification.mjs",
-    "typecheck": "node node_modules/typescript/lib/tsc.js --project tsconfig.json --pretty false",
+    "typecheck": "tsc --project tsconfig.json --pretty false",
     "typecheck:public": "pnpm --silent run build && pnpm --silent run typecheck:public:prepared",
-    "typecheck:public:prepared": "tsc --project type-tests/tsconfig.json --pretty false && node ../../scripts/typecheck-sfc.mjs --project type-tests/tsconfig.vue.json --noEmit",
+    "typecheck:public:prepared": "tsc --project type-tests/tsconfig.json --pretty false && sectile-typecheck-sfc --project type-tests/tsconfig.vue.json --noEmit",
     "test": "pnpm --silent run build:verification && node --test --test-concurrency=4 tests/*.test.mjs",
-    "verify:reproducible-build": "node ../../scripts/check-reproducible-builds.mjs vue"
+    "verify:reproducible-build": "sectile-check-build"
   },
   "dependencies": {
     "@sectile/core": "workspace:^",
@@ -457,6 +457,7 @@
     }
   },
   "devDependencies": {
+    "@sectile/tooling": "workspace:*",
     "@sectile/chart": "workspace:*",
     "@sectile/form": "workspace:*",
     "@sectile/tabular": "workspace:*",

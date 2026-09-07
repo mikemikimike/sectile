@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { withArtifactSession } from './lib/artifact-session.mjs';
 import { boundedFailureOutput } from './lib/compact-process.mjs';
-import { execFilePortable, spawnSyncPortable } from './lib/portable-process.mjs';
+import { execFilePortable, spawnSyncPortable } from '../tools/tooling/portable-process.mjs';
 import {
   collectDependencyClosure,
   deriveAffectedSelection,
@@ -98,7 +98,9 @@ const includeDocumentation = compatibility
     || affectedSelection?.includeDocumentation === true;
 const buildDocumentationSite = includeDocumentation && (releaseRequested || !fullRepositoryVerification);
 const workspaceGates = new Set(exactRequested ? [] : affectedSelection?.workspaceGates ?? []);
-const dependencyClosure = collectDependencyClosure(selectedPackagesGraph(), selectedPackages, includeDocumentation);
+const verificationDependencies = new Set(selectedPackages);
+if (selectedPackages.has('@sectile/tabular')) verificationDependencies.add('@sectile/dom');
+const dependencyClosure = collectDependencyClosure(selectedPackagesGraph(), verificationDependencies, includeDocumentation);
 const modeLabel = compatibility
   ? 'runtime compatibility'
   : releaseRequested
@@ -118,7 +120,7 @@ const packagePipelines = Object.freeze({
   '@sectile/core': [
     'test', 'build', 'typecheck:public:prepared', 'check:contracts', 'check:public-api',
     'check:api-stability', 'check:semantic-api', 'check:laws', 'check:naming',
-    'check:layout', 'check:module-dag', 'check:import-boundaries', 'check:dist-boundary',
+    'check:layout', 'check:import-boundaries', 'check:dist-boundary',
     'check:subpaths', 'check:package', releaseRequested ? 'check:verification:determinism' : 'check:verification',
   ],
   '@sectile/chart': ['test', 'build', 'typecheck:public:prepared', 'check:laws', 'check:package'],
@@ -127,7 +129,7 @@ const packagePipelines = Object.freeze({
   ],
   '@sectile/temporal': ['test', 'build', 'check:laws', 'check:package'],
   '@sectile/virtual': ['test', 'build', 'typecheck:public:prepared', 'check:laws', 'check:package'],
-  '@sectile/tabular': ['test', 'build', 'check:laws', 'check:package', 'check:implementation'],
+  '@sectile/tabular': ['test', 'build', 'check:package'],
   '@sectile/dom': ['test', 'build', 'typecheck:public:prepared'],
   '@sectile/terminal': ['test', 'build', 'typecheck:public:prepared'],
   '@sectile/vue': [
@@ -182,8 +184,13 @@ function verificationSteps() {
   const result = fullRepositoryVerification
     ? fullPackageWaveSteps((name) => packagePipelines[name])
     : packageSteps((name) => packagePipelines[name]);
+  if (selectedPackages.has('@sectile/core')) {
+    result.push(commandStep('core:module-dag', 'Core module DAG', process.execPath, [join(root, 'scripts/check-core-module-dag.mjs')]));
+  }
   if (selectedPackages.has('@sectile/tabular')) {
-    result.push(packageScriptStep('tabular:virtual-witnesses', 'Tabular raw Virtual witnesses', '@sectile/tabular', ['test:virtual:witnesses']));
+    result.push(commandStep('tabular:laws', 'Tabular law coverage', process.execPath, [join(root, 'scripts/check-tabular-laws.mjs')]));
+    result.push(commandStep('tabular:virtual-witnesses', 'Tabular raw Virtual witnesses', process.execPath, ['--test', join(root, 'verification/cross-host/tabular-virtual.test.mjs')]));
+    result.push(commandStep('tabular:implementation', 'Tabular implementation evidence', process.execPath, [join(root, 'scripts/check-tabular-implementation.mjs')]));
   }
   const reproducibleBuilds = reproducibleBuildStep();
   if (reproducibleBuilds !== null) result.push(reproducibleBuilds);
@@ -197,7 +204,10 @@ function verificationSteps() {
   }
   if (includeDocumentation) {
     const documentationScripts = ['generate:check', 'typecheck', 'test'];
-    if (buildDocumentationSite) documentationScripts.push('build');
+    if (buildDocumentationSite) {
+      result.push(commandStep('documentation:assets', 'documentation benchmark assets', process.execPath, [join(root, 'scripts/virtual-benchmark/run.mjs'), 'docs', '--prepared']));
+      documentationScripts.push('build');
+    }
     result.push(packageScriptStep('documentation', 'documentation verification', '@sectile/docs', documentationScripts));
   }
   if (fullRepositoryVerification) result.push(...workspaceContractSteps({ includePerformance: releaseRequested }));
@@ -234,7 +244,7 @@ function publicationArtifactStep() {
 function compatibilitySteps() {
   const result = packageSteps(() => ['test', 'build']);
   if (selectedPackages.has('@sectile/tabular')) {
-    result.push(packageScriptStep('tabular:virtual-witnesses', 'Tabular raw Virtual witnesses', '@sectile/tabular', ['test:virtual:witnesses']));
+    result.push(commandStep('tabular:virtual-witnesses', 'Tabular raw Virtual witnesses', process.execPath, ['--test', join(root, 'verification/cross-host/tabular-virtual.test.mjs')]));
   }
   return result;
 }
@@ -314,6 +324,7 @@ function affectedWorkspaceContractSteps() {
   };
   add('cross-host', commandStep('cross-host', 'cross-host verification', process.execPath, ['--test', '--test-concurrency=1', ...crossHostTestPaths()]));
   add('tooling', commandStep('tooling', 'tooling verification', 'pnpm', ['test:tooling']));
+  add('workspace-boundaries', commandStep('workspace-boundaries', 'workspace boundaries', 'pnpm', ['check:boundaries']));
   add('semantic-authority', commandStep('semantic-authority', 'semantic authority', 'pnpm', ['check:semantic-authority']));
   add('complexity', commandStep('complexity', 'complexity contracts', 'pnpm', ['check:complexity']));
   add('algorithm-reuse', commandStep('algorithm-reuse', 'algorithm reuse inventory', 'pnpm', ['check:algorithm-reuse']));

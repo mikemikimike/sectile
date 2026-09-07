@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import virtualPackage from '../../../packages/virtual/package.json' with { type: 'json' };
-import viteConfig from '../vite.config.ts';
+import virtualPackage from '@sectile/virtual/package.json' with { type: 'json' };
+import viteConfig from '../../benchmarks/virtual-ecosystem/vite.config.ts';
 
-const resultRoot = new URL('../results/', import.meta.url);
+const resultRoot = new URL('../../benchmarks/virtual-ecosystem/results/', import.meta.url);
 
 async function readResult(name) {
   return JSON.parse(await readFile(new URL(name, resultRoot), 'utf8'));
@@ -45,7 +45,17 @@ test('committed results remain historical while fresh builds inject the workspac
     assert.deepEqual([...sectileVersions(report)], ['0.11.1']);
   }
 
-  assert.equal(JSON.parse(viteConfig.define.__SECTILE_VIRTUAL_VERSION__), virtualPackage.version);
+  const previous = process.env.SECTILE_BENCHMARK_SOURCE;
+  try {
+    delete process.env.SECTILE_BENCHMARK_SOURCE;
+    assert.throws(() => viteConfig({ command: 'build', mode: 'production' }), /supply build provenance/u);
+    process.env.SECTILE_BENCHMARK_SOURCE = JSON.stringify({ gitCommit: 'test', gitDirty: false, buildFingerprint: 'test' });
+    const config = viteConfig({ command: 'build', mode: 'production' });
+    assert.equal(JSON.parse(config.define.__SECTILE_VIRTUAL_VERSION__), virtualPackage.version);
+  } finally {
+    if (previous === undefined) delete process.env.SECTILE_BENCHMARK_SOURCE;
+    else process.env.SECTILE_BENCHMARK_SOURCE = previous;
+  }
 });
 
 function sectileVersions(value, versions = new Set()) {

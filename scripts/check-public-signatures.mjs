@@ -1,20 +1,18 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { collectPublicSignatures } from './lib/public-signatures.mjs';
+import { fileURLToPath } from 'node:url';
+import { syncPublicSignatures } from '../tools/tooling/public-signatures.mjs';
 import { publishedPackageDirectories } from './lib/published-packages.mjs';
+import { root } from './lib/repository.mjs';
 
-const packageDirectories = publishedPackageDirectories
-  .map((name) => resolve('packages', name));
-
-for (const packageDirectory of packageDirectories) {
-  const current = await collectPublicSignatures(packageDirectory);
-  const stored = JSON.parse(await readFile(resolve(packageDirectory, 'testing/public-signatures.json'), 'utf8'));
-  assert.equal(stored.schemaVersion, 3);
-  assert.equal(stored.package, current.package);
-  assert.deepEqual(stored.exports, current.exports);
-  assert.equal(stored.fingerprint, current.fingerprint);
-  assert.deepEqual(stored.files, current.files);
+async function main() {
+  const args = process.argv.slice(2).filter((arg) => arg !== '--');
+  const write = args.includes('--write');
+  const requested = args.filter((arg) => arg !== '--write').map((arg) => arg.replace(/^@sectile\//u, ''));
+  for (const name of requested) assert.ok(publishedPackageDirectories.includes(name), `Unknown package or option: ${name}`);
+  const selected = requested.length === 0 ? publishedPackageDirectories : [...new Set(requested)];
+  for (const name of selected) await syncPublicSignatures(resolve(root, 'packages', name), write);
+  console.log(`public signatures ${write ? 'updated' : 'passed'}: ${selected.length} packages`);
 }
 
-console.log(`public signatures passed: ${packageDirectories.length} packages`);
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();

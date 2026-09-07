@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-const root = new URL('../', import.meta.url);
+const root = new URL('../docs/', import.meta.url);
 
 async function source(path) {
   return readFile(new URL(path, root), 'utf8');
@@ -108,7 +108,7 @@ test('Virtual benchmark lab stays isolated and reuses docs controls', async () =
     source('benchmarks/virtual.md'),
     source('ko/benchmarks/virtual.md'),
     source('.vitepress/config.ts'),
-    source('.vitepress/virtual-benchmark-runner.ts'),
+    readFile(new URL('./virtual-benchmark/run.mjs', import.meta.url), 'utf8'),
   ]);
 
   for (const page of [englishPage, koreanPage]) {
@@ -199,25 +199,25 @@ test('Virtual benchmark lab stays isolated and reuses docs controls', async () =
   assert.match(report, /\.\.\.props\.baselineFailures/u);
   assert.match(report, /showHeading \? 'benchmark-report-title' : undefined/u);
   assert.match(report, /scenario\.value === 'mount'[\s\S]*mountEvidence/u);
-  assert.match(config, /plugins: \[virtualBenchmarkRunner\(\)\]/u);
+  assert.match(runnerPlugin, /docs\/public\/benchmark-runner/u);
   assert.doesNotMatch(config, /text: 'Benchmark', link: '\/benchmarks\/virtual', activeMatch: '\^\/benchmarks\/'/u);
   assert.match(config, /text: 'Benchmark lab', link: '\/benchmarks\/virtual'/u);
   assert.doesNotMatch(config, /text: '벤치마크', link: '\/ko\/benchmarks\/virtual', activeMatch: '\^\/ko\/benchmarks\/'/u);
   assert.match(config, /text: '벤치마크 실행', link: '\/ko\/benchmarks\/virtual'/u);
-  assert.match(runnerPlugin, /outDir: runnerOutput/u);
-  assert.match(runnerPlugin, /mode: 'production'/u);
-  assert.match(runnerPlugin, /'process\.env\.NODE_ENV': JSON\.stringify\('production'\)/u);
+  assert.match(runnerPlugin, /await cp\(join\(benchmarkRoot, 'dist'\), destination/u);
+  assert.match(runnerPlugin, /mode === 'dev' \? 'dev' : 'build'/u);
+  assert.match(runnerPlugin, /SECTILE_BENCHMARK_SOURCE: JSON.stringify\(benchmarkSourceMetadata\(\)\)/u);
 });
 
 test('Virtual benchmark runner routes each family and reports checkpoints', async () => {
   const [entry, listRunner, layoutRunner, mutationRunner, fixedAdapters, mutableAdapters, viteConfig] = await Promise.all([
-    readFile(new URL('../../benchmarks/virtual-ecosystem/src/main.ts', import.meta.url), 'utf8'),
-    readFile(new URL('../../benchmarks/virtual-ecosystem/src/list-runner.ts', import.meta.url), 'utf8'),
-    readFile(new URL('../../benchmarks/virtual-ecosystem/src/layout-runner.ts', import.meta.url), 'utf8'),
-    readFile(new URL('../../benchmarks/virtual-ecosystem/src/mutation-runner.ts', import.meta.url), 'utf8'),
-    readFile(new URL('../../benchmarks/virtual-ecosystem/src/adapters.tsx', import.meta.url), 'utf8'),
-    readFile(new URL('../../benchmarks/virtual-ecosystem/src/mutable-adapters.tsx', import.meta.url), 'utf8'),
-    readFile(new URL('../../benchmarks/virtual-ecosystem/vite.config.ts', import.meta.url), 'utf8'),
+    readFile(new URL('../benchmarks/virtual-ecosystem/src/main.ts', import.meta.url), 'utf8'),
+    readFile(new URL('../benchmarks/virtual-ecosystem/src/list-runner.ts', import.meta.url), 'utf8'),
+    readFile(new URL('../benchmarks/virtual-ecosystem/src/layout-runner.ts', import.meta.url), 'utf8'),
+    readFile(new URL('../benchmarks/virtual-ecosystem/src/mutation-runner.ts', import.meta.url), 'utf8'),
+    readFile(new URL('../benchmarks/virtual-ecosystem/src/adapters.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../benchmarks/virtual-ecosystem/src/mutable-adapters.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../benchmarks/virtual-ecosystem/vite.config.ts', import.meta.url), 'utf8'),
   ]);
 
   assert.match(entry, /if \(isLayoutBenchmarkFamily\(family\)\) void import\('\.\/layout-runner\.js'\)/u);

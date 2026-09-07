@@ -2,7 +2,6 @@ import { defineConfig, type DefaultTheme } from 'vitepress';
 import catalog from '../data/components.json' with { type: 'json' };
 import { componentSections } from '../data/component-sections.js';
 import { vueTemplateFencePlugin } from './markdown/vue-template-fences.mjs';
-import { virtualBenchmarkRunner } from './virtual-benchmark-runner.js';
 
 const base = '/sectile/';
 const markdownHighlightCache = new Map<string, string>();
@@ -447,7 +446,6 @@ export default defineConfig({
     },
   },
   vite: {
-    plugins: [virtualBenchmarkRunner()],
     ssr: {
       noExternal: ['@xterm/xterm', '@xterm/addon-fit'],
     },

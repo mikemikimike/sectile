@@ -1,4 +1,4 @@
-import { spawnSyncPortable } from './portable-process.mjs';
+import { spawnSyncPortable } from '../../tools/tooling/portable-process.mjs';
 
 const failureOutputLimit = 24 * 1_024;
 

@@ -3,7 +3,7 @@ import { mkdtemp, readFile, readdir, rm, stat } from 'node:fs/promises';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { publishedPackageDirectories } from './published-packages.mjs';
-import { execFileSyncPortable } from './portable-process.mjs';
+import { execFileSyncPortable } from '../../tools/tooling/portable-process.mjs';
 
 export const packageNames = publishedPackageDirectories;
 

@@ -8,17 +8,7 @@
     "jsx": "react-jsx",
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["vite/client"],
-    "paths": {
-      "@sectile/vue/virtual/list": ["../../packages/vue/src/virtual-list.ts"],
-      "@sectile/vue/virtual/grid": ["../../packages/vue/src/virtual-grid.ts"],
-      "@sectile/vue/virtual/masonry": ["../../packages/vue/src/virtual-masonry.ts"],
-      "@sectile/vue/virtual/spatial": ["../../packages/vue/src/virtual-spatial.ts"],
-      "@sectile/vue/virtual/core": ["../../packages/vue/src/virtual-core.ts"],
-      "@sectile/dom/virtual": ["../../packages/dom/src/virtual.ts"],
-      "@sectile/virtual": ["../../packages/virtual/src/index.ts"],
-      "@sectile/virtual/*": ["../../packages/virtual/src/*.ts"]
-    }
+    "types": ["vite/client"]
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": ["src/**/*.test.ts"]

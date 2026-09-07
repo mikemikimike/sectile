@@ -4,6 +4,10 @@ export function deriveAffectedSelection(graph, changedFiles) {
   let includeDocumentation = false;
 
   for (const path of changedFiles) {
+    if (path.startsWith('tools/tooling/')) {
+      for (const entry of graph.packages) directPackages.add(entry.name);
+      includeDocumentation = true;
+    }
     if (path === 'docs' || path.startsWith('docs/')) includeDocumentation = true;
     const entry = packageEntryForPath(graph, path);
     if (entry === null) continue;
@@ -40,6 +44,7 @@ export function deriveAffectedWorkspaceGates(changedFiles, selectedPackages) {
     path === 'package.json'
     || path === 'pnpm-lock.yaml'
     || path.startsWith('scripts/')
+    || path.startsWith('tools/')
     || path.startsWith('verification/performance/')
   ));
   const publicSurfaceChanged = changedFiles.some((path) => (
@@ -48,6 +53,10 @@ export function deriveAffectedWorkspaceGates(changedFiles, selectedPackages) {
   ));
 
   if (toolingChanged) gates.add('tooling');
+  if (changedFiles.some((path) => (
+    /^(?:packages|benchmarks|docs|tools)\/.*\.(?:json|[cm]?js|[cm]?ts|tsx|vue)$/u.test(path)
+    || path === 'scripts/check-workspace-boundaries.mjs'
+  ))) gates.add('workspace-boundaries');
   if (sourceChanged) {
     gates.add('semantic-authority');
     gates.add('algorithm-reuse');

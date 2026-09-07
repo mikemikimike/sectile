@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join, relative, resolve } from 'node:path';
-import { spawnSyncPortable } from '../../scripts/lib/portable-process.mjs';
+import { spawnSyncPortable } from '../../tools/tooling/portable-process.mjs';
 import { packInstalledDependencyClosure } from './local-dependency-closure.mjs';
 
 const root = resolve(import.meta.dirname, '..', '..');

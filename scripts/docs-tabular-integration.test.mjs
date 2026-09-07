@@ -2,12 +2,12 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
+const read = (path) => readFile(new URL(`../docs/${path}`, import.meta.url), 'utf8');
 
 test('workspace verification prepares package outputs before local documentation tasks', async () => {
   const [packageJSON, workspaceVerifier] = await Promise.all([
     read('package.json').then(JSON.parse),
-    readFile(new URL('../../scripts/verify.mjs', import.meta.url), 'utf8'),
+    readFile(new URL('./verify.mjs', import.meta.url), 'utf8'),
   ]);
   assert.equal(packageJSON.scripts.prebuild, undefined);
   assert.equal(packageJSON.scripts.predev, undefined);

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { spawnSyncPortable } from '../../../scripts/lib/portable-process.mjs';
+import { spawnSyncPortable } from '@sectile/tooling/portable-process';
 
 const first = spawnSyncPortable('pnpm', ['--silent', 'run', 'test:model'], { stdio: 'inherit' });
 assert.equal(first.status, 0);

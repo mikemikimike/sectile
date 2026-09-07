@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
-import { verifyReproducibleBuild } from './lib/reproducible-build.mjs';
+import { verifyReproducibleBuild } from '../tools/tooling/reproducible-build.mjs';
 import { root } from './lib/repository.mjs';
 import { loadPublishedPackageGraph } from './lib/workspace-graph.mjs';
 

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
-import { execFilePortable } from '../../scripts/lib/portable-process.mjs';
+import { execFilePortable } from '../../tools/tooling/portable-process.mjs';
 import { packInstalledDependencyClosure } from './local-dependency-closure.mjs';
 
 const root = resolve(import.meta.dirname, '..', '..');

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createDataGrid } from '@sectile/dom/tabular';
 import { createVirtualizer } from '@sectile/dom/virtual';
-import { createDataGridVirtualAdapter } from '../../.verification-dist/virtual.js';
+import { createDataGridVirtualAdapter } from '@sectile/tabular/virtual';
 
 const columns = [
   { id: 'name', capabilities: ['edit'] },

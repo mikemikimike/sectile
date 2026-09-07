@@ -2,5 +2,6 @@ packages:
   - packages/*
   - benchmarks/*
   - docs
+  - tools/*
 allowBuilds:
   esbuild: true

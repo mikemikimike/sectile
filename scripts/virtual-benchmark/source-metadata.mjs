@@ -2,13 +2,12 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { relative, resolve, sep } from 'node:path';
+import { root as repoRoot } from '../lib/repository.mjs';
 
-const benchmarkRoot = resolve(import.meta.dirname, '..');
-const repoRoot = resolve(benchmarkRoot, '../..');
 const sourcePaths = Object.freeze([
   'benchmarks/virtual-ecosystem/package.json',
   'benchmarks/virtual-ecosystem/vite.config.ts',
-  'benchmarks/virtual-ecosystem/scripts/source-metadata.mjs',
+  'scripts/virtual-benchmark/source-metadata.mjs',
   'benchmarks/virtual-ecosystem/src',
   'packages/dom/src/virtual.ts',
   'packages/virtual/package.json',

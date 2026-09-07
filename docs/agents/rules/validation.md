@@ -56,8 +56,9 @@ For each coherent batch execute only:
 2. `git diff --check`.
 
 Production builds use the package's `tsconfig.json` through the shared
-`scripts/build.mjs` runner and own implementation typechecking. A package with
-a distinct production input set expresses only that difference in an inherited
+`sectile-build` binary from its declared `@sectile/tooling` development dependency.
+These builds own implementation typechecking. A package with a distinct
+production input set expresses only that difference in an inherited
 `tsconfig.build.json` overlay; language and environment policy stay in the
 package project.
 Static source inspection and validation-code authoring may continue. Do not run

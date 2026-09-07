@@ -29,6 +29,9 @@ importers:
       '@sectile/terminal':
         specifier: workspace:*
         version: link:packages/terminal
+      '@sectile/tooling':
+        specifier: workspace:*
+        version: link:tools/tooling
       '@sectile/virtual':
         specifier: workspace:*
         version: link:packages/virtual
@@ -47,6 +50,9 @@ importers:
       '@sectile/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@sectile/dom':
+        specifier: workspace:*
+        version: link:../../packages/dom
       '@sectile/virtual':
         specifier: workspace:*
         version: link:../../packages/virtual
@@ -145,6 +151,9 @@ importers:
         specifier: ^3.5.22
         version: 3.5.41(typescript@6.0.3)
     devDependencies:
+      '@sectile/tooling':
+        specifier: workspace:*
+        version: link:../tools/tooling
       '@types/node':
         specifier: 26.2.0
         version: 26.2.0
@@ -176,12 +185,18 @@ importers:
         specifier: workspace:^
         version: link:../core
     devDependencies:
+      '@sectile/tooling':
+        specifier: workspace:*
+        version: link:../../tools/tooling
       typescript:
         specifier: 7.0.2
         version: 7.0.2
 
   packages/core:
     devDependencies:
+      '@sectile/tooling':
+        specifier: workspace:*
+        version: link:../../tools/tooling
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -204,6 +219,9 @@ importers:
       '@sectile/temporal':
         specifier: workspace:*
         version: link:../temporal
+      '@sectile/tooling':
+        specifier: workspace:*
+        version: link:../../tools/tooling
       '@sectile/virtual':
         specifier: workspace:*
         version: link:../virtual
@@ -220,6 +238,9 @@ importers:
         specifier: workspace:^
         version: link:../core
     devDependencies:
+      '@sectile/tooling':
+        specifier: workspace:*
+        version: link:../../tools/tooling
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -230,6 +251,9 @@ importers:
         specifier: workspace:^
         version: link:../core
     devDependencies:
+      '@sectile/tooling':
+        specifier: workspace:*
+        version: link:../../tools/tooling
       '@sectile/virtual':
         specifier: workspace:*
         version: link:../virtual
@@ -243,6 +267,9 @@ importers:
         specifier: workspace:^
         version: link:../core
     devDependencies:
+      '@sectile/tooling':
+        specifier: workspace:*
+        version: link:../../tools/tooling
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -256,6 +283,9 @@ importers:
         specifier: workspace:^
         version: link:../temporal
     devDependencies:
+      '@sectile/tooling':
+        specifier: workspace:*
+        version: link:../../tools/tooling
       '@types/node':
         specifier: 26.2.0
         version: 26.2.0
@@ -272,6 +302,9 @@ importers:
       '@chenglou/pretext':
         specifier: 0.0.8
         version: 0.0.8
+      '@sectile/tooling':
+        specifier: workspace:*
+        version: link:../../tools/tooling
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -297,6 +330,9 @@ importers:
       '@sectile/temporal':
         specifier: workspace:*
         version: link:../temporal
+      '@sectile/tooling':
+        specifier: workspace:*
+        version: link:../../tools/tooling
       '@sectile/virtual':
         specifier: workspace:*
         version: link:../virtual
@@ -321,6 +357,15 @@ importers:
       vue-tsc:
         specifier: ^3.0.6
         version: 3.3.11(typescript@7.0.2)
+
+  tools/tooling:
+    dependencies:
+      esbuild:
+        specifier: 0.21.5
+        version: 0.21.5
+      terser:
+        specifier: 5.51.2
+        version: 5.51.2
 
 packages:
 

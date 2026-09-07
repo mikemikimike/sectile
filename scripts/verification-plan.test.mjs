@@ -20,6 +20,7 @@ test('runtime package changes expand through reverse workspace dependencies', ()
   assert.deepEqual(new Set(selection.selectedPackages), new Set(['@sectile/chart', '@sectile/dom', '@sectile/vue']));
   assert.deepEqual(selection.runtimePackages, ['@sectile/chart']);
   assert.deepEqual(new Set(selection.workspaceGates), new Set([
+    'workspace-boundaries',
     'semantic-authority',
     'algorithm-reuse',
     'public-signatures',
@@ -32,6 +33,14 @@ test('tooling-only changes select tooling without pulling packages', () => {
   const selection = deriveAffectedSelection(graph, ['scripts/verify.mjs']);
   assert.deepEqual(selection.selectedPackages, []);
   assert.deepEqual(selection.workspaceGates, ['tooling']);
+});
+
+test('shared tooling changes verify consumers and workspace ownership', () => {
+  const selection = deriveAffectedSelection(graph, ['tools/tooling/build.mjs']);
+  assert.deepEqual(new Set(selection.selectedPackages), new Set(graph.packages.map(({ name }) => name)));
+  assert.equal(selection.includeDocumentation, true);
+  assert.ok(selection.workspaceGates.includes('tooling'));
+  assert.ok(selection.workspaceGates.includes('workspace-boundaries'));
 });
 
 test('host source changes add cross-host verification', () => {

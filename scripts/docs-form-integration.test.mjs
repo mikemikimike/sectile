@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-const docsRoot = new URL('../', import.meta.url);
-const repositoryRoot = new URL('../../', import.meta.url);
+const docsRoot = new URL('../docs/', import.meta.url);
+const repositoryRoot = new URL('../', import.meta.url);
 const readDocs = (path) => readFile(new URL(path, docsRoot), 'utf8');
 const readRepository = (path) => readFile(new URL(path, repositoryRoot), 'utf8');
 

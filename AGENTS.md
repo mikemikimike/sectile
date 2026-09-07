@@ -86,3 +86,43 @@ the narrowest relevant package production build and `git diff --check`;
 production builds own implementation typechecking. Defer running tests,
 performance and heap measurements, bundle and install gates, browser checks,
 generated inventories and docs, and baseline recording to close.
+
+### Tooling ownership
+
+Before adding a permanent configuration or executable script, inspect its
+existing owner, package commands, and nearby shared implementations. Extend that
+owner first. A new file needs a distinct compiler environment, input boundary,
+semantic responsibility, or process/resource isolation requirement; record that
+reason and its caller in the work item. A component or issue name by itself is
+not such a boundary.
+
+Package-local configuration, source, tests and commands reference local files
+or the public exports/binaries of declared dependencies. This boundary applies
+to every workspace package, including documentation, benchmarks and tools.
+Cross-package filesystem inspection, report collection and application build
+composition are owned and invoked by the repository root. Package commands do
+not call upwards scripts, use root-command trampolines, or bypass dependencies
+with sibling source aliases. This is a durable repository boundary, not a
+restriction on ordinary relative imports within one package.
+
+Shared compiler policy and package-local build/verification operations belong
+to the private `@sectile/tooling` development dependency. Consumers use its
+configuration export and binaries; it resolves the caller's declared compiler
+and operates on explicit caller-owned inputs and outputs. The tooling package
+has no product-package dependency or publication surface. Environment and source
+inputs stay in each package's `tsconfig.json`; production input overlays inherit
+it and state only the input difference. Public declaration fixtures share the
+owning package's `type-tests` project and consume published subpaths. Vue SFC
+fixtures use their compiler entry and consumer configuration.
+
+Repository-wide operations have one implementation under root `scripts/`;
+package-local scripts own genuinely distinct local checks. Check and explicit
+update modes share their collector and validation owner; checks remain
+read-only. Keep separate workers for actual resource or lifecycle isolation.
+Temporary investigations and one-off migration helpers belong in ignored output.
+
+A tooling change updates callers and removes superseded entrypoints together.
+Preserve meaningful fixtures, failure propagation and package boundaries. Prove
+effective compiler settings and resulting artifacts rather than requiring an
+option to be copied into a particular file. File counts are reporting evidence,
+not fixed architecture quotas.

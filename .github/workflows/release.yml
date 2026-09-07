@@ -51,6 +51,8 @@ jobs:
           retention-days: 7
       - name: Build release documentation dependencies
         run: pnpm --recursive --workspace-concurrency=1 --filter @sectile/docs^... build
+      - name: Prepare release documentation benchmark assets
+        run: node scripts/virtual-benchmark/run.mjs docs --prepared
       - name: Build release documentation
         run: pnpm --filter @sectile/docs build
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
@@ -85,7 +87,7 @@ jobs:
             scripts/lib/npm-registry-artifact.mjs \
             scripts/lib/npm-publish-auth.mjs \
             scripts/lib/packed-package-contract.mjs \
-            scripts/lib/portable-process.mjs \
+            tools/tooling/portable-process.mjs \
             scripts/lib/published-packages.mjs \
             scripts/lib/release.mjs \
             scripts/lib/release-set.mjs \

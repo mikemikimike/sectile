@@ -172,11 +172,11 @@ export function renderCoreModuleDAG(graph) {
 }
 
 export function validateGeneratedArtifacts(graph, storedGraph, storedDocumentation) {
-  assert.deepEqual(storedGraph, graph, 'Core module DAG drifted; run pnpm --filter @sectile/core update:module-dag');
+  assert.deepEqual(storedGraph, graph, 'Core module DAG drifted; run pnpm update:module-dag');
   assert.equal(
     normalizeText(storedDocumentation),
     renderCoreModuleDAG(graph),
-    'Core module DAG documentation drifted; run pnpm --filter @sectile/core update:module-dag',
+    'Core module DAG documentation drifted; run pnpm update:module-dag',
   );
 }
 

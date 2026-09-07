@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
+import domManifest from '@sectile/dom/package.json' with { type: 'json' };
 
 const readPackage = async (relativePath) => JSON.parse(await readFile(new URL(relativePath, import.meta.url), 'utf8'));
 
 test('Vue exposes every public DOM component family', async () => {
   const [domPackage, vuePackage] = await Promise.all([
-    readPackage('../../dom/package.json'),
+    domManifest,
     readPackage('../package.json'),
   ]);
   const ignored = new Set(['.', './package.json', './form', './identity', './position', './presence', './tabular', './virtual']);

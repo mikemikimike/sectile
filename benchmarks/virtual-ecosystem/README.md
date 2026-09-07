@@ -47,8 +47,10 @@ Initial-render failures are recorded per round and do not abort the remaining li
 
 ## Run
 
+Run the commands below from the repository root. The root prepares published workspace exports and supplies source provenance to the benchmark package; the package builds only its own inputs and output.
+
 ```sh
-pnpm --filter @sectile/benchmark-virtual-ecosystem dev
+pnpm dev:benchmark
 ```
 
 Open the printed URL in Chrome and choose **Run benchmark**. Commit raw results only with the browser version, operating system, viewport, package versions, and conditions emitted by the page.
@@ -87,11 +89,11 @@ Keep the browser otherwise idle and run these shards sequentially. Parallel brow
 Merge the uniform and heterogeneous baseline shards, then commit that complete baseline observation independently:
 
 ```sh
-pnpm --filter @sectile/benchmark-virtual-ecosystem merge-shards \
+pnpm benchmark:merge-shards \
   /tmp/sectile-virtual-baselines.json \
   /tmp/sectile-virtual-baseline-uniform.json \
   /tmp/sectile-virtual-baseline-heterogeneous.json
-node benchmarks/virtual-ecosystem/scripts/commit-results.mjs \
+node scripts/virtual-benchmark/commit-results.mjs \
   --baseline-only \
   /tmp/sectile-virtual-baselines.json
 ```
@@ -101,7 +103,7 @@ The historical 0.11.1 baseline is stored in `results/chrome-151-macos-arm64-base
 Commit the four completed non-list sessions together. The command rejects missing families, mixed source fingerprints, non-standard item counts, and any Sectile correctness failure:
 
 ```sh
-pnpm --filter @sectile/benchmark-virtual-ecosystem commit-layout-results \
+pnpm benchmark:commit-layout-results \
   /tmp/sectile-flow-grid-session.json \
   /tmp/sectile-masonry-session.json \
   /tmp/sectile-track-grid-session.json \
@@ -119,7 +121,7 @@ If one baseline library exceeds the browser session limit, keep all 40 recorded 
 Merge that focused report into the matching mutation entry while preserving every other committed result:
 
 ```sh
-node benchmarks/virtual-ecosystem/scripts/commit-results.mjs --merge-mutations /tmp/sectile-virtual-benchmark.json
+node scripts/virtual-benchmark/commit-results.mjs --merge-mutations /tmp/sectile-virtual-benchmark.json
 ```
 
 Mutation merge keys include `rowProfile`, so uniform and heterogeneous shards cannot overwrite one another.

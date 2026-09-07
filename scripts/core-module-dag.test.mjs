@@ -9,7 +9,7 @@ import {
   validateGeneratedArtifacts,
   validateNoCycles,
   validatePublicSubpaths,
-} from '../packages/core/scripts/lib/core-module-dag.mjs';
+} from './lib/core-module-dag.mjs';
 
 const manifest = JSON.parse(await readFile('verification/core-layers/manifest.json', 'utf8'));
 

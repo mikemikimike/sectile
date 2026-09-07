@@ -66,7 +66,7 @@ test('release retries prepare tagged artifacts and load the complete current pub
     'scripts/lib/npm-registry-artifact.mjs',
     'scripts/lib/npm-publish-auth.mjs',
     'scripts/lib/packed-package-contract.mjs',
-    'scripts/lib/portable-process.mjs',
+    'tools/tooling/portable-process.mjs',
     'scripts/lib/published-packages.mjs',
     'scripts/lib/release.mjs',
     'scripts/lib/release-set.mjs',

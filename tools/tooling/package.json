@@ -1,0 +1,24 @@
+{
+  "name": "@sectile/tooling",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./build": "./build.mjs",
+    "./portable-process": "./portable-process.mjs",
+    "./public-signatures": "./public-signatures.mjs",
+    "./reproducible-build": "./reproducible-build.mjs",
+    "./tsconfig.base.json": "./tsconfig.base.json",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "sectile-build": "./build.mjs",
+    "sectile-check-build": "./reproducible-build.mjs",
+    "sectile-check-signatures": "./public-signatures.mjs",
+    "sectile-typecheck-sfc": "./typecheck-sfc.mjs"
+  },
+  "dependencies": {
+    "esbuild": "0.21.5",
+    "terser": "5.51.2"
+  }
+}

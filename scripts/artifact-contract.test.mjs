@@ -48,17 +48,20 @@ test('runtime tests consume verification artifacts instead of production dist', 
   assert.deepEqual(offenders, []);
 });
 
-test('package script entrypoints resolve inside the repository', async () => {
+test('package script entrypoints are local or declared tooling binaries', async () => {
   const { access } = await import('node:fs/promises');
   const { relative, resolve } = await import('node:path');
   for (const directory of publishedPackageDirectories) {
     const packageRoot = join(root, 'packages', directory);
     const manifest = await readJSON(join(packageRoot, 'package.json'));
+    assert.equal(manifest.devDependencies['@sectile/tooling'], 'workspace:*');
+    assert.equal(manifest.dependencies?.['@sectile/tooling'], undefined);
+    assert.equal(manifest.peerDependencies?.['@sectile/tooling'], undefined);
     assert.equal(manifest.scripts.verify, undefined, `${manifest.name} owns a composite verify script`);
     for (const [task, command] of Object.entries(manifest.scripts)) {
       for (const match of command.matchAll(/(?:^|&&\s+)node\s+([^\s]+\.mjs)\b/gu)) {
         const entry = resolve(packageRoot, match[1]);
-        assert.equal(relative(root, entry).startsWith('..'), false, `${manifest.name} ${task}`);
+        assert.equal(relative(packageRoot, entry).startsWith('..'), false, `${manifest.name} ${task}`);
         await access(entry);
       }
     }
@@ -93,7 +96,7 @@ test('workspace verification reuses package build artifacts instead of repeating
 
 test('package build modes share effective source policy and isolate their outputs', async () => {
   const { spawnSync } = await import('node:child_process');
-  const { packageBuildCommand, readBuildConfig } = await import('./build.mjs');
+  const { packageBuildCommand, readBuildConfig } = await import('@sectile/tooling/build');
   for (const directory of publishedPackageDirectories) {
     const packageRoot = join(root, 'packages', directory);
     const command = packageBuildCommand(packageRoot);
@@ -127,8 +130,10 @@ test('shared package builder preserves other outputs and fails closed on invalid
   await mkdir(join(root, '.tmp'), { recursive: true });
   const fixture = await mkdtemp(join(root, '.tmp', 'build-contract-'));
   const compiler = createRequire(join(root, 'packages/core/package.json')).resolve('typescript/package.json');
+  const tooling = createRequire(import.meta.url).resolve('@sectile/tooling/package.json');
   const run = (...args) => {
-    const result = spawnSync(process.execPath, [join(root, 'scripts/build.mjs'), ...args], {
+    const entry = createRequire(join(fixture, 'package.json')).resolve('@sectile/tooling/build');
+    const result = spawnSync(process.execPath, [entry, ...args], {
       cwd: fixture, encoding: 'utf8', timeout: 30_000,
     });
     assert.ifError(result.error);
@@ -141,11 +146,12 @@ test('shared package builder preserves other outputs and fails closed on invalid
   };
   try {
     await mkdir(join(fixture, 'src/internal/reference'), { recursive: true });
-    await mkdir(join(fixture, 'node_modules'), { recursive: true });
+    await mkdir(join(fixture, 'node_modules/@sectile'), { recursive: true });
     await symlink(dirname(compiler), join(fixture, 'node_modules/typescript'), 'junction');
-    await writeFile(join(fixture, 'package.json'), JSON.stringify({ name: '@sectile/build-fixture', type: 'module' }));
+    await symlink(dirname(tooling), join(fixture, 'node_modules/@sectile/tooling'), 'junction');
+    await writeFile(join(fixture, 'package.json'), JSON.stringify({ name: '@sectile/build-fixture', type: 'module', devDependencies: { '@sectile/tooling': 'workspace:*', typescript: '7.0.2' } }));
     await writeFile(join(fixture, 'tsconfig.json'), JSON.stringify({
-      extends: join(root, 'tsconfig.base.json'),
+      extends: '@sectile/tooling/tsconfig.base.json',
       compilerOptions: { noEmit: true, lib: ['ES2022'] }, include: ['src/**/*.ts'],
     }));
     await writeFile(join(fixture, 'tsconfig.build.json'), JSON.stringify({
@@ -189,4 +195,41 @@ test('Vue tests use managed Happy DOM windows', async () => {
   assert.match(helper, /__VUE_DEVTOOLS_GLOBAL_HOOK__/u);
   assert.match(helper, /happyDOM\.abort\(\)/u);
   assert.match(helper, /happyDOM\.close\(\)/u);
+});
+
+test('package ownership accepts local files and rejects upwards imports, commands and configs', async () => {
+  const { assertPackageCommand, assertPackageSource } = await import('./check-workspace-boundaries.mjs');
+  const owner = join(root, '.tmp/ownership-fixture');
+  for (const command of ['node scripts/check.mjs', 'sectile-build production', 'tsc -p tsconfig.json']) assertPackageCommand(command);
+  for (const command of ['node ../scripts/check.mjs', 'pnpm --filter @sectile/core build', 'pnpm -w build']) {
+    assert.throws(() => assertPackageCommand(command), /outside|orchestration/u);
+  }
+  assertPackageSource(owner, join(owner, 'src/nested/index.ts'), "import '../local.js'; import '@sectile/core/result';");
+  for (const source of [
+    "import '../../other/src/index.js';",
+    "readFile(new URL('../../policy.json', import.meta.url));",
+    '{"extends":"../../tsconfig.json"}',
+    "resolve(import.meta.dirname, '../../shared/check.mjs');",
+  ]) assert.throws(() => assertPackageSource(owner, join(owner, 'src/index.ts'), source), /outside package/u);
+});
+
+test('public signature checks are read-only and explicit updates share their collector', async () => {
+  const { mkdtemp, mkdir, writeFile, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { syncPublicSignatures } = await import('@sectile/tooling/public-signatures');
+  const fixture = await mkdtemp(join(tmpdir(), 'sectile-signature-'));
+  try {
+    await mkdir(join(fixture, 'dist'));
+    await writeFile(join(fixture, 'package.json'), JSON.stringify({ name: '@fixture/consumer', exports: { '.': { types: './dist/index.d.ts' } } }));
+    await writeFile(join(fixture, 'dist/index.d.ts'), 'export declare const value: number;\n');
+    await syncPublicSignatures(fixture, true);
+    const path = join(fixture, 'testing/public-signatures.json');
+    const stored = await readFile(path, 'utf8');
+    await syncPublicSignatures(fixture);
+    await writeFile(join(fixture, 'dist/index.d.ts'), 'export declare const value: string;\n');
+    await assert.rejects(syncPublicSignatures(fixture), /signature drift/u);
+    assert.equal(await readFile(path, 'utf8'), stored);
+    await syncPublicSignatures(fixture, true);
+    await syncPublicSignatures(fixture);
+  } finally { await rm(fixture, { recursive: true, force: true }); }
 });

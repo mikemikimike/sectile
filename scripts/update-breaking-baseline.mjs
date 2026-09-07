@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { collectPublicSignatureSurfaces, collectPublicSignatures } from './lib/public-signatures.mjs';
+import { collectPublicSignatureSurfaces, collectPublicSignatures } from '../tools/tooling/public-signatures.mjs';
 
 const packages = ['core', 'dom', 'form', 'tabular', 'temporal', 'terminal', 'virtual', 'vue'];
 const root = resolve('verification/breaking-changes');

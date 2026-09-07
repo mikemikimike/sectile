@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { collectPublicSignatureSurfaces } from './lib/public-signatures.mjs';
+import { collectPublicSignatureSurfaces } from '../tools/tooling/public-signatures.mjs';
 
 const packages = ['core', 'dom', 'form', 'tabular', 'temporal', 'terminal', 'virtual', 'vue'];
 if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

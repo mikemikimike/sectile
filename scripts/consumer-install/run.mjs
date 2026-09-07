@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { validateInstallBaseline } from './check.mjs';
 import { inspectPackedPackageDirectory } from '../lib/packed-package-contract.mjs';
-import { execFilePortable } from '../lib/portable-process.mjs';
+import { execFilePortable } from '../../tools/tooling/portable-process.mjs';
 import { publishedPackageDirectories } from '../lib/published-packages.mjs';
 
 const repoRoot = resolve('.');

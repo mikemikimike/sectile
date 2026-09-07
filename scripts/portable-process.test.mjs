@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { win32 } from 'node:path';
 import test from 'node:test';
-import { resolvePortableCommand } from './lib/portable-process.mjs';
+import { resolvePortableCommand } from '../tools/tooling/portable-process.mjs';
 
 test('Windows package-manager shims resolve to JavaScript CLIs', () => {
   const node = 'C:\\runtime\\node.exe';

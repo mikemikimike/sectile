@@ -9,7 +9,7 @@ import {
 } from './lib/packed-package-contract.mjs';
 import { completeNpmWebAuth, parseNpmWebAuthChallenge } from './lib/npm-publish-auth.mjs';
 import { assertRegistryArtifact, waitForRegistryArtifact } from './lib/npm-registry-artifact.mjs';
-import { execFileSyncPortable, spawnSyncPortable } from './lib/portable-process.mjs';
+import { execFileSyncPortable, spawnSyncPortable } from '../tools/tooling/portable-process.mjs';
 import { resolveExpectedReleaseTag } from './lib/release.mjs';
 import {
   isReleaseSetTag,

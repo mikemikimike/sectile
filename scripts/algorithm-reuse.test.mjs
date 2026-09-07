@@ -60,3 +60,30 @@ test('every downstream runtime work item retains the reuse ratchet', async () =>
   assert.equal(new Set(gates.workItems).size, 33);
   assert.equal(gates.workItems.length, 33);
 });
+
+test('reuse checks preserve stored evidence until an explicit update', async () => {
+  const { mkdir, mkdtemp, writeFile, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { syncAlgorithmReuse } = await import('./check-algorithm-reuse.mjs');
+  const { publishedPackageDirectories } = await import('./lib/published-packages.mjs');
+  const fixture = await mkdtemp(join(tmpdir(), 'sectile-reuse-'));
+  try {
+    for (const name of publishedPackageDirectories) await mkdir(join(fixture, 'packages', name, 'src'), { recursive: true });
+    await mkdir(join(fixture, 'verification/algorithm-reuse'), { recursive: true });
+    await mkdir(join(fixture, 'docs/engineering'), { recursive: true });
+    await writeFile(join(fixture, 'verification/algorithm-reuse/manifest.json'), JSON.stringify(manifest));
+    await writeFile(join(fixture, 'verification/algorithm-reuse/gates.json'), JSON.stringify({ schemaVersion: 1, command: 'pnpm check:algorithm-reuse', workItems: [] }));
+    await writeFile(join(fixture, 'package.json'), JSON.stringify({ scripts: { 'check:algorithm-reuse': 'node scripts/check-algorithm-reuse.mjs' } }));
+    await syncAlgorithmReuse(fixture, true);
+    await syncAlgorithmReuse(fixture);
+    const path = join(fixture, 'docs/engineering/algorithm-reuse.md');
+    const stored = await readFile(path, 'utf8');
+    await writeFile(path, `${stored}stale\n`);
+    await assert.rejects(syncAlgorithmReuse(fixture), /documentation drifted/u);
+    assert.equal(await readFile(path, 'utf8'), `${stored}stale\n`);
+    await syncAlgorithmReuse(fixture, true);
+    await syncAlgorithmReuse(fixture);
+    assert.equal(await readFile(path, 'utf8'), stored);
+  } finally { await rm(fixture, { recursive: true, force: true }); }
+});

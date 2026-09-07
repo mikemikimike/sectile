@@ -343,7 +343,7 @@ function createSectileTrackGridAdapter(mode: Extract<LayoutSizeMode, 'fixed' | '
             // Runtime refs are compatible; the nominal RefSymbol types are intentionally bridged at this adapter boundary.
             state: state as never,
             strategy: trackGridLayoutStrategy,
-            root: root as never,
+            scrollport: root as never,
             overscan: 288,
             initialViewport: { x: 0, y: 0, width: VIEWPORT_WIDTH, height: VIEWPORT_HEIGHT },
           });

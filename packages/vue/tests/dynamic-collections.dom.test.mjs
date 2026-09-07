@@ -225,6 +225,67 @@ for (const Root of [MenuRoot, MenuButtonRoot, MenubarRoot, NavigationMenuRoot]) 
   });
 }
 
+for (const Root of [MenuRoot, MenuButtonRoot, MenubarRoot, NavigationMenuRoot]) {
+  test(`Vue ${Root.name} projects cursor deltas without rediscovering registered parts`, async () => {
+    const items = Array.from({ length: 1_024 }, (_, index) => ({ id: `delta-${index}` }));
+    const content = () => items.map(({ id }) => h(MenuItem, { key: id, value: id }, { default: () => id }));
+    const invoked = [];
+    const { app, host } = mount(() => h(Root, {
+      items, defaultHighlightedValue: 'delta-0', onInvoke: (id) => invoked.push(id),
+      ...(Root === MenuButtonRoot ? { defaultOpen: true, position: false } : {}),
+    }, { default: () => Root === MenuButtonRoot
+      ? [h(MenuButtonTrigger), h(MenuButtonContent, null, { default: content })] : content(),
+    }));
+    try {
+      await settle();
+      const elements = [...host.querySelectorAll('[data-sectile-menu-id]')];
+      const root = elements[0].parentElement;
+      const query = root.querySelectorAll;
+      let discoveries = 0;
+      let attributeWrites = 0;
+      root.querySelectorAll = function (...args) { discoveries += 1; return query.apply(this, args); };
+      for (const element of elements) {
+        const setAttribute = element.setAttribute;
+        element.setAttribute = function (name, value) {
+          if (name === 'role' || name === 'aria-disabled') attributeWrites += 1;
+          return setAttribute.call(this, name, value);
+        };
+      }
+      const key = Root === MenubarRoot || Root === NavigationMenuRoot ? 'ArrowRight' : 'ArrowDown';
+      elements[0].dispatchEvent(new browserWindow.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+      await settle();
+      assert.equal(elements[0].tabIndex, -1);
+      assert.equal(elements[1].tabIndex, 0);
+      assert.equal(elements[1].hasAttribute('data-highlighted'), true);
+      assert.equal(discoveries, 0);
+      assert.equal(attributeWrites, 0);
+      elements.at(-1).click();
+      await settle();
+      assert.deepEqual(invoked, ['delta-1023']);
+      assert.equal(elements[1].tabIndex, -1);
+      assert.equal(elements.at(-1).tabIndex, -1);
+      assert.equal(discoveries, 0, 'click publication and presence completion do not scan parts');
+      assert.equal(attributeWrites, 0);
+    } finally { unmount(app, host); }
+  });
+}
+
+test('Vue menu registers a later-mounted item without a semantic refresh scan', async () => {
+  const show = ref(false);
+  const invoked = [];
+  const { app, host } = mount(() => h(MenuRoot, {
+    items: [{ id: 'first' }, { id: 'later' }], onInvoke: (id) => invoked.push(id),
+  }, { default: () => [h(MenuItem, { value: 'first' }), show.value ? h(MenuItem, { value: 'later' }) : null] }));
+  try {
+    await settle();
+    show.value = true;
+    await settle();
+    host.querySelector('[data-sectile-menu-id="later"]').click();
+    await settle();
+    assert.deepEqual(invoked, ['later']);
+  } finally { unmount(app, host); }
+});
+
 test('Vue menu unregisters a conditionally removed submenu from DOM ownership', async () => {
   const showSubmenu = ref(true);
   const items = [{ id: 'file', parentID: null }, { id: 'open', parentID: 'file' }];

@@ -23,7 +23,7 @@ type MenuKind = 'menu' | 'menu-button' | 'menubar' | 'navigation-menu';
 type MenuRegistrationConnection = Omit<MenuConnection<string>, 'setItemAttributes' | 'setSubmenuAttributes'> & {
   setItemAttributes(element: HTMLElement | undefined, id: string): void;
   setSubmenuAttributes(element: HTMLElement | undefined, parentID: string): void;
-  refresh(): void;
+  refresh(parentID?: string | null): void;
 };
 export interface MenuRootProps {
   readonly items: readonly MenuItemDefinition<string>[];
@@ -61,7 +61,7 @@ interface Context {
   registerTrigger(element?: HTMLElement): void;
   registerItem(element: HTMLElement | undefined, id: string): void;
   registerSubmenu(element: HTMLElement | undefined, parent: string): void;
-  refresh(): void;
+  refresh(parentID?: string): void;
 }
 interface ResolvedRootProps {
   readonly items: readonly MenuItemDefinition<string>[];
@@ -144,7 +144,6 @@ function createRoot<RootProps extends typeof commonProps | typeof menuButtonProp
       const refresh = (): void => {
         const snapshot = connection.value?.getSnapshot().state; if (snapshot === undefined) return;
         open.value = snapshot.open; highlighted.value = snapshot.cursor.current; openPath.value = snapshot.openPath;
-        refreshParts();
       };
       const refreshParts = (): void => {
         if (root.value === undefined || connection.value === undefined) return;
@@ -214,7 +213,7 @@ function createRoot<RootProps extends typeof commonProps | typeof menuButtonProp
       provide<Context>(key, {
         state, kind, label: computed(() => runtimeProps.label), disabledItems: computed(() => new Set(runtimeProps.disabledItems)), direction,
         position, strategy, registerRoot, registerTrigger,
-        refresh: () => (connection.value as MenuRegistrationConnection | undefined)?.refresh(),
+        refresh: (parentID) => (connection.value as MenuRegistrationConnection | undefined)?.refresh(parentID ?? null),
         registerItem: (element, id) => (connection.value as MenuRegistrationConnection | undefined)?.setItemAttributes(element, id),
         registerSubmenu: (element, parent) => (connection.value as MenuRegistrationConnection | undefined)?.setSubmenuAttributes(element, parent),
       });
@@ -300,7 +299,7 @@ export const MenuSubContent = defineComponent({
     const root = useRoot('MenuSubContent');
     const element = shallowRef<HTMLElement>();
     const open = computed(() => root.state.value.open && root.state.value.openPath.includes(props.for));
-    const present = useMenuPresence(open, element, root.refresh);
+    const present = useMenuPresence(open, element, () => root.refresh(props.for));
     return (): VNodeChild => {
       const exiting = !open.value && present.value;
       return h(Primitive, mergeProps(attrs, {

@@ -73,6 +73,126 @@ test('DOM menu item replacement preserves one host owner and unregisters the pre
   menu.disconnect();
 });
 
+test('DOM menu transitions project only changed cursor hosts at 1k, 10k, and 100k items', () => {
+  for (const size of [1_000, 10_000, 100_000]) {
+    const root = new FakeElement();
+    const items = Array.from({ length: size }, (_, id) => ({ id }));
+    const tabWrites = [];
+    const elements = items.map(({ id }) => {
+      const element = new CountingElement();
+      let tabIndex = -1;
+      Object.defineProperty(element, 'tabIndex', {
+        get: () => tabIndex,
+        set: (value) => { tabIndex = value; tabWrites.push([id, value]); },
+      });
+      return element;
+    });
+    const invoked = [];
+    const menu = createMenu({ root, items, defaultHighlightedValue: 0, onInvoke: (id) => invoked.push(id) });
+    try {
+      elements.forEach((element, id) => menu.setItemAttributes(element, id));
+      elements.forEach((element) => { element.projectionWrites = 0; });
+      tabWrites.length = 0;
+      menu.send('next');
+      assert.deepEqual(tabWrites, [[0, -1], [1, 0]]);
+      tabWrites.length = 0;
+      menu.send('previous');
+      assert.deepEqual(tabWrites, [[1, -1], [0, 0]]);
+      tabWrites.length = 0;
+      menu.send('first');
+      assert.deepEqual(tabWrites, []);
+      root.emit('click', { target: elements.at(-1), composedPath: () => [elements.at(-1), root] });
+      assert.deepEqual(invoked, [size - 1]);
+      assert.deepEqual(tabWrites, [[0, -1], [size - 1, 0], [size - 1, -1]]);
+      menu.refresh(null);
+      assert.equal(elements.reduce((sum, element) => sum + element.projectionWrites, 0), 0);
+      assert.equal(menu.state.cursor.current, null);
+    } finally { menu.destroy(); }
+  }
+});
+
+test('DOM menu path deltas match full reconciliation without visiting unrelated submenus', () => {
+  const items = [{ id: 'a' }, { id: 'nested', parentID: 'a' }, { id: 'leaf', parentID: 'nested' },
+    { id: 'sibling', parentID: 'a' }, { id: 'b' }, { id: 'b-leaf', parentID: 'b' }];
+  for (let index = 0; index < 64; index += 1) items.push({ id: `other-${index}` }, { id: `child-${index}`, parentID: `other-${index}` });
+  const create = () => {
+    const root = new FakeElement();
+    const trigger = new FakeElement();
+    const elements = new Map(items.map(({ id }) => [id, new CountingElement()]));
+    const surfaces = new Map();
+    const touched = new Set();
+    const menu = createMenuButton({ root, trigger, items, position: false });
+    for (const [id, element] of elements) menu.setItemAttributes(element, id);
+    for (const id of ['a', 'nested', 'b', ...Array.from({ length: 64 }, (_, index) => `other-${index}`)]) {
+      const surface = new FakeElement();
+      let hidden = false;
+      Object.defineProperty(surface, 'hidden', {
+        get: () => { touched.add(id); return hidden; },
+        set: (value) => { touched.add(id); hidden = value; },
+      });
+      surfaces.set(id, surface);
+      menu.setSubmenuAttributes(surface, id);
+    }
+    return { menu, root, trigger, elements, surfaces, touched };
+  };
+  const actual = create();
+  const reference = create();
+  try {
+    for (const event of ['open-popup', 'open-submenu', 'open-submenu', 'close-submenu',
+      { type: 'focus', id: 'b' }, 'open-submenu', 'close-popup', 'open-popup']) {
+      actual.touched.clear();
+      actual.menu.send(event);
+      assert.ok([...actual.touched].every((id) => !id.startsWith('other-')), 'unrelated position/visibility owners are untouched');
+      reference.menu.send(event);
+      reference.menu.refresh();
+      assert.deepEqual(actual.menu.getSnapshot(), reference.menu.getSnapshot());
+      assert.equal(actual.root.hidden, reference.root.hidden);
+      assert.deepEqual(actual.trigger.attributes, reference.trigger.attributes);
+      for (const [id, element] of actual.elements) {
+        const expected = reference.elements.get(id);
+        assert.equal(element.tabIndex, expected.tabIndex, id);
+        for (const attribute of ['role', 'aria-expanded', 'aria-disabled', 'aria-haspopup']) {
+          assert.equal(element.getAttribute(attribute), expected.getAttribute(attribute), `${id}: ${attribute}`);
+        }
+        if (actual.surfaces.has(id)) {
+          assert.equal(element.getAttribute('aria-controls'), actual.surfaces.get(id).id);
+          assert.equal(actual.surfaces.get(id).hidden, reference.surfaces.get(id).hidden, id);
+        }
+      }
+    }
+  } finally { actual.menu.destroy(); reference.menu.destroy(); }
+});
+
+test('DOM menu controlled publication and explicit host refresh preserve ownership and callback order', () => {
+  const root = new FakeElement();
+  const trigger = new FakeElement();
+  const first = new FakeElement();
+  const second = new FakeElement();
+  const trace = [];
+  let disabled = false;
+  const menu = createMenuButton({ root, trigger, open: false, position: false,
+    items: [{ id: 'first' }, { id: 'second' }], policies: { disabled: (id) => disabled && id === 'second' },
+    onOpenChange: (open) => { trace.push(`change:${open}`); menu.syncControlledValue(open); },
+    onUpdate: () => trace.push(`update:${menu.state.cursor.current}`),
+    onInvoke: (id) => { trace.push(`invoke:${id}`); assert.equal(root.hidden, true); assert.equal(second.tabIndex, -1); },
+  });
+  menu.setItemAttributes(first, 'first'); menu.setItemAttributes(second, 'second');
+  try {
+    menu.send('open-popup');
+    assert.equal(first.tabIndex, 0);
+    menu.send('next');
+    assert.equal(first.tabIndex, -1); assert.equal(second.tabIndex, 0);
+    trace.length = 0;
+    menu.send('invoke');
+    assert.deepEqual(trace, ['change:false', 'update:null', 'invoke:second', 'update:null']);
+    disabled = true;
+    second.setAttribute('role', 'presentation');
+    menu.refresh();
+    assert.equal(second.getAttribute('role'), 'menuitem');
+    assert.equal(second.getAttribute('aria-disabled'), 'true');
+  } finally { menu.destroy(); }
+});
+
 test('DOM menu click routing follows path depth at 1k, 10k, and 100k registrations', () => {
   const { window } = menuDOM(500, 300);
   for (const size of [1_000, 10_000, 100_000]) {

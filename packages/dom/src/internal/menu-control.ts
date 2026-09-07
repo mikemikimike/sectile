@@ -85,6 +85,7 @@ class DOMMenuControl<ID extends StableID> implements MenuControl<ID> {
   readonly #rootVisibility: HiddenBinding | undefined; readonly #submenuVisibility = new Map<ID, HiddenBinding>(); readonly #submenuIDs = new Map<ID, { readonly element: HTMLElement; readonly previous: string | null; readonly applied: string }>(); readonly #submenuControlIDs = new Map<ID, string>();
   #nextSubmenuID = 0;
   #pendingFocus: ID | undefined;
+  #projectedState: MenuState<ID> | undefined;
   readonly #keydown: (event: KeyboardEvent) => void; readonly #click: (event: MouseEvent) => void; readonly #triggerClick: () => void; readonly #instanceID: string; readonly #layer: DOMLayerBinding | undefined; readonly #popupPosition: PositionConnection | undefined; readonly #submenuPositions = new Map<ID, PositionConnection>();
   #typeaheadBuffer = ''; #lastTypeaheadAt = Number.NEGATIVE_INFINITY;
   public constructor(options: ResolvedMenuControlOptions<ID>, tree: Tree<ID>, runtime: ControlledComponentController<MenuState<ID>, MenuEvent<ID>, MenuCommand<ID>, boolean>, policies: MenuPolicies<ID>) {
@@ -129,7 +130,7 @@ class DOMMenuControl<ID extends StableID> implements MenuControl<ID> {
     const result = this.#runtime.syncControlledValue(open);
     if (result.ok) {
       if (!open) this.#pendingFocus = undefined;
-      this.#refresh(); this.#options.onUpdate?.();
+      this.#projectTransition(); this.#options.onUpdate?.();
     }
     return result;
   }
@@ -181,8 +182,14 @@ class DOMMenuControl<ID extends StableID> implements MenuControl<ID> {
     }
     this.#refresh();
   }
-  public handleEvent(event: MenuEvent<ID>): boolean { const result = this.#runtime.handle(event); if (result.ok) { this.#refresh(); for (const effect of result.commands) { if (effect.type === 'invoke') this.#options.onInvoke?.(effect.id); if (effect.type === 'focus') { this.#pendingFocus = effect.id; this.#focusPending(); } if (effect.type === 'restore-focus') { this.#pendingFocus = undefined; this.#options.trigger?.focus(); } } this.#options.onUpdate?.(); } return result.ok; }
-  public refresh(): void { this.#refresh(); }
+  public handleEvent(event: MenuEvent<ID>): boolean { const result = this.#runtime.handle(event); if (result.ok) { this.#projectTransition(); for (const effect of result.commands) { if (effect.type === 'invoke') this.#options.onInvoke?.(effect.id); if (effect.type === 'focus') { this.#pendingFocus = effect.id; this.#focusPending(); } if (effect.type === 'restore-focus') { this.#pendingFocus = undefined; this.#options.trigger?.focus(); } } this.#options.onUpdate?.(); } return result.ok; }
+  public refresh(parentID?: ID | null): void {
+    if (parentID === undefined) { this.#refresh(); return; }
+    // Renderer presence changes only this surface's geometry and focus readiness.
+    if (parentID === null) this.#popupPosition?.update();
+    else this.#submenuPositions.get(parentID)?.update();
+    this.#focusPending();
+  }
   public disconnect(): void {
     this.#layer?.disconnect();
     this.#popupPosition?.disconnect();
@@ -194,6 +201,7 @@ class DOMMenuControl<ID extends StableID> implements MenuControl<ID> {
     this.#options.root.removeEventListener('click', this.#click);
     this.#options.trigger?.removeEventListener('click', this.#triggerClick);
     this.#pendingFocus = undefined;
+    this.#projectedState = undefined;
     this.#elements.clear();
     this.#submenuControlIDs.clear();
   }
@@ -237,8 +245,43 @@ class DOMMenuControl<ID extends StableID> implements MenuControl<ID> {
     }
     element.tabIndex = state.cursor.current === id ? 0 : -1;
   }
+  #projectTransition(): void {
+    const state = this.getSnapshot().state;
+    const previous = this.#projectedState;
+    if (previous === undefined) { this.#refresh(); return; }
+    // Compare with the last host publication, including reentrant controlled sync.
+    this.#projectedState = state;
+    if (state.open && this.#pendingFocus !== undefined && state.cursor.current !== this.#pendingFocus) this.#pendingFocus = undefined;
+    if (previous.cursor.current !== state.cursor.current) {
+      const oldItem = previous.cursor.current === null ? undefined : this.#elements.get(previous.cursor.current);
+      const newItem = state.cursor.current === null ? undefined : this.#elements.get(state.cursor.current);
+      if (oldItem !== undefined) oldItem.tabIndex = -1;
+      if (newItem !== undefined) newItem.tabIndex = 0;
+    }
+    const before = previous.openPath;
+    const after = state.openPath;
+    let shared = 0;
+    while (shared < before.length && shared < after.length && before[shared] === after[shared]) shared += 1;
+    for (let index = shared; index < before.length; index += 1) this.#projectBranch(before[index] as ID, false);
+    for (let index = shared; index < after.length; index += 1) this.#projectBranch(after[index] as ID, true);
+    if (previous.open !== state.open) {
+      this.#rootVisibility?.setHidden(!state.open);
+      this.#options.trigger?.setAttribute('aria-expanded', String(state.open));
+      this.#layer?.sync();
+      this.#popupPosition?.update();
+    }
+    // Finish attribute publication before positioning can synchronously deliver focus.
+    for (let index = shared; index < before.length; index += 1) this.#submenuPositions.get(before[index] as ID)?.update();
+    for (let index = shared; index < after.length; index += 1) this.#submenuPositions.get(after[index] as ID)?.update();
+    this.#focusPending();
+  }
+  #projectBranch(id: ID, open: boolean): void {
+    this.#elements.get(id)?.setAttribute('aria-expanded', String(open));
+    this.#submenuVisibility.get(id)?.setHidden(!open);
+  }
   #refresh(): void {
     const state = this.getSnapshot().state;
+    this.#projectedState = state;
     if (state.open && this.#pendingFocus !== undefined && state.cursor.current !== this.#pendingFocus) this.#pendingFocus = undefined;
     this.#options.root.setAttribute('role', this.#options.kind === 'navigation-menu' ? 'navigation' : this.#options.kind === 'menubar' ? 'menubar' : 'menu');
     this.#options.root.setAttribute('dir', this.#options.direction ?? 'ltr');

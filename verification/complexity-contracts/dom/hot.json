@@ -473,6 +473,44 @@
       }
     },
     {
+      "id": "menu.transition-projection",
+      "inherits": "linear-v1",
+      "source": "packages/dom/src/internal/menu-control.ts",
+      "benchmarkIDs": ["VAL-009:dom-menu-transition-projection-work"],
+      "specificationCeiling": "O(1 + hPath) expected",
+      "contract": {
+        "variables": [
+          { "name": "hPath", "meaning": "combined lengths of the previous and current canonical open paths", "ceiling": "twice the canonical menu tree depth" }
+        ],
+        "time": { "bound": "O(1 + hPath)", "kind": "expected", "runtimeState": "connected" },
+        "space": { "auxiliary": "O(1)", "output": "O(1)", "retained": "O(hPath)" },
+        "resources": {
+          "allocations": "0 projection arrays or per-item snapshots",
+          "cacheEntries": "one last-published canonical state reference",
+          "listeners": "0 new listeners", "observers": "0", "timers": "0", "subscriptions": "0"
+        },
+        "assumptions": [
+          "The canonical tree and host policy configuration are stable between explicit full refreshes or connection replacement.",
+          "This bound covers DOM projection and affected position-connection selection. Core transitions, layer management, actual positioning, browser focus dispatch, application callbacks, and Vue rendering retain their separate contracts.",
+          "Canonical menu open paths are ancestor chains; differences after their common prefix identify the affected anchors and surfaces."
+        ],
+        "ceilings": [
+          "Cursor movement changes at most two registered tabIndex properties. A leaf click performs at most three cursor writes across focus and invocation.",
+          "Only changed open-path suffixes update aria-expanded, owned visibility, and position connections; root state updates only when open changes."
+        ],
+        "deterministicWork": [
+          "At 1000, 10000, and 100000 flat registrations, next and previous each write two tabIndex values and zero static item attributes; unchanged focus writes none.",
+          "Nested transition traces match deliberate full reconciliation while unrelated registered submenus receive no visibility reads or position updates.",
+          "All four Vue menu families perform zero part-discovery queries during navigation, invocation, and presence completion; later-mounted parts register through their refs."
+        ],
+        "resourceRationale": "The connection retains its last published immutable Core state, not a second item index or state machine. That reference is replaced on publication and cleared on disconnect. Renderer presence refresh selects only its root or submenu position and pending focus.",
+        "proof": "Event and controlled-sync publication compare the live canonical state with the last host publication. Cursor lookup is constant; one common-prefix scan plus two suffix loops visit only bounded paths. Explicit refresh retains full host reconciliation for external policy or host changes, while Vue discovers declarative parts only when connecting.",
+        "adversarialWitness": "Large flat menus, nested branches with 64 unrelated submenu owners, controlled synchronous acceptance and callback ordering, explicit policy refresh, late-mounted Vue items, and the existing Chromium retained-reopen/focus/lifecycle scenarios.",
+        "evidence": ["packages/dom/tests/menu.test.mjs", "packages/vue/tests/dynamic-collections.dom.test.mjs", "packages/vue/tests/browser/popup-presence-focus-fixture.mjs"],
+        "fullScan": { "allowed": false, "rationale": "Canonical interaction publication visits changed cursor hosts and open paths; deliberate full host refresh is a separate operation." }
+      }
+    },
+    {
       "id": "position.connect",
       "inherits": "lifecycle-v1",
       "source": "packages/dom/src/internal/positioning/engine.ts",

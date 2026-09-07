@@ -2334,28 +2334,6 @@
       "rationale": "DOM registries and geometry reads are host-owned projection, lifecycle, or changed-entry measurement work."
     },
     {
-      "detector": "linear-membership",
-      "category": "raw-full-domain-scan",
-      "path": "packages/dom/src/internal/menu-control.ts",
-      "line": 239,
-      "evidence": ".includes(",
-      "rule": "dom-host-authority",
-      "classification": "reuse",
-      "owner": null,
-      "rationale": "DOM registries and geometry reads are host-owned projection, lifecycle, or changed-entry measurement work."
-    },
-    {
-      "detector": "linear-membership",
-      "category": "raw-full-domain-scan",
-      "path": "packages/dom/src/internal/menu-control.ts",
-      "line": 293,
-      "evidence": ".includes(",
-      "rule": "dom-host-authority",
-      "classification": "reuse",
-      "owner": null,
-      "rationale": "DOM registries and geometry reads are host-owned projection, lifecycle, or changed-entry measurement work."
-    },
-    {
       "detector": "raw-identity-lookup",
       "category": "raw-full-domain-scan",
       "path": "packages/dom/src/internal/modal-effects.ts",

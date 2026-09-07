@@ -44,6 +44,93 @@ test('DOM menu item registration performs constant projection work per flat item
   }
 });
 
+test('DOM menu families register submenu surfaces with linear projection and no registry scans', () => {
+  for (const create of [createMenu, createMenuButton, createMenubar, createNavigationMenu]) {
+    for (const size of [16, 128, 1_024]) {
+      const items = Array.from({ length: size }, (_, id) => [{ id }, { id: `child-${id}`, parentID: id }]).flat();
+      const root = new CountingElement();
+      const menu = create({ root, trigger: new FakeElement(), items, defaultOpen: true, position: false });
+      const hosts = items.map(() => new CountingElement());
+      const surfaces = Array.from({ length: size }, () => new CountingElement());
+      hosts.forEach((element, index) => menu.setItemAttributes(element, items[index].id));
+      hosts.forEach((element) => { element.projectionWrites = 0; });
+      root.projectionWrites = 0;
+      const before = menu.getSnapshot();
+      const iterate = Map.prototype[Symbol.iterator];
+      let entriesVisited = 0;
+      Map.prototype[Symbol.iterator] = function* () {
+        for (const entry of iterate.call(this)) { entriesVisited += 1; yield entry; }
+      };
+      try {
+        surfaces.forEach((element, id) => menu.setSubmenuAttributes(element, id));
+        assert.equal(entriesVisited, 0, 'registration probes ownership indexes, not existing registries');
+        assert.equal(root.projectionWrites, 0, 'submenu registration does not republish root state');
+        assert.equal(menu.getSnapshot(), before);
+        assert.ok(hosts.reduce((sum, element) => sum + element.projectionWrites, 0) <= size * 5);
+        assert.ok(surfaces.reduce((sum, element) => sum + element.projectionWrites, 0) <= size * 4);
+        for (let id = 0; id < size; id += 1) {
+          assert.equal(hosts[id * 2 + 1].projectionWrites, 0, 'unrelated leaf projection is untouched');
+          assert.equal(hosts[id * 2].getAttribute('aria-controls'), surfaces[id].id);
+          assert.equal(surfaces[id].hidden, true);
+          assert.equal(surfaces[id].dataset.level, '1');
+        }
+        hosts.forEach((element) => { element.projectionWrites = 0; });
+        surfaces.forEach((element) => { element.projectionWrites = 0; });
+        surfaces.forEach((element, id) => menu.setSubmenuAttributes(element, id));
+        assert.equal(hosts.reduce((sum, element) => sum + element.projectionWrites, 0), 0);
+        assert.equal(surfaces.reduce((sum, element) => sum + element.projectionWrites, 0), 0);
+        assert.equal(entriesVisited, 0);
+      } finally {
+        Map.prototype[Symbol.iterator] = iterate;
+        menu.destroy();
+      }
+      surfaces.forEach((element) => { assert.equal(element.id, ''); assert.equal(element.hidden, false); });
+      assert.ok([...root.listeners.values()].every((listeners) => listeners.size === 0));
+    }
+  }
+});
+
+test('submenu ownership transfers restore old attributes and leave one live branch', () => {
+  for (const create of [createMenu, createMenuButton, createMenubar, createNavigationMenu]) {
+    const root = new FakeElement();
+    const a = new FakeElement(), b = new FakeElement(), shared = new FakeElement(), replacement = new FakeElement();
+    shared.hidden = true; shared.setAttribute('hidden', 'until-found');
+    const menu = create({ root, trigger: new FakeElement(), defaultOpen: true, position: false,
+      items: [{ id: 0 }, { id: 'leaf-a', parentID: 0 }, { id: '0' }, { id: 'leaf-b', parentID: '0' }],
+    });
+    try {
+      menu.setItemAttributes(a, 0); menu.setItemAttributes(b, '0');
+      for (let cycle = 0; cycle < 32; cycle += 1) {
+        menu.setSubmenuAttributes(shared, 0);
+        const firstID = shared.id;
+        assert.equal(a.getAttribute('aria-controls'), firstID);
+        menu.setSubmenuAttributes(shared, '0');
+        assert.equal(a.getAttribute('aria-controls'), null);
+        assert.notEqual(shared.id, firstID);
+        assert.equal(b.getAttribute('aria-controls'), shared.id);
+        menu.setSubmenuAttributes(replacement, '0');
+        assert.equal(shared.id, '');
+        assert.equal(shared.getAttribute('hidden'), 'until-found');
+        menu.setSubmenuAttributes(undefined, '0');
+        menu.setSubmenuAttributes(undefined, '0');
+        assert.equal(replacement.id, '');
+        assert.equal(b.getAttribute('aria-controls'), null);
+      }
+      menu.send({ type: 'focus', id: 0 }); menu.send('open-submenu');
+      menu.setSubmenuAttributes(shared, 0);
+      assert.equal(shared.hidden, false, 'late registration uses the already-open canonical branch');
+      assert.equal(a.getAttribute('aria-expanded'), 'true');
+      menu.setSubmenuAttributes(replacement, '0');
+      assert.equal(replacement.hidden, true, 'sibling surface does not inherit another branch state');
+      shared.id = 'consumer-id'; shared.setAttribute('id', 'consumer-id');
+      a.setAttribute('aria-controls', 'consumer-control');
+      menu.setSubmenuAttributes(undefined, 0);
+      assert.equal(shared.id, 'consumer-id');
+      assert.equal(a.getAttribute('aria-controls'), 'consumer-control');
+    } finally { menu.destroy(); }
+  }
+});
+
 test('DOM menu item replacement preserves one host owner and unregisters the previous host', () => {
   const root = new FakeElement();
   const shared = new FakeElement();

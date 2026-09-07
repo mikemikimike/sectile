@@ -376,6 +376,51 @@ test('Vue cascade select clears a controlled leaf removed from its tree', async 
   unmount(app, host);
 });
 
+test('Vue menu families mount many submenu surfaces with linear branch projection', async () => {
+  for (const Root of [MenuRoot, MenuButtonRoot, MenubarRoot, NavigationMenuRoot]) {
+    for (const size of [16, 64, 128]) {
+      const branches = Array.from({ length: size }, (_, index) => `branch-${index}`);
+      const items = branches.flatMap((id) => [{ id }, { id: `${id}-leaf`, parentID: id }]);
+      const setAttribute = HTMLElement.prototype.setAttribute;
+      let branchWrites = 0;
+      HTMLElement.prototype.setAttribute = function (name, value) {
+        if (name === 'aria-haspopup' && value === 'menu') branchWrites += 1;
+        return setAttribute.call(this, name, value);
+      };
+      let mounted;
+      let surfaces = [];
+      try {
+        const content = () => branches.flatMap((id) => [
+          h(MenuItem, { key: id, value: id }),
+          h(MenuSubContent, { key: `${id}-surface`, for: id }, {
+            default: () => h(MenuItem, { value: `${id}-leaf` }),
+          }),
+        ]);
+        mounted = mount(() => h(Root, {
+          items, ...(Root === MenuButtonRoot ? { defaultOpen: true, position: false } : {}),
+        }, { default: () => Root === MenuButtonRoot
+          ? [h(MenuButtonTrigger), h(MenuButtonContent, null, { default: content })] : content(),
+        }));
+        await settle();
+        surfaces = [...mounted.host.querySelectorAll('[data-sectile-submenu-for]')];
+        assert.equal(surfaces.length, size);
+        assert.ok(branchWrites <= 4 * size + 2, `${Root.name}: ${size} branches caused ${branchWrites} projections`);
+        for (const surface of surfaces) {
+          const id = surface.dataset.sectileSubmenuFor;
+          const anchor = mounted.host.querySelector(`[data-sectile-menu-id="${id}"]`);
+          assert.equal(anchor.getAttribute('aria-controls'), surface.id);
+          assert.notEqual(surface.id, '');
+        }
+      } finally {
+        HTMLElement.prototype.setAttribute = setAttribute;
+        if (mounted !== undefined) unmount(mounted.app, mounted.host);
+      }
+      await settle();
+      for (const surface of surfaces) assert.equal(surface.id, '', 'unmount releases generated submenu identity');
+    }
+  }
+});
+
 test('Vue menu bulk mount keeps item registration projection work linear', async () => {
   const size = 256;
   const items = Array.from({ length: size }, (_, index) => ({ id: `item-${index}`, parentID: null }));

@@ -532,6 +532,27 @@
       }
     },
     {
+      "id": "menu.submenu-registration",
+      "inherits": "constant-v1",
+      "source": "packages/dom/src/internal/menu-control.ts",
+      "benchmarkIDs": ["GH-9:submenu-registration-work"],
+      "specificationCeiling": "O(1)",
+      "contract": {
+        "variables": [{ "name": "s", "meaning": "live submenu surfaces registered on this connection", "ceiling": "canonical menu branch cardinality" }],
+        "time": { "bound": "O(1)", "kind": "expected", "runtimeState": "connected" },
+        "space": { "auxiliary": "O(1)", "output": "O(1)", "retained": "O(s)" },
+        "resources": { "allocations": "O(1)", "cacheEntries": "O(s)", "listeners": "0 added by registry/projection", "observers": "0 added by registry/projection", "timers": "0 added by registry/projection", "subscriptions": "0" },
+        "assumptions": ["Map/WeakMap and canonical Tree depth lookup have expected constant cost. Core openPath contains one root-to-branch entry per depth.", "This bound covers registry ownership, attribute/visibility projection and affected position selection; platform positioning, DOM focus dispatch and arbitrary consumer callbacks retain their independent costs."],
+        "ceilings": ["Registration touches the requested surface/anchor and at most one indexed prior surface owner, not all registered items or submenus.", "An unchanged surface/ID registration performs no host writes or registry enumeration."],
+        "deterministicWork": ["All four DOM menu families register 16/128/1024 branches with zero Map iterator visits, zero root writes, zero unrelated leaf projection and at most five anchor writes per surface.", "All four Vue menu families mount 16/64/128 submenu surfaces within a fixed linear branch-projection bound."],
+        "resourceRationale": "The existing forward Map strongly owns live surfaces; the new reverse WeakMap stores primitive IDs without independently retaining elements. Release removes both directions and existing visibility, ID and positioning resources. No event history or duplicate canonical open-state index is retained.",
+        "proof": "setSubmenuAttributes probes the reverse index for transfers, then projects one anchor and surface. Open membership is read at the canonical Tree depth instead of scanning the path. Only that branch position is created/updated. Full refresh remains an explicit separate operation. Release uses the existing restoration/disposal paths and deletes the weak reverse entry.",
+        "adversarialWitness": "Sequential distinct surfaces, unchanged registrations, numeric/string IDs, 32 ownership transfer cycles, late-open registration, sibling isolation, consumer-owned ID/controls overrides, existing positioned replacement/unregister and retained-focus scenarios.",
+        "evidence": ["packages/dom/tests/menu.test.mjs", "packages/vue/tests/dynamic-collections.dom.test.mjs", "packages/vue/tests/browser/popup-presence-focus-fixture.mjs"],
+        "fullScan": { "allowed": false, "rationale": "Only directly indexed registration owners and the affected branch projection change." }
+      }
+    },
+    {
       "id": "menu.transition-projection",
       "inherits": "linear-v1",
       "source": "packages/dom/src/internal/menu-control.ts",

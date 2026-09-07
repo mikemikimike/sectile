@@ -141,7 +141,12 @@ interface MutableFrameCell {
   continuation?: boolean;
 }
 
+// Measurements belong to one render, keyed by node identity and exact constraints.
+// Separate numeric keys preserve width/height distinctions without encoding limits.
+type Measurements = WeakMap<TerminalScreenNode, Map<number, Map<number, Size>>>;
+
 interface MutableFrame {
+  readonly measurements: Measurements;
   readonly columns: number;
   readonly rows: number;
   readonly cells: MutableFrameCell[][];
@@ -159,6 +164,41 @@ interface Size {
   readonly width: number;
   readonly height: number;
 }
+
+interface MeasurementFrame {
+  readonly node: TerminalRowNode | TerminalColumnNode | TerminalBoxNode;
+  readonly heights: Map<number, Size>;
+  readonly children: readonly TerminalScreenNode[];
+  readonly horizontal: boolean;
+  readonly extraWidth: number;
+  readonly extraHeight: number;
+  nextIndex: number;
+  width: number;
+  height: number;
+}
+
+interface NodeRenderTask {
+  readonly kind: 'node';
+  readonly node: TerminalScreenNode;
+  readonly rectangle: Rectangle;
+  readonly parentClip: Rectangle;
+}
+
+interface ChildrenRenderTask {
+  readonly kind: 'children';
+  readonly node: TerminalRowNode | TerminalColumnNode;
+  readonly children: readonly TerminalScreenNode[];
+  readonly content: Rectangle;
+  readonly clip: Rectangle;
+  readonly horizontal: boolean;
+  readonly availableCross: number;
+  readonly mainSizes: readonly number[];
+  readonly distributedGap: number;
+  index: number;
+  cursor: number;
+}
+
+type RenderTask = NodeRenderTask | ChildrenRenderTask;
 
 interface TerminalTextWalk {
   readonly x: number;
@@ -229,6 +269,7 @@ export function renderTerminalScreen(
   }
   const appearance = options.appearance ?? createTerminalAppearance();
   const frame: MutableFrame = {
+    measurements: new WeakMap(),
     columns,
     rows,
     cells: Array.from({ length: rows }, () =>
@@ -274,17 +315,21 @@ function renderNode(
   parentClip: Rectangle,
   appearance: TerminalAppearance,
 ): void {
-  const clip = intersectRectangles(parentClip, rectangle);
-  if (rectangle.width <= 0 || rectangle.height <= 0 || clip.width <= 0 || clip.height <= 0) return;
-  if (node.type === 'text') {
-    renderText(frame, node, rectangle, clip);
-    return;
+  const pending: RenderTask[] = [{ kind: 'node', node, rectangle, parentClip }];
+  while (pending.length > 0) {
+    const task = pending.pop()!;
+    if (task.kind === 'children') {
+      renderChild(frame, task, pending);
+      continue;
+    }
+    const { node: current, rectangle: bounds } = task;
+    const clip = intersectRectangles(task.parentClip, bounds);
+    if (bounds.width <= 0 || bounds.height <= 0 || clip.width <= 0 || clip.height <= 0) continue;
+    if (current.type === 'text') renderText(frame, current, bounds, clip);
+    else if (current.type === 'row' || current.type === 'column') {
+      renderContainer(frame, current, bounds, clip, pending);
+    } else if (current.type === 'box') renderBox(frame, current, bounds, clip, appearance, pending);
   }
-  if (node.type === 'row' || node.type === 'column') {
-    renderContainer(frame, node, rectangle, clip, appearance);
-    return;
-  }
-  if (node.type === 'box') renderBox(frame, node, rectangle, clip, appearance);
 }
 
 function renderText(
@@ -336,45 +381,55 @@ function renderContainer(
   node: TerminalRowNode | TerminalColumnNode,
   rectangle: Rectangle,
   clip: Rectangle,
-  appearance: TerminalAppearance,
+  pending: RenderTask[],
 ): void {
   const padding = normalizeSpacing(node.padding);
   const content = insetRectangle(rectangle, padding);
   const horizontal = node.type === 'row';
   const availableMain = horizontal ? content.width : content.height;
   const availableCross = horizontal ? content.height : content.width;
+  const children = node.children;
   const gap = clampNonNegative(node.gap ?? 0);
-  const totalGap = Math.max(0, node.children.length - 1) * gap;
+  const totalGap = Math.max(0, children.length - 1) * gap;
   const mainSizes = distributeMainSizes(
-    node.children,
+    children,
     Math.max(0, availableMain - totalGap),
     availableCross,
     horizontal,
+    frame.measurements,
   );
   const occupied = mainSizes.reduce((sum, size) => sum + size, 0) + totalGap;
   const justify = node.justify ?? 'start';
-  const offset = justifyOffset(justify, availableMain, occupied, node.children.length);
-  const distributedGap = justify === 'space-between' && node.children.length > 1
-    ? gap + Math.max(0, Math.floor((availableMain - occupied) / (node.children.length - 1)))
+  const offset = justifyOffset(justify, availableMain, occupied, children.length);
+  const distributedGap = justify === 'space-between' && children.length > 1
+    ? gap + Math.max(0, Math.floor((availableMain - occupied) / (children.length - 1)))
     : gap;
-  let cursor = (horizontal ? content.x : content.y) + offset;
-
-  node.children.forEach((child, index) => {
-    const main = mainSizes[index] ?? 0;
-    const intrinsic = measureNode(child, content.width, content.height);
-    const desiredCross = resolveCrossSize(
-      horizontal ? child.height : child.width,
-      horizontal ? intrinsic.height : intrinsic.width,
-      availableCross,
-      node.align ?? 'stretch',
-    );
-    const crossOffset = alignmentOffset(node.align ?? 'stretch', availableCross, desiredCross);
-    const childRectangle: Rectangle = horizontal
-      ? { x: cursor, y: content.y + crossOffset, width: main, height: desiredCross }
-      : { x: content.x + crossOffset, y: cursor, width: desiredCross, height: main };
-    renderNode(frame, child, childRectangle, clip, appearance);
-    cursor += main + distributedGap;
+  if (children.length > 0) pending.push({
+    kind: 'children', node, children, content, clip, horizontal, availableCross,
+    mainSizes, distributedGap, index: 0, cursor: (horizontal ? content.x : content.y) + offset,
   });
+}
+
+function renderChild(frame: MutableFrame, task: ChildrenRenderTask, pending: RenderTask[]): void {
+  const { node, content, clip, horizontal, availableCross } = task;
+  const index = task.index++;
+  const child = task.children[index]!;
+  const main = task.mainSizes[index] ?? 0;
+  const intrinsic = measureNode(child, content.width, content.height, frame.measurements);
+  const desiredCross = resolveCrossSize(
+    horizontal ? child.height : child.width,
+    horizontal ? intrinsic.height : intrinsic.width,
+    availableCross,
+    node.align ?? 'stretch',
+  );
+  const crossOffset = alignmentOffset(node.align ?? 'stretch', availableCross, desiredCross);
+  const rectangle: Rectangle = horizontal
+    ? { x: task.cursor, y: content.y + crossOffset, width: main, height: desiredCross }
+    : { x: content.x + crossOffset, y: task.cursor, width: desiredCross, height: main };
+  task.cursor += main + task.distributedGap;
+  // Resume siblings only after this child's subtree, preserving paint/cursor order.
+  if (task.index < task.children.length) pending.push(task);
+  pending.push({ kind: 'node', node: child, rectangle, parentClip: clip });
 }
 
 function renderBox(
@@ -383,6 +438,7 @@ function renderBox(
   rectangle: Rectangle,
   clip: Rectangle,
   appearance: TerminalAppearance,
+  pending: RenderTask[],
 ): void {
   const border = node.border ?? 'single';
   const hasBorder = border !== 'none';
@@ -405,12 +461,15 @@ function renderBox(
   }
   if (node.child === undefined) return;
   const padding = normalizeSpacing(node.padding);
-  renderNode(frame, node.child, insetRectangle(rectangle, {
-    top: padding.top + borderSize,
-    right: padding.right + borderSize,
-    bottom: padding.bottom + borderSize,
-    left: padding.left + borderSize,
-  }), clip, appearance);
+  pending.push({
+    kind: 'node', node: node.child, parentClip: clip,
+    rectangle: insetRectangle(rectangle, {
+      top: padding.top + borderSize,
+      right: padding.right + borderSize,
+      bottom: padding.bottom + borderSize,
+      left: padding.left + borderSize,
+    }),
+  });
 }
 
 function distributeMainSizes(
@@ -418,6 +477,7 @@ function distributeMainSizes(
   available: number,
   availableCross: number,
   horizontal: boolean,
+  measurements: Measurements,
 ): readonly number[] {
   const sizes = children.map((child) => {
     const dimension = horizontal ? child.width : child.height;
@@ -427,6 +487,7 @@ function distributeMainSizes(
       child,
       horizontal ? available : availableCross,
       horizontal ? availableCross : available,
+      measurements,
     );
     return horizontal ? measured.width : measured.height;
   });
@@ -442,45 +503,92 @@ function distributeMainSizes(
   }));
 }
 
-function measureNode(node: TerminalScreenNode, maximumWidth: number, maximumHeight: number): Size {
-  if (node.type === 'text') {
-    const lines = node.value.split('\n');
-    const intrinsicWidth = Math.max(0, ...lines.map((line) => terminalStringWidth(line)));
-    const width = resolveDimension(node.width, intrinsicWidth, maximumWidth);
-    const intrinsicHeight = node.wrap === false || width === 0
-      ? lines.length
-      : walkTerminalText(node.value, width, true).height;
-    return {
-      width,
-      height: resolveDimension(node.height, intrinsicHeight, maximumHeight),
-    };
-  }
-  if (node.type === 'spacer') return resolveSize(node, { width: 0, height: 0 }, maximumWidth, maximumHeight);
-  if (node.type === 'box') {
-    const border = (node.border ?? 'single') === 'none' ? 0 : 2;
-    const padding = normalizeSpacing(node.padding);
-    const child = node.child === undefined
-      ? { width: 0, height: 0 }
-      : measureNode(node.child, maximumWidth, maximumHeight);
-    return resolveSize(node, {
-      width: child.width + padding.left + padding.right + border,
-      height: child.height + padding.top + padding.bottom + border,
-    }, maximumWidth, maximumHeight);
-  }
-  const padding = normalizeSpacing(node.padding);
-  const horizontal = node.type === 'row';
-  const children = node.children.map((child) => measureNode(child, maximumWidth, maximumHeight));
-  const gap = Math.max(0, children.length - 1) * clampNonNegative(node.gap ?? 0);
-  const intrinsic = horizontal
-    ? {
-        width: children.reduce((sum, size) => sum + size.width, 0) + gap + padding.left + padding.right,
-        height: Math.max(0, ...children.map((size) => size.height)) + padding.top + padding.bottom,
+function measureNode(
+  node: TerminalScreenNode,
+  maximumWidth: number,
+  maximumHeight: number,
+  measurements: Measurements,
+): Size {
+  let current = node;
+  let heights = measurementHeights(current, maximumWidth, measurements);
+  let measured = heights.get(maximumHeight);
+  if (measured !== undefined) return measured;
+  const pending: MeasurementFrame[] = [];
+
+  while (true) {
+    if (measured === undefined) {
+      if (current.type === 'text') {
+        const lines = current.value.split('\n');
+        let intrinsicWidth = 0;
+        for (const line of lines) intrinsicWidth = Math.max(intrinsicWidth, terminalStringWidth(line));
+        const width = resolveDimension(current.width, intrinsicWidth, maximumWidth);
+        const intrinsicHeight = current.wrap === false || width === 0
+          ? lines.length
+          : walkTerminalText(current.value, width, true).height;
+        measured = { width, height: resolveDimension(current.height, intrinsicHeight, maximumHeight) };
+      } else if (current.type === 'spacer') {
+        measured = resolveSize(current, { width: 0, height: 0 }, maximumWidth, maximumHeight);
+      } else {
+        const padding = normalizeSpacing(current.padding);
+        const horizontal = current.type === 'row';
+        const children = current.type === 'box'
+          ? (current.child === undefined ? [] : [current.child])
+          : current.children;
+        const border = current.type === 'box' && (current.border ?? 'single') !== 'none' ? 2 : 0;
+        const gap = current.type === 'box' ? 0 : Math.max(0, children.length - 1) * clampNonNegative(current.gap ?? 0);
+        const extraWidth = padding.left + padding.right + border + (horizontal ? gap : 0);
+        const extraHeight = padding.top + padding.bottom + border + (horizontal ? 0 : gap);
+        if (children.length > 0) {
+          pending.push({
+            node: current, heights, children, horizontal, extraWidth, extraHeight,
+            nextIndex: 1, width: 0, height: 0,
+          });
+          current = children[0]!;
+          heights = measurementHeights(current, maximumWidth, measurements);
+          measured = heights.get(maximumHeight);
+          continue;
+        }
+        measured = resolveSize(current, { width: extraWidth, height: extraHeight }, maximumWidth, maximumHeight);
       }
-    : {
-        width: Math.max(0, ...children.map((size) => size.width)) + padding.left + padding.right,
-        height: children.reduce((sum, size) => sum + size.height, 0) + gap + padding.top + padding.bottom,
-      };
-  return resolveSize(node, intrinsic, maximumWidth, maximumHeight);
+      heights.set(maximumHeight, measured);
+    }
+
+    const parent = pending[pending.length - 1];
+    if (parent === undefined) return measured;
+    parent.width = parent.horizontal ? parent.width + measured.width : Math.max(parent.width, measured.width);
+    parent.height = parent.horizontal ? Math.max(parent.height, measured.height) : parent.height + measured.height;
+    if (parent.nextIndex < parent.children.length) {
+      current = parent.children[parent.nextIndex++]!;
+      heights = measurementHeights(current, maximumWidth, measurements);
+      measured = heights.get(maximumHeight);
+    } else {
+      // Complete one post-order frame without calling back through its ancestors.
+      measured = resolveSize(parent.node, {
+        width: parent.width + parent.extraWidth,
+        height: parent.height + parent.extraHeight,
+      }, maximumWidth, maximumHeight);
+      parent.heights.set(maximumHeight, measured);
+      pending.pop();
+    }
+  }
+}
+
+function measurementHeights(
+  node: TerminalScreenNode,
+  maximumWidth: number,
+  measurements: Measurements,
+): Map<number, Size> {
+  let widths = measurements.get(node);
+  if (widths === undefined) {
+    widths = new Map();
+    measurements.set(node, widths);
+  }
+  let heights = widths.get(maximumWidth);
+  if (heights === undefined) {
+    heights = new Map();
+    widths.set(maximumWidth, heights);
+  }
+  return heights;
 }
 
 function walkTerminalText(

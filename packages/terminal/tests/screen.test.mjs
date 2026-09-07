@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import {
   createTerminalAppearance,
@@ -146,6 +147,170 @@ test('screen uses one validated dimension snapshot across consumer callbacks', (
   assert.equal(frame.cursor.column, 3);
   assert.equal(frame.cursor.visible, true);
 });
+
+test('screen measures nested auto text once per constraint pair in each render', () => {
+  for (const container of [terminalColumn, terminalRow]) {
+    for (const wrap of [false, true]) {
+      for (const [depth, length] of [[32, 512], [64, 1_024], [128, 2_048], [256, 4_096]]) {
+        const value = 'x'.repeat(length);
+        let node = terminalText(value, { wrap });
+        for (let index = 0; index < depth; index += 1) node = container([node]);
+        for (let render = 0; render < 2; render += 1) {
+          const { frame, measurements } = countTextMeasurements(value, () =>
+            renderTerminalScreen(node, { columns: 80, rows: 1 }));
+          assert.equal(measurements, 1, `${container.name}, wrap=${wrap}, depth=${depth}`);
+          assert.deepEqual(serializeTerminalFrame(frame), ['x'.repeat(80)]);
+        }
+      }
+    }
+  }
+});
+
+test('screen reuses measured subtrees rather than walking every ancestor suffix', () => {
+  for (const depth of [32, 128, 256]) {
+    let reads = 0;
+    let node = terminalText('x', { wrap: false });
+    for (let index = 0; index < depth; index += 1) {
+      const column = terminalColumn([node]);
+      node = Object.freeze({
+        ...column,
+        get children() { reads += 1; return column.children; },
+      });
+    }
+    const frame = renderTerminalScreen(node, { columns: 1, rows: 1 });
+    assert.deepEqual(serializeTerminalFrame(frame), ['x']);
+    assert.ok(reads <= 6 * depth, `${depth} containers caused ${reads} child-list reads`);
+  }
+});
+
+test('screen shared nodes preserve layout under distinct width and height constraints', () => {
+  for (const wrap of [false, true]) {
+    for (const dimension of ['auto', 'fill']) {
+      for (const align of ['start', 'center', 'end', 'stretch']) {
+        for (const justify of ['start', 'center', 'end', 'space-between']) {
+          const leaf = terminalText('A한😀e\u0301\nBC', {
+            wrap, width: dimension, height: dimension,
+            cursor: { codeUnitOffset: 4, blink: false }, style: 'accent',
+          });
+          const shared = terminalColumn([leaf, terminalText('!')], { gap: 1, align, justify });
+          const node = terminalColumn([
+            terminalRow([
+              terminalBox(shared, { border: 'none', width: 5, height: 2 }),
+              terminalBox(shared, { border: 'rounded', width: 9, height: 5, padding: { left: 1 } }),
+            ], { height: 5, gap: 1, align, justify }),
+            terminalRow([
+              terminalBox(shared, { border: 'none', width: 9, height: 3 }),
+              terminalBox(shared, { border: 'none', width: 5, height: 2 }),
+            ], { height: 3, align, justify }),
+          ]);
+          // JSON duplicates every occurrence; both inputs use the production renderer.
+          const independent = JSON.parse(JSON.stringify(node));
+          const options = { columns: 18, rows: 9 };
+          assert.deepEqual(renderTerminalScreen(node, options), renderTerminalScreen(independent, options));
+        }
+      }
+    }
+  }
+});
+
+test('screen measurements are isolated across changed, failed and reentrant renders', () => {
+  const mutable = { type: 'text', value: 'A', wrap: true };
+  const node = terminalColumn([mutable, terminalText('!')]);
+  const options = { columns: 4, rows: 4 };
+  const first = renderTerminalScreen(node, options);
+  mutable.value = 'ABCD\nE';
+  assert.deepEqual(renderTerminalScreen(node, options), renderTerminalScreen(structuredClone(node), options));
+  assert.deepEqual(serializeTerminalFrame(first), ['A   ', '!   ', '    ', '    ']);
+  const failure = new Error('measurement failed');
+  const broken = { type: 'text', get value() { throw failure; } };
+  assert.throws(() => renderTerminalScreen(terminalColumn([mutable, broken]), options), (error) => error === failure);
+  mutable.value = 'Z';
+  assert.deepEqual(serializeTerminalFrame(renderTerminalScreen(node, options)), ['Z   ', '!   ', '    ', '    ']);
+
+  const shared = terminalText('ABCDE', { wrap: false });
+  let nested;
+  const trigger = {
+    type: 'text', wrap: false,
+    get value() {
+      nested ??= renderTerminalScreen(terminalColumn([shared]), { columns: 6, rows: 4 });
+      return '-';
+    },
+  };
+  const { frame, measurements } = countTextMeasurements(shared.value, () =>
+    renderTerminalScreen(terminalColumn([shared, trigger, shared]), { columns: 6, rows: 4 }));
+  assert.equal(measurements, 2, 'outer and nested calls each own one measurement of the shared text');
+  assert.deepEqual(serializeTerminalFrame(frame), ['ABCDE ', '-     ', 'ABCDE ', '      ']);
+  assert.deepEqual(serializeTerminalFrame(nested), ['ABCDE ', '      ', '      ', '      ']);
+});
+
+test('screen traverses 20000-deep layouts with a reduced JavaScript stack', () => {
+  const moduleURL = new URL('../.verification-dist/screen.js', import.meta.url).href;
+  const result = spawnSync(process.execPath, ['--stack-size=256', '--input-type=module', '-e', `
+    import assert from 'node:assert/strict';
+    import { renderTerminalScreen, terminalText, terminalRow, terminalColumn, terminalBox, terminalSpacer }
+      from ${JSON.stringify(moduleURL)};
+    const depth = 20000;
+    const options = { columns: 8, rows: 2 };
+    const leaf = terminalColumn([
+      terminalText('A한😀', { wrap: false, cursor: { codeUnitOffset: 2 } }),
+      terminalText('B', { cursor: { codeUnitOffset: 0 } }),
+    ]);
+    const expected = renderTerminalScreen(leaf, options);
+    assert.equal(expected.cursor.row, 0);
+    assert.equal(expected.cursor.column, 3);
+    const empty = terminalSpacer({ width: 0, height: 0 });
+    let cases = 0;
+    for (const kind of ['row', 'column', 'box', 'mixed', 'branching']) {
+      let node = leaf;
+      for (let index = 0; index < depth; index += 1) {
+        if (kind === 'box' || (kind === 'mixed' && index % 3 === 0)) {
+          node = terminalBox(node, { border: 'none' });
+        } else {
+          const container = kind === 'row' || ((kind === 'mixed' || kind === 'branching') && index % 2 === 0)
+            ? terminalRow : terminalColumn;
+          node = container(kind === 'branching' ? [node, empty] : [node]);
+        }
+      }
+      // A root box chain exercises rendering; nesting it in a column also
+      // exercises intrinsic measurement of every box under the small stack.
+      for (const root of [node, terminalColumn([node])]) {
+        assert.deepEqual(renderTerminalScreen(root, options), expected, kind);
+        cases += 1;
+      }
+    }
+    console.log(JSON.stringify({ depth, cases }));
+  `], { encoding: 'utf8', timeout: 15_000 });
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), { depth: 20_000, cases: 10 });
+});
+
+test('screen measures wide child and line collections without argument-list stack growth', () => {
+  const size = 131_072;
+  const children = new Array(size).fill(terminalSpacer({ width: 0, height: 0 }));
+  children[size - 1] = terminalText('X', { wrap: false });
+  for (const container of [terminalRow, terminalColumn]) {
+    const frame = renderTerminalScreen(terminalColumn([container(children)]), { columns: 2, rows: 1 });
+    assert.deepEqual(serializeTerminalFrame(frame), ['X ']);
+  }
+  const frame = renderTerminalScreen(terminalColumn([
+    terminalText('\n'.repeat(size) + 'X', { wrap: false }),
+  ]), { columns: 2, rows: 1 });
+  assert.deepEqual(serializeTerminalFrame(frame), ['  ']);
+});
+
+function countTextMeasurements(value, render) {
+  const split = String.prototype.split;
+  let measurements = 0;
+  try {
+    String.prototype.split = function (separator, ...arguments_) {
+      if (this === value && separator === '\n') measurements += 1;
+      return split.call(this, separator, ...arguments_);
+    };
+    const frame = render();
+    return { frame, measurements };
+  } finally { String.prototype.split = split; }
+}
 
 test('screen composes boxes, rows, fill regions, and clipping into a fixed viewport', () => {
   const appearance = createTerminalAppearance({

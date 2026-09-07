@@ -31,7 +31,7 @@ Findings: 455; migration owners: WI-020, WI-027, WI-040.
 |---|---|---|---|
 | WI-020 | core-composite-derived-views | `packages/core/src/internal/composites/cascade-choice.ts:249` | raw-identity-lookup |
 | WI-020 | core-composite-derived-views | `packages/core/src/internal/composites/menu.ts:22` | raw-identity-lookup |
-| WI-020 | core-composite-derived-views | `packages/core/src/internal/composites/tree-grid.ts:434` | immutable-view-construction |
+| WI-020 | core-composite-derived-views | `packages/core/src/internal/composites/tree-grid.ts:435` | immutable-view-construction |
 | WI-027 | form-indexed-field-state | `packages/form/src/internal/form.ts:737` | raw-identity-lookup |
 | WI-027 | form-indexed-field-state | `packages/form/src/internal/form.ts:767` | derived-index-construction |
 | WI-027 | form-indexed-field-state | `packages/form/src/internal/form.ts:815` | raw-identity-lookup |

@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createTree, tryCreateTree } from '../../.verification-dist/structures/tree.js';
+import { tryApplySequencePatch } from '../../.verification-dist/structures/sequence.js';
 import { ReferenceTree } from '../../.verification-dist/internal/reference/structures/tree.js';
 import { enumerateOrderedForests, powerset, unwrap } from '../support.mjs';
 
@@ -149,3 +150,64 @@ test('tree production caches structural views and exposes half-open subtree inte
   const interval = tree.subtreeIntervalOf('a');
   assert.deepEqual(tree.preorder().ids.slice(interval.start, interval.endExclusive), ['a', 'a1']);
 });
+
+test('tree sequences preserve raised item ceilings for both roots and child domains', () => {
+  const count = 100_001;
+  for (const parentID of [null, 'root']) {
+    const nodes = Array.from({ length: count }, (_, id) => ({ id, parentID }));
+    if (parentID !== null) nodes.unshift({ id: parentID, parentID: null });
+    const tree = createTree(nodes, { maxItems: nodes.length });
+    const root = parentID ?? 0;
+    const expanded = parentID === null ? [] : [parentID];
+    for (const view of [tree.roots, tree.preorder(), tree.postorder(), tree.childrenOf(root), tree.visible(expanded)]) {
+      assertTreeSequenceLimits(view, nodes.length, 1_024);
+    }
+    assert.equal((parentID === null ? tree.roots : tree.childrenOf(parentID)).size, count);
+    assert.equal(tree.visible(expanded).size, nodes.length);
+    assert.equal(tree.preorder(), tree.preorder());
+    assert.equal(tree.postorder(), tree.postorder());
+    assert.equal(tree.childrenOf(root), tree.childrenOf(root));
+    const domain = tree.preorder();
+    const rejected = tryApplySequencePatch(domain, { type: 'splice', index: domain.size, deleteCount: 0, inserted: ['extra'] });
+    assert.equal(rejected.error.code, 'item-ceiling-exceeded');
+  }
+});
+
+test('tree sequences snapshot custom ID limits and carry them through projections and replacement', () => {
+  const id = '😀'.repeat(750);
+  const options = { maxItems: 2, maxIDCodeUnits: 2_000 };
+  const tree = createTree([{ id: 'root', parentID: null }, { id, parentID: 'root' }], options);
+  options.maxItems = 0;
+  options.maxIDCodeUnits = 1;
+  for (const view of [tree.roots, tree.preorder(), tree.postorder(), tree.childrenOf('root'), tree.childrenOf(id), tree.visible([]), tree.visible(['root'])]) {
+    assertTreeSequenceLimits(view, 2, 2_000);
+    const projected = view.project(() => true);
+    assertTreeSequenceLimits(projected, 2, 2_000);
+    assert.deepEqual(projected.ids, view.ids);
+    if (view.contains(id)) {
+      const replaced = unwrap(tryApplySequencePatch(view, { type: 'splice', index: view.indexOf(id), deleteCount: 1, inserted: [id] }));
+      assertTreeSequenceLimits(replaced, 2, 2_000);
+      assert.deepEqual(replaced.ids, view.ids);
+    }
+  }
+  const empty = tree.preorder().project(() => false);
+  assert.equal(tryApplySequencePatch(empty, { type: 'splice', index: 0, deleteCount: 0, inserted: ['x'.repeat(2_001)] }).error.code, 'id-code-unit-ceiling-exceeded');
+});
+
+test('tree empty and small views retain their configured limits and unchanged defaults', () => {
+  for (const options of [{ maxItems: 0, maxIDCodeUnits: 1 }, { maxItems: 1, maxIDCodeUnits: 3 }, {}]) {
+    const tree = createTree(options.maxItems === 0 ? [] : [{ id: 'a', parentID: null }], options);
+    const views = [tree.roots, tree.preorder(), tree.postorder(), tree.visible([])];
+    if (tree.has('a')) views.push(tree.childrenOf('a'));
+    for (const view of views) assertTreeSequenceLimits(view, options.maxItems ?? 100_000, options.maxIDCodeUnits ?? 1_024);
+  }
+});
+
+function assertTreeSequenceLimits(view, maxItems, maxIDCodeUnits) {
+  assert.equal(view.maxItems, maxItems);
+  assert.equal(view.maxIDCodeUnits, maxIDCodeUnits);
+  assert.ok(view.size <= view.maxItems);
+  const result = tryApplySequencePatch(view, { type: 'splice', index: view.size, deleteCount: 0, inserted: [] });
+  assert.equal(result.ok, true);
+  assert.equal(result.value, view, 'a no-op patch preserves the valid derived view');
+}

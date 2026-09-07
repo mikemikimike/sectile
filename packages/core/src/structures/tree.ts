@@ -94,9 +94,11 @@ class IndexedTree<ID extends StableID> implements Tree<ID> {
     postorder: readonly ID[],
     preorderIndex: ReadonlyMap<ID, number>,
     subtreeEnds: readonly number[],
+    maxItems: number,
+    maxIDCodeUnits: number,
   ) {
     this.size = preorder.length;
-    this.roots = new IndexedSequence(roots) as SequenceView<ID>;
+    this.roots = new IndexedSequence(roots, maxItems, maxIDCodeUnits) as SequenceView<ID>;
     this.#parent = parent;
     this.#children = children;
     this.#depth = depth;
@@ -106,8 +108,8 @@ class IndexedTree<ID extends StableID> implements Tree<ID> {
     this.#subtreeEnds = freezeArray(subtreeEnds);
     this.#preorderView = new IndexedSequence(
       this.#preorder,
-      100_000,
-      DEFAULT_MAX_ID_CODE_UNITS,
+      maxItems,
+      maxIDCodeUnits,
       preorderIndex,
     ) as SequenceView<ID>;
     Object.freeze(this);
@@ -126,7 +128,9 @@ class IndexedTree<ID extends StableID> implements Tree<ID> {
     if (children === undefined) return null;
     const cached = this.#childViews.get(id);
     if (cached !== undefined) return cached;
-    const view = new IndexedSequence(children) as SequenceView<ID>;
+    const view = new IndexedSequence(
+      children, this.#preorderView.maxItems, this.#preorderView.maxIDCodeUnits,
+    ) as SequenceView<ID>;
     this.#childViews.set(id, view);
     return view;
   }
@@ -163,7 +167,9 @@ class IndexedTree<ID extends StableID> implements Tree<ID> {
 
   public postorder(): Sequence<ID> {
     if (this.#postorderView === null) {
-      this.#postorderView = new IndexedSequence(this.#postorder) as SequenceView<ID>;
+      this.#postorderView = new IndexedSequence(
+        this.#postorder, this.#preorderView.maxItems, this.#preorderView.maxIDCodeUnits,
+      ) as SequenceView<ID>;
     }
     return this.#postorderView;
   }
@@ -194,7 +200,9 @@ class IndexedTree<ID extends StableID> implements Tree<ID> {
         if (child !== undefined) stack.push(child);
       }
     }
-    return new IndexedSequence(result) as SequenceView<ID>;
+    return new IndexedSequence(
+      result, this.#preorderView.maxItems, this.#preorderView.maxIDCodeUnits,
+    ) as SequenceView<ID>;
   }
 }
 
@@ -354,6 +362,8 @@ export function tryCreateTree<ID extends StableID>(
     postorder,
     preorderIndex,
     subtreeEnds,
+    maxItems,
+    maxIDCodeUnits,
   ));
 }
 

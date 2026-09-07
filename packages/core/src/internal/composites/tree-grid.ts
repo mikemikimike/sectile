@@ -431,7 +431,10 @@ function createVisibleCells(owner: object, expansion: object): Sequence<StableID
       if (cell !== null) ids.push(cell);
     }
   }
-  return new IndexedSequence(Object.freeze(ids)) as Sequence<StableID>;
+  const domain = model.grid.domain();
+  return new IndexedSequence(
+    Object.freeze(ids), domain.maxItems, domain.maxIDCodeUnits,
+  ) as Sequence<StableID>;
 }
 
 function visibleRows<RowID extends StableID, CellID extends StableID>(

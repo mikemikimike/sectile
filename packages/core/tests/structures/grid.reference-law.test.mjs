@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createGrid, tryCreateGrid } from '../../.verification-dist/structures/grid.js';
+import { tryApplySequencePatch } from '../../.verification-dist/structures/sequence.js';
 import { ReferenceGrid } from '../../.verification-dist/internal/reference/structures/grid.js';
 import { canonicalIDs, powerset, unwrap } from '../support.mjs';
 
@@ -130,3 +131,64 @@ test('grid construction normalizes ragged rows and rejects invalid occupancy', (
   const rejected = grid.move('a', 'right', 'stop', { eligible: () => false, maxScan: 1 });
   assert.equal(rejected.kind, 'resource-rejected');
 });
+
+test('grid sequences preserve raised item ceilings in wide and tall domains', () => {
+  const count = 100_001;
+  const ids = Array.from({ length: count }, (_, id) => id);
+  for (const tall of [false, true]) {
+    const grid = createGrid(tall ? ids.map((id) => [id]) : [ids], {
+      maxItems: count, maxCells: count, maxRows: count, maxColumns: count,
+    });
+    for (const view of [grid.domain(), grid.row(0), grid.column(0), grid.row(grid.rowCount - 1), grid.column(grid.columnCount - 1)]) {
+      assertGridSequenceLimits(view, count, 1_024);
+    }
+    assert.equal((tall ? grid.column(0) : grid.row(0)).size, count);
+    assert.equal(grid.domain(), grid.domain());
+    assert.equal(grid.row(0), grid.row(0));
+    assert.equal(grid.column(0), grid.column(0));
+    const domain = grid.domain();
+    const rejected = tryApplySequencePatch(domain, { type: 'splice', index: count, deleteCount: 0, inserted: ['extra'] });
+    assert.equal(rejected.error.code, 'item-ceiling-exceeded');
+  }
+});
+
+test('grid sequences snapshot custom ID limits for ragged and empty projections', () => {
+  const id = '😀'.repeat(750);
+  const options = { maxItems: 2, maxIDCodeUnits: 2_000 };
+  const grid = createGrid([[id, null], ['a', null], []], options);
+  options.maxItems = 0;
+  options.maxIDCodeUnits = 1;
+  for (const view of [grid.domain(), grid.row(0), grid.row(1), grid.row(2), grid.column(0), grid.column(1)]) {
+    assertGridSequenceLimits(view, 2, 2_000);
+    const projected = view.project(() => true);
+    assertGridSequenceLimits(projected, 2, 2_000);
+    assert.deepEqual(projected.ids, view.ids);
+    if (view.contains(id)) {
+      const replaced = unwrap(tryApplySequencePatch(view, { type: 'splice', index: view.indexOf(id), deleteCount: 1, inserted: [id] }));
+      assertGridSequenceLimits(replaced, 2, 2_000);
+      assert.deepEqual(replaced.ids, view.ids);
+    }
+  }
+  assert.equal(grid.row(2).size, 0);
+  assert.equal(grid.column(1).size, 0);
+  const empty = grid.domain().project(() => false);
+  assert.equal(tryApplySequencePatch(empty, { type: 'splice', index: 0, deleteCount: 0, inserted: ['x'.repeat(2_001)] }).error.code, 'id-code-unit-ceiling-exceeded');
+});
+
+test('grid empty and small views retain their configured limits and unchanged defaults', () => {
+  for (const options of [{ maxItems: 0, maxIDCodeUnits: 1 }, { maxItems: 1, maxIDCodeUnits: 3 }, {}]) {
+    const grid = createGrid(options.maxItems === 0 ? [[null]] : [['a']], options);
+    for (const view of [grid.domain(), grid.row(0), grid.column(0)]) {
+      assertGridSequenceLimits(view, options.maxItems ?? 100_000, options.maxIDCodeUnits ?? 1_024);
+    }
+  }
+});
+
+function assertGridSequenceLimits(view, maxItems, maxIDCodeUnits) {
+  assert.equal(view.maxItems, maxItems);
+  assert.equal(view.maxIDCodeUnits, maxIDCodeUnits);
+  assert.ok(view.size <= view.maxItems);
+  const result = tryApplySequencePatch(view, { type: 'splice', index: view.size, deleteCount: 0, inserted: [] });
+  assert.equal(result.ok, true);
+  assert.equal(result.value, view, 'a no-op patch preserves the valid derived view');
+}

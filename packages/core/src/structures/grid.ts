@@ -83,12 +83,14 @@ class IndexedGrid<ID extends StableID> implements Grid<ID> {
     cells: readonly (ID | null)[],
     positions: ReadonlyMap<ID, GridPosition>,
     domainIDs: readonly ID[],
+    maxItems: number,
+    maxIDCodeUnits: number,
   ) {
     this.rowCount = rowCount;
     this.columnCount = columnCount;
     this.#cells = freezeArray(cells);
     this.#positions = positions;
-    this.#domainView = new IndexedSequence(domainIDs) as SequenceView<ID>;
+    this.#domainView = new IndexedSequence(domainIDs, maxItems, maxIDCodeUnits) as SequenceView<ID>;
     this.size = positions.size;
     Object.freeze(this);
   }
@@ -124,7 +126,9 @@ class IndexedGrid<ID extends StableID> implements Grid<ID> {
       const id = this.cellAt(row, column);
       if (id !== null) ids.push(id);
     }
-    const view = new IndexedSequence(ids) as SequenceView<ID>;
+    const view = new IndexedSequence(
+      ids, this.#domainView.maxItems, this.#domainView.maxIDCodeUnits,
+    ) as SequenceView<ID>;
     this.#rowViews.set(row, view);
     return view;
   }
@@ -138,7 +142,9 @@ class IndexedGrid<ID extends StableID> implements Grid<ID> {
       const id = this.cellAt(row, column);
       if (id !== null) ids.push(id);
     }
-    const view = new IndexedSequence(ids) as SequenceView<ID>;
+    const view = new IndexedSequence(
+      ids, this.#domainView.maxItems, this.#domainView.maxIDCodeUnits,
+    ) as SequenceView<ID>;
     this.#columnViews.set(column, view);
     return view;
   }
@@ -323,7 +329,9 @@ export function tryCreateGrid<ID extends StableID>(
       cells[rowIndex * columnCount + column] = id;
     }
   }
-  return ok(new IndexedGrid(rows.length, columnCount, cells, positions, domainIDs));
+  return ok(new IndexedGrid(
+    rows.length, columnCount, cells, positions, domainIDs, maxItems, maxIDCodeUnits,
+  ));
 }
 
 function gridScanRejected(scanned: number, maxScan: number): GridAxisScanResult {

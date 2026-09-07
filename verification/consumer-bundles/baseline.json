@@ -12760,15 +12760,16 @@
       "source": "@sectile/terminal/node",
       "exportName": "createTTYKeyboard",
       "platform": "node",
-      "raw": 1665,
-      "gzip": 799,
-      "brotli": 694,
+      "raw": 1823,
+      "gzip": 901,
+      "brotli": 794,
       "modules": [
         "@sectile/terminal/dist/node.js",
         "fixture"
       ],
       "dependencies": [
-        "node:readline"
+        "node:readline",
+        "node:stream"
       ]
     },
     {
@@ -12778,15 +12779,16 @@
       "source": "@sectile/terminal/node",
       "exportName": "createTTYKeyboard",
       "platform": "node",
-      "raw": 1685,
-      "gzip": 803,
-      "brotli": 697,
+      "raw": 1845,
+      "gzip": 905,
+      "brotli": 796,
       "modules": [
         "@sectile/terminal/dist/node.js",
         "fixture"
       ],
       "dependencies": [
-        "node:readline"
+        "node:readline",
+        "node:stream"
       ]
     },
     {

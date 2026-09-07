@@ -2,7 +2,7 @@
 
 > Generated from `verification/algorithm-reuse/manifest.json` and all 9 package source trees.
 
-Findings: 450; migration owners: WI-020, WI-027, WI-040.
+Findings: 455; migration owners: WI-020, WI-027, WI-040.
 
 ## Classifications
 
@@ -10,18 +10,18 @@ Findings: 450; migration owners: WI-020, WI-027, WI-040.
 |---|---:|
 | bounded-small | 10 |
 | migration-required | 60 |
-| result-proportional | 171 |
-| reuse | 209 |
+| result-proportional | 173 |
+| reuse | 212 |
 
 ## Categories
 
 | Category | Count |
 |---|---:|
 | controller-connection-rebuild | 36 |
-| discarded-canonical-index | 57 |
-| measurement-authority | 27 |
+| discarded-canonical-index | 58 |
+| measurement-authority | 30 |
 | private-algorithm-bypass | 2 |
-| raw-full-domain-scan | 284 |
+| raw-full-domain-scan | 285 |
 | repeated-immutable-view | 13 |
 | whole-domain-validation | 31 |
 
@@ -69,7 +69,7 @@ Findings: 450; migration owners: WI-020, WI-027, WI-040.
 | WI-040 | vue-controller-reconfiguration | `packages/vue/src/internal/popup.ts:304` | controller-rebuild |
 | WI-040 | vue-controller-reconfiguration | `packages/vue/src/internal/virtual-core.ts:277` | controller-rebuild |
 | WI-040 | vue-controller-reconfiguration | `packages/vue/src/listbox.ts:222` | controller-rebuild |
-| WI-040 | vue-controller-reconfiguration | `packages/vue/src/menu.ts:223` | controller-rebuild |
+| WI-040 | vue-controller-reconfiguration | `packages/vue/src/menu.ts:222` | controller-rebuild |
 | WI-040 | vue-controller-reconfiguration | `packages/vue/src/multi-thumb-slider.ts:153` | controller-rebuild |
 | WI-040 | vue-controller-reconfiguration | `packages/vue/src/pagination.ts:137` | controller-rebuild |
 | WI-040 | vue-controller-reconfiguration | `packages/vue/src/quantity-field.ts:92` | controller-rebuild |

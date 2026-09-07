@@ -3,6 +3,22 @@
   "package": "@sectile/terminal",
   "entries": [
     {
+      "id": "WI-020:terminal-screen-allocation-limits",
+      "change": "signature-changed",
+      "before": { "subpath": "./screen" },
+      "symbols": ["RenderTerminalScreenOptions.columns", "RenderTerminalScreenOptions.rows", "renderTerminalScreen"],
+      "replacement": { "package": "@sectile/terminal", "subpath": "./screen", "exportName": "renderTerminalScreen" },
+      "removalReason": "Issue #20 (a7674f8c) limits each dimension to 4096 and the dense viewport to 1048576 cells. Oversized dimensions throw RangeError before allocation. The declaration records these limits without changing the function signature."
+    },
+    {
+      "id": "WI-020:terminal-node-screen-declaration-closure",
+      "change": "signature-changed",
+      "before": { "subpath": "./node" },
+      "symbols": ["TerminalScreenWriter.render: TerminalFrame declaration closure"],
+      "replacement": { "package": "@sectile/terminal", "subpath": "./node", "exportName": "createTerminalScreenWriter" },
+      "removalReason": "The node entrypoint references TerminalFrame from screen.d.ts, whose allocation-limit documentation changed in issue #20 (a7674f8c). Node export names and callable types are unchanged."
+    },
+    {
       "id": "WI-030:terminal-grid-control-closure",
       "change": "signature-changed",
       "before": { "subpath": "./grid" },

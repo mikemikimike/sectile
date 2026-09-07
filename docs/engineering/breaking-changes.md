@@ -92,6 +92,8 @@
 | WI-014 | @sectile/core | `./tree` | `Tree.subtreeIntervalOf`, `TreeSubtreeInterval` | @sectile/core/tree |
 | WI-014 | @sectile/core | `./tree-view` | `Tree declaration closure` | @sectile/core/tree-view |
 | WI-017 | @sectile/dom | `./tabular` | `Tabular DOM activation declaration closure` | @sectile/dom/tabular |
+| WI-020 | @sectile/terminal | `./node` | `TerminalScreenWriter.render: TerminalFrame declaration closure` | @sectile/terminal/node#createTerminalScreenWriter |
+| WI-020 | @sectile/terminal | `./screen` | `RenderTerminalScreenOptions.columns`, `RenderTerminalScreenOptions.rows`, `renderTerminalScreen` | @sectile/terminal/screen#renderTerminalScreen |
 | WI-025 | @sectile/vue | `.` | `tabular, temporal, and virtual aggregate declaration closures` | @sectile/vue |
 | WI-025 | @sectile/vue | `./tabular` | `all runtime and type exports` | Replaced by the checked data-table, data-grid, and data-tree-grid mapping in verification/entrypoint-migrations/WI-025.json. |
 | WI-025 | @sectile/dom | `./temporal` | `all runtime and type exports` | Replaced by the complete checked @sectile/dom/temporal/* mapping in verification/entrypoint-migrations/WI-025.json. |

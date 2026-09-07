@@ -120,7 +120,7 @@ const packagePipelines = Object.freeze({
   '@sectile/core': [
     'test', 'build', 'typecheck:public:prepared', 'check:contracts', 'check:public-api',
     'check:api-stability', 'check:semantic-api', 'check:laws', 'check:naming',
-    'check:layout', 'check:import-boundaries', 'check:dist-boundary',
+    'check:layout', 'check:dist-boundary',
     'check:subpaths', 'check:package', releaseRequested ? 'check:verification:determinism' : 'check:verification',
   ],
   '@sectile/chart': ['test', 'build', 'typecheck:public:prepared', 'check:laws', 'check:package'],

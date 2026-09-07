@@ -10,7 +10,7 @@
     "errorRemoved": "breaking"
   },
   "baseline": {
-    "publicSignatureFingerprint": "244a17ebc50ef265ece5f5911a8dc6caf27cb4a41e3b878327e1311ccaf5e188",
+    "publicSignatureFingerprint": "c953e15171c3ebd4f784779516deb39ac5b670adadc44c0bd562ee5961055dee",
     "subpaths": [
       ".",
       "./accordion",
@@ -520,6 +520,6 @@
   ],
   "acceptance": {
     "classification": "type-change-reviewed",
-    "reason": "issue-17-adds-optional-controlled-effect-publication-before-change"
+    "reason": "Use the declared tooling signature collector after b234dbc8. The legacy collector still reproduces the recorded fingerprint and all 92 legacy declaration files are identical. The shared collector additionally covers the already-exported identity declaration and its foundation dependency, and includes exports in the fingerprint. Its complete 94-file result matches the existing public-signatures record; subpaths, error codes, defaults and callable declarations are unchanged."
   }
 }

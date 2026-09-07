@@ -58,11 +58,23 @@ test('package script entrypoints are local or declared tooling binaries', async 
     assert.equal(manifest.dependencies?.['@sectile/tooling'], undefined);
     assert.equal(manifest.peerDependencies?.['@sectile/tooling'], undefined);
     assert.equal(manifest.scripts.verify, undefined, `${manifest.name} owns a composite verify script`);
+    const visited = new Set();
+    const inspectLocalImports = async (entry) => {
+      if (visited.has(entry)) return;
+      visited.add(entry);
+      const source = await readFile(entry, 'utf8');
+      for (const match of source.matchAll(/(?:from\s+|import\s+)['"](\.[^'"]+\.mjs)['"]/gu)) {
+        const dependency = resolve(entry, '..', match[1]);
+        assert.equal(relative(packageRoot, dependency).startsWith('..'), false, `${manifest.name}: ${entry} imports ${match[1]}`);
+        await inspectLocalImports(dependency);
+      }
+    };
     for (const [task, command] of Object.entries(manifest.scripts)) {
       for (const match of command.matchAll(/(?:^|&&\s+)node\s+([^\s]+\.mjs)\b/gu)) {
         const entry = resolve(packageRoot, match[1]);
         assert.equal(relative(packageRoot, entry).startsWith('..'), false, `${manifest.name} ${task}`);
         await access(entry);
+        await inspectLocalImports(entry);
       }
     }
   }

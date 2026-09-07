@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { collectPublicSignatures } from './public-signatures.mjs';
+import { collectPublicSignatures } from '@sectile/tooling/public-signatures';
 
 export async function collectSemanticAPISnapshot() {
   const packageJSON = JSON.parse(await readFile('package.json', 'utf8'));

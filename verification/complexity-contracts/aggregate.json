@@ -22578,6 +22578,68 @@
     {
       "package": "core",
       "surface": "hot",
+      "id": "layer-stack.reject-oversize",
+      "source": "packages/core/src/layer-stack.ts",
+      "benchmarkIDs": [
+        "GH-28:layer-stack-preallocation"
+      ],
+      "specificationCeiling": "O(1)",
+      "reviewedWeakening": null,
+      "contract": {
+        "variables": [
+          {
+            "name": "n",
+            "meaning": "external layer input cardinality",
+            "ceiling": "array length; rejected when above the owning Sequence default"
+          }
+        ],
+        "time": {
+          "bound": "O(1)",
+          "kind": "worst-case",
+          "runtimeState": "external"
+        },
+        "space": {
+          "auxiliary": "O(1)",
+          "output": "O(1)",
+          "retained": "O(1)"
+        },
+        "resources": {
+          "allocations": "O(1)",
+          "cacheEntries": "0",
+          "listeners": "0",
+          "observers": "0",
+          "timers": "0",
+          "subscriptions": "0"
+        },
+        "assumptions": [
+          "This rejection bound applies when n exceeds DEFAULT_MAX_SEQUENCE_ITEMS, shared with IndexedSequence and tryCreateSequence.",
+          "Ordinary array length access is constant time. Caller-defined accessor execution is outside the algorithm bound."
+        ],
+        "ceilings": [
+          "Over-ceiling input produces zero layer ID reads and no ID-array materialization."
+        ],
+        "benchmarkIDs": [
+          "VAL-017:constant-work"
+        ],
+        "deterministicWork": [
+          "100001 and 250000 records produce zero ID getter calls; a maximum-length sparse array rejects without reading its map method or first entry.",
+          "At and below 100000 entries, the complete existing normalization and identity validation remains active."
+        ],
+        "resourceRationale": "A single scalar length comparison returns the existing typed Sequence-compatible error. No temporary array, input retention or registry is created on this rejection path.",
+        "proof": "tryCreateLayerStackState compares inputs.length with the shared internal default before inputs.map; the error class, code, message and details match tryCreateSequence on the same over-ceiling cardinality.",
+        "adversarialWitness": "Large unique getter-backed inputs, sparse maximum array length with throwing first-entry and map accessors, inclusive ceiling and invalid supported IDs/parents/modes/policies.",
+        "evidence": [
+          "packages/core/tests/runtime/layer-stack.test.mjs"
+        ],
+        "fullScan": {
+          "allowed": false,
+          "rationale": "Cardinality alone proves this input cannot be accepted; reading IDs cannot change the rejection."
+        }
+      }
+    },
+    {
+      "package": "core",
+      "surface": "hot",
       "id": "metric-index.construct",
       "source": "packages/core/src/structures/metric-index.ts",
       "benchmarkIDs": [

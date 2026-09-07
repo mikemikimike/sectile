@@ -1920,6 +1920,11 @@
     },
     {
       "source": "src/layer-stack.ts",
+      "target": "src/internal/kernel/indexed-sequence.ts",
+      "kind": "import"
+    },
+    {
+      "source": "src/layer-stack.ts",
       "target": "src/internal/kernel/machine.ts",
       "kind": "import"
     },
@@ -3252,6 +3257,7 @@
       "layer": "public",
       "facadeTargets": [
         "src/internal/kernel/foundation.ts",
+        "src/internal/kernel/indexed-sequence.ts",
         "src/internal/kernel/machine.ts",
         "src/result.ts",
         "src/shared.ts",
@@ -4400,6 +4406,7 @@
         "src/internal/composites/linear-choice.ts",
         "src/internal/composites/listbox.ts",
         "src/internal/composites/tree-grid.ts",
+        "src/layer-stack.ts",
         "src/structures/grid.ts",
         "src/structures/sequence.ts",
         "src/structures/tree.ts"

@@ -41,6 +41,8 @@ export type IndexedSequencePatch<ID extends StableID> =
       readonly count: number;
     };
 
+export const DEFAULT_MAX_SEQUENCE_ITEMS = 100_000;
+
 const MAX_PATCH_DEPTH = 32;
 const MAX_NATIVE_SPLICE_ITEMS = 4_096;
 
@@ -52,7 +54,7 @@ export class IndexedSequence<ID extends StableID> implements SequenceView<ID> {
 
   public constructor(
     ids: readonly ID[],
-    maxItems = 100_000,
+    maxItems: number = DEFAULT_MAX_SEQUENCE_ITEMS,
     maxIDCodeUnits = 1_024,
     index?: ReadonlyMap<ID, number>,
   ) {

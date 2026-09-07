@@ -1,5 +1,6 @@
 import { createMachineUpdate, type MachineUpdate } from './internal/kernel/machine.js';
 import { fail, ok } from './internal/kernel/foundation.js';
+import { DEFAULT_MAX_SEQUENCE_ITEMS } from './internal/kernel/indexed-sequence.js';
 import { unwrap } from './result.js';
 import { tryCreateSequence } from './structures/sequence.js';
 import type { Result, StableID } from './shared.js';
@@ -49,6 +50,12 @@ export function createLayerStackState<ID extends StableID = StableID>(
 export function tryCreateLayerStackState<ID extends StableID = StableID>(
   inputs: readonly LayerInput<ID>[] = [],
 ): Result<LayerStackState<ID>> {
+  const size = inputs.length;
+  if (size > DEFAULT_MAX_SEQUENCE_ITEMS) {
+    return fail('resource-rejection', 'item-ceiling-exceeded', 'Sequence exceeds maxItems.', {
+      size, maxItems: DEFAULT_MAX_SEQUENCE_ITEMS,
+    });
+  }
   const ids = tryCreateSequence(inputs.map((layer) => layer.id));
   if (!ids.ok) return ids;
   const layers: Layer<ID>[] = [];

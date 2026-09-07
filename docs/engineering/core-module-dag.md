@@ -2,7 +2,7 @@
 
 > Generated from `verification/core-layers/manifest.json` and Core source imports.
 
-Modules: 120; edges: 492; public subpaths: 71; cycles: 0; upward edges: 0.
+Modules: 120; edges: 493; public subpaths: 71; cycles: 0; upward edges: 0.
 
 ## Layers
 
@@ -73,7 +73,7 @@ Modules: 120; edges: 492; public subpaths: 71; cycles: 0; upward edges: 0.
 | `./identity` | `src/identity.ts` | public | `src/internal/kernel/foundation.ts`, `src/shared.ts`, `src/shared.ts`, `src/shared.ts`, `src/shared.ts` |
 | `./index-span` | `src/structures/index-span.ts` | structures | `src/internal/kernel/foundation.ts`, `src/result.ts`, `src/shared.ts` |
 | `./interaction` | `src/interaction.ts` | public | `src/result.ts`, `src/shared.ts` |
-| `./layer-stack` | `src/layer-stack.ts` | public | `src/internal/kernel/foundation.ts`, `src/internal/kernel/machine.ts`, `src/result.ts`, `src/shared.ts`, `src/structures/sequence.ts` |
+| `./layer-stack` | `src/layer-stack.ts` | public | `src/internal/kernel/foundation.ts`, `src/internal/kernel/indexed-sequence.ts`, `src/internal/kernel/machine.ts`, `src/result.ts`, `src/shared.ts`, `src/structures/sequence.ts` |
 | `./listbox` | `src/listbox.ts` | public | `src/internal/composites/listbox.ts`, `src/internal/composites/listbox.ts` |
 | `./menu` | `src/menu.ts` | public | `src/internal/composites/menu.ts`, `src/internal/composites/menu.ts`, `src/result.ts`, `src/shared.ts`, `src/structures/tree.ts` |
 | `./menu-button` | `src/menu-button.ts` | public | `src/internal/composites/menu.ts`, `src/internal/composites/menu.ts`, `src/menu.ts`, `src/menu.ts` |

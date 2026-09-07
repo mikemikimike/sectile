@@ -11,6 +11,7 @@ import {
 } from '../shared.js';
 import { fail, ok, validateSafeCeiling, validateUniqueIDs } from '../internal/kernel/foundation.js';
 import {
+  DEFAULT_MAX_SEQUENCE_ITEMS,
   IndexedSequence,
   moveSequenceArray,
   PatchedSequence,
@@ -67,7 +68,7 @@ export function tryCreateSequence<ID extends StableID>(
   ids: readonly ID[],
   options: SequenceOptions = {},
 ): Result<Sequence<ID>> {
-  const maxItems = options.maxItems ?? 100_000;
+  const maxItems = options.maxItems ?? DEFAULT_MAX_SEQUENCE_ITEMS;
   const ceilingError = validateSafeCeiling(maxItems, 'maxItems');
   if (ceilingError !== null) return { ok: false, error: ceilingError };
   const maxIDCodeUnits = options.maxIDCodeUnits ?? DEFAULT_MAX_ID_CODE_UNITS;

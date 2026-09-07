@@ -16,7 +16,7 @@ import {
   releaseManifestFile,
   selectReleasePackages,
 } from './lib/release-set.mjs';
-import { loadPublishedPackageGraph } from './lib/workspace-graph.mjs';
+import { loadPublishedPackageGraph, loadWorkspacePackageVersions } from './lib/workspace-graph.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const registry = 'https://registry.npmjs.org';
@@ -99,7 +99,7 @@ const allPackages = graph.order.map(({ directory, manifest, name }) => ({
   name,
   packageRoot: join(root, 'packages', directory),
 }));
-const workspaceVersions = new Map(allPackages.map(({ manifest }) => [manifest.name, manifest.version]));
+const workspaceVersions = loadWorkspacePackageVersions(root);
 const releaseManifest = isReleaseSetTag(expectedTag)
   ? JSON.parse(await readFile(join(root, releaseManifestFile), 'utf8'))
   : undefined;

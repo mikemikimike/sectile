@@ -1,8 +1,30 @@
+import assert from 'node:assert/strict';
 import { join } from 'node:path';
+import { execFileSyncPortable } from '../../tools/tooling/portable-process.mjs';
 import { publishedPackageDirectories } from './published-packages.mjs';
 import { readJSON, root } from './repository.mjs';
 
 const dependencyFields = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'];
+
+// Packing resolves private development dependencies as well as published ones.
+// Ask the workspace owner, so this also works before node_modules exists.
+export function loadWorkspacePackageVersions(repositoryRoot = root) {
+  const projects = JSON.parse(execFileSyncPortable('pnpm', ['list', '--recursive', '--depth', '-1', '--json'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+  }));
+  assert.ok(Array.isArray(projects), 'pnpm must report a workspace project array');
+  const versions = new Map();
+  for (const project of projects) {
+    // Unversioned applications are not dependency version providers.
+    if (project.version === undefined) continue;
+    assert.equal(typeof project.name, 'string', 'workspace package name required');
+    assert.equal(typeof project.version, 'string', `${project.name}: workspace version required`);
+    assert.equal(versions.has(project.name), false, `duplicate workspace package: ${project.name}`);
+    versions.set(project.name, project.version);
+  }
+  return versions;
+}
 
 export async function loadPublishedPackageGraph() {
   const packages = await Promise.all(publishedPackageDirectories.map(async (directory) => {

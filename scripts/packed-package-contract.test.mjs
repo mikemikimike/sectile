@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { existsSync } from 'node:fs';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { loadPublishedPackageGraph, loadWorkspacePackageVersions } from './lib/workspace-graph.mjs';
 import {
   assertPackedDependencyRanges,
   assertPackedManifestMatchesSource,
@@ -98,4 +103,51 @@ test('validates exact and caret workspace ranges after packing', () => {
   assert.doesNotThrow(() => assertPackedDependencyRanges(packedManifest, sourceManifest, versions));
   packedManifest.dependencies['@sectile/core'] = '0.14.1';
   assert.throws(() => assertPackedDependencyRanges(packedManifest, sourceManifest, versions), /must be \^0\.14\.1/u);
+});
+
+test('discovers private workspace dependency versions before installation and validates packed development ranges', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'sectile-workspace-versions-'));
+  try {
+    await writeFile(join(directory, 'package.json'), JSON.stringify({ name: 'fixture-workspace', private: true }));
+    await writeFile(join(directory, 'pnpm-workspace.yaml'), "packages:\n  - 'packages/*'\n  - 'tools/*'\n");
+    const manifests = [
+      ['packages/runtime', { name: '@fixture/runtime', version: '1.2.3' }],
+      ['tools/build', { name: '@fixture/build', version: '0.4.0', private: true }],
+      ['outside/ignored', { name: '@fixture/ignored', version: '9.9.9' }],
+    ];
+    for (const [path, manifest] of manifests) {
+      await mkdir(join(directory, path), { recursive: true });
+      await writeFile(join(directory, path, 'package.json'), JSON.stringify(manifest));
+    }
+    assert.equal(existsSync(join(directory, 'node_modules')), false);
+    const versions = loadWorkspacePackageVersions(directory);
+    assert.deepEqual([...versions].sort(), [['@fixture/build', '0.4.0'], ['@fixture/runtime', '1.2.3']]);
+    const source = {
+      name: '@fixture/consumer',
+      dependencies: { '@fixture/runtime': 'workspace:^' },
+      devDependencies: { '@fixture/build': 'workspace:*' },
+    };
+    const packed = {
+      dependencies: { '@fixture/runtime': '^1.2.3' },
+      devDependencies: { '@fixture/build': '0.4.0' },
+    };
+    assert.doesNotThrow(() => assertPackedDependencyRanges(packed, source, versions));
+    packed.devDependencies['@fixture/build'] = '0.5.0';
+    assert.throws(() => assertPackedDependencyRanges(packed, source, versions), /devDependencies\.@fixture\/build must be 0\.4\.0/u);
+    versions.delete('@fixture/build');
+    assert.throws(() => assertPackedDependencyRanges(packed, source, versions), /missing workspace version for @fixture\/build/u);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('publication targets stay separate from private development version providers', async () => {
+  const graph = await loadPublishedPackageGraph();
+  const versions = loadWorkspacePackageVersions();
+  assert.equal(versions.has('@sectile/tooling'), true);
+  assert.equal(graph.byName.has('@sectile/tooling'), false);
+  for (const { manifest } of graph.order) {
+    assert.notEqual(manifest.private, true);
+    assert.equal(versions.get(manifest.name), manifest.version);
+  }
 });

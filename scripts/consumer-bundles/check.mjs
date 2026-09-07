@@ -64,6 +64,13 @@ export function validateGranularClosures(results) {
     spatial: 'spatial-layout',
   });
   for (const result of results.filter(({ mode }) => mode === 'named')) {
+    if (result.source === '@sectile/vue/chart' && result.exportName === 'ChartAxisTicks') {
+      assert.deepEqual(
+        result.modules.filter((path) => /^@sectile\/(?:chart|dom)\/dist\//u.test(path)),
+        [],
+        `${result.bundler}:${result.id}: passive Chart ticks retained controller or renderer ownership`,
+      );
+    }
     const virtual = /^vue:\.\/virtual\/(core|grid|list|masonry|spatial):named$/u.exec(result.id);
     if (virtual !== null) {
       const selected = virtualStrategies[virtual[1]];

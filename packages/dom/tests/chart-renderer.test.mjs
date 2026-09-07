@@ -25,6 +25,7 @@ function fixture() {
 
 function webglFixture() {
   const calls = [];
+  const shaderSources = [];
   let resource = 0;
   const failure = { kind: null, at: 0 };
   const ordinals = new Map();
@@ -59,7 +60,7 @@ function webglFixture() {
       totals.shaders.created += 1;
       return { id: ++resource, compileFailed: false };
     },
-    shaderSource() {},
+    shaderSource: (_shader, source) => { shaderSources.push(source); calls.push(['shaderSource', source]); },
     compileShader: (shader) => { shader.compileFailed = shouldFail('shader-compile'); },
     getShaderParameter: (shader) => !shader.compileFailed,
     getShaderInfoLog: () => 'synthetic shader failure',
@@ -96,6 +97,15 @@ function webglFixture() {
     drawArraysInstanced: (...args) => calls.push(['drawArraysInstanced', ...args]),
     flush: () => calls.push(['flush']),
   };
+  for (const method of ['bindBuffer', 'useProgram', 'uniform2f', 'getAttribLocation',
+    'enableVertexAttribArray', 'disableVertexAttribArray', 'vertexAttrib4f',
+    'vertexAttribPointer', 'vertexAttribDivisor']) {
+    const original = gl[method];
+    gl[method] = (...args) => {
+      calls.push([method, ...args.map((value) => value?.id ?? value)]);
+      return original(...args);
+    };
+  }
   const canvas = {
     width: 200, height: 160,
     ownerDocument: { createElement: () => ({ getContext: () => gl }) },
@@ -106,7 +116,7 @@ function webglFixture() {
     },
     removeEventListener: (...args) => calls.push(['removeEventListener', ...args]),
   };
-  return { calls, canvas, setFailure, resourceCounts };
+  return { calls, canvas, setFailure, resourceCounts, shaderSources };
 }
 
 const revision = Object.freeze({ identity: 0, order: 0, value: 0, geometry: 0, aggregate: 0, style: 0, level: 0 });
@@ -220,6 +230,73 @@ test('WebGL2 retains layer buffers across compatible view changes and uploads on
   assert.equal(calls.filter(([name]) => name === 'deleteProgram').length, 4);
   assert.equal(calls.filter(([name]) => name === 'removeEventListener').length, 2);
   assert.equal(renderer.getDiagnostics().liveResources, 0);
+});
+
+test('WebGL2 binds independent axis ranges, disjoint line spans and per-vertex divisor resets', () => {
+  for (const xLog of [false, true]) for (const yLog of [false, true]) {
+    const { calls, canvas, shaderSources } = webglFixture();
+    const renderer = createChartRenderer(canvas, { mode: 'webgl2', style: { lineWidth: 6 } });
+    const frame = projection();
+    frame.layout.axes = [axis('x', 'x', 2, 100, 9, 91), axis('y', 'y', 1, 50, 72, 8)];
+    frame.layout.axes[0].descriptor.kind = xLog ? 'logarithmic' : 'linear';
+    frame.layout.axes[1].descriptor.kind = yLog ? 'logarithmic' : 'linear';
+    const line = { ...frame.dataBatches[1], colors: new Uint8Array(24).fill(255),
+      geometry: { type: 'polyline', positions: new Float64Array([2, 1, 3, 2, 4, 3, 5, 4, 6, 5, 7, 6]),
+        offsets: new Uint32Array([0, 0, 1, 3, 6]) },
+    };
+    frame.dataBatches = [line, frame.dataBatches[0]];
+    calls.length = 0;
+    try {
+      renderer.render(frame);
+      assert.deepEqual(calls.filter(([name]) => name === 'uniform2f').map((entry) => entry.slice(1)), [
+        ['uViewport', 100, 80], ['uXDomain', 2, 100], ['uXRange', 9, 91], ['uYDomain', 1, 50], ['uYRange', 72, 8],
+        ['uViewport', 100, 80], ['uXDomain', 2, 100], ['uXRange', 9, 91], ['uYDomain', 1, 50], ['uYRange', 72, 8],
+      ]);
+      assert.deepEqual(calls.filter(([name]) => name === 'uniform1f').map((entry) => entry.slice(1)), [
+        ['uXLogarithmic', Number(xLog)], ['uYLogarithmic', Number(yLog)], ['uLineWidth', 6],
+        ['uXLogarithmic', Number(xLog)], ['uYLogarithmic', Number(yLog)], ['uPointSize', 12],
+      ]);
+      assert.deepEqual(calls.filter(([name]) => name === 'vertexAttribPointer').map((entry) => entry.slice(1)), [
+        [1, 2, 8, false, 8, 0],
+        [5, 2, 8, false, 8, 8], [6, 2, 8, false, 8, 16], [4, 4, 9, true, 4, 4],
+        [5, 2, 8, false, 8, 24], [6, 2, 8, false, 8, 32], [4, 4, 9, true, 4, 12],
+        [0, 2, 8, false, 8, 0], [4, 4, 9, true, 4, 0],
+      ]);
+      assert.deepEqual(calls.filter(([name]) => name === 'vertexAttribDivisor').map((entry) => entry.slice(1)), [
+        [1, 0], [5, 1], [6, 1], [4, 1], [5, 1], [6, 1], [4, 1], [0, 0], [4, 0],
+      ]);
+      assert.deepEqual(calls.filter(([name]) => name === 'drawArraysInstanced'), [
+        ['drawArraysInstanced', 16, 0, 6, 1], ['drawArraysInstanced', 16, 0, 6, 2],
+      ]);
+      assert.equal(renderer.getDiagnostics().drawCalls, 3);
+      const firstCalls = calls.slice();
+      calls.length = 0;
+      renderer.render(frame);
+      const drawSetup = (entries) => entries.filter(([name]) => name !== 'bufferData' && name !== 'bindBuffer');
+      assert.deepEqual(drawSetup(calls), drawSetup(firstCalls), 'retained batches preserve draw setup');
+      assert.equal(renderer.getDiagnostics().uploadedBytes, 0);
+    } finally { renderer.disconnect(); }
+    assert.equal(shaderSources.length, 8, 'rendering reuses initialization-owned shader sources');
+  }
+});
+
+test('WebGL2 attribute and uniform setup is per batch rather than per datum', () => {
+  for (const size of [1, 1_000, 100_000]) {
+    const value = webglFixture();
+    const renderer = createChartRenderer(value.canvas, { mode: 'webgl2' });
+    const frame = projection();
+    frame.dataBatches = [{ ...frame.dataBatches[0], colors: undefined,
+      geometry: { type: 'point', positions: new Float64Array(size * 2) } }];
+    value.calls.length = 0;
+    renderer.render(frame);
+    assert.equal(value.calls.filter(([name]) => name === 'vertexAttribPointer').length, 1);
+    assert.equal(value.calls.filter(([name]) => name === 'getAttribLocation').length, 2);
+    assert.equal(value.calls.filter(([name]) => name === 'uniform2f').length, 5);
+    assert.deepEqual(value.calls.find(([name]) => name === 'drawArrays'), ['drawArrays', 14, 0, size]);
+    assert.equal(renderer.getDiagnostics().drawCalls, 1);
+    renderer.disconnect();
+    assertBalancedResources(value.resourceCounts(), `point batch ${size}`);
+  }
 });
 
 test('WebGL2 applies a bounded partial upload only when the changed range crosses the calibrated size gate', () => {

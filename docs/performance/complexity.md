@@ -10,7 +10,7 @@ Every runtime ESM export inherits an explicit package public contract. Hot inter
 |---|---:|---:|---:|
 | core | 380 | 26 | 57 |
 | chart | 80 | 0 | 14 |
-| dom | 424 | 181 | 25 |
+| dom | 424 | 181 | 26 |
 | form | 21 | 0 | 7 |
 | tabular | 33 | 0 | 8 |
 | temporal | 99 | 24 | 2 |
@@ -104,6 +104,7 @@ Every runtime ESM export inherits an explicit package public contract. Hot inter
 | dom:chart.disconnect | connected | `O(r + u)` worst-case | `O(1)` | `O(1)` | `O(1)` | forbidden | VAL-016, VAL-017 |
 | dom:chart.navigation-dispatch | connected | `O(a + p)` worst-case | `O(a + p)` | `O(a)` | `O(a + p)` | forbidden | VAL-016, VAL-017 |
 | dom:chart.overlay-render | connected | `O(a + t + l + k)` worst-case | `O(a + t + l + k)` | `O(a + t + l + k)` | `O(a + t + l + k)` | forbidden | VAL-016, VAL-017 |
+| dom:chart.webgl2-bind | connected | `O(l + s)` worst-case | `O(1)` | `O(1)` | `O(1)` | forbidden | packages/dom/tests/chart-renderer.test.mjs |
 | dom:chart.webgl2-render | connected | `O(l + k)` worst-case | `O(k)` | `O(1)` | `O(k)` | allowed | VAL-016, VAL-017 |
 | dom:form.subscribe | connected | `O(1)` expected | `O(1)` | `O(1)` | `O(1)` | forbidden | VAL-016, VAL-017 |
 | dom:form.subscription-dispatch | connected | `O(sForm + uSource + sAffected)` worst-case | `O(sForm + uSource + sAffected)` | `O(1)` | `O(sForm + sField)` | forbidden | VAL-016, VAL-017 |

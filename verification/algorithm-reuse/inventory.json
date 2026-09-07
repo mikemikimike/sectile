@@ -2304,7 +2304,7 @@
       "detector": "derived-index-construction",
       "category": "discarded-canonical-index",
       "path": "packages/dom/src/internal/chart-webgl2-renderer.ts",
-      "line": 266,
+      "line": 241,
       "evidence": "new Map(projection.layout?.axes.map(",
       "rule": "dom-host-authority",
       "classification": "reuse",

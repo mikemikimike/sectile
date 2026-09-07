@@ -19,26 +19,35 @@ float chartMap(float value, vec2 domain, vec2 range, float logarithmic) {
   return mix(range.x, range.y, ratio);
 }`;
 
-const VERTEX_POINT = `#version 300 es
-in vec2 aPosition;
-in vec4 aColor;
-uniform vec2 uViewport;
+// Assemble the fixed shaders once; shared text preserves their exact GLSL source.
+const AXIS_UNIFORMS = `uniform vec2 uViewport;
 uniform vec2 uXDomain;
 uniform vec2 uXRange;
 uniform vec2 uYDomain;
 uniform vec2 uYRange;
 uniform float uXLogarithmic;
-uniform float uYLogarithmic;
+uniform float uYLogarithmic;`;
+
+const CLIP_POSITION = `  vec2 clip = vec2((position.x / uViewport.x) * 2.0 - 1.0, 1.0 - (position.y / uViewport.y) * 2.0);
+  gl_Position = vec4(clip, 0.0, 1.0);`;
+
+function mappedPosition(attribute: string, x = 'x', y = 'y'): string {
+  return `vec2(
+    chartMap(${attribute}.${x}, uXDomain, uXRange, uXLogarithmic),
+    chartMap(${attribute}.${y}, uYDomain, uYRange, uYLogarithmic)
+  )`;
+}
+
+const VERTEX_POINT = `#version 300 es
+in vec2 aPosition;
+in vec4 aColor;
+${AXIS_UNIFORMS}
 uniform float uPointSize;
 out vec4 vColor;
 ${SCALE_FUNCTION}
 void main() {
-  vec2 position = vec2(
-    chartMap(aPosition.x, uXDomain, uXRange, uXLogarithmic),
-    chartMap(aPosition.y, uYDomain, uYRange, uYLogarithmic)
-  );
-  vec2 clip = vec2((position.x / uViewport.x) * 2.0 - 1.0, 1.0 - (position.y / uViewport.y) * 2.0);
-  gl_Position = vec4(clip, 0.0, 1.0);
+  vec2 position = ${/* @__PURE__ */ mappedPosition('aPosition')};
+${CLIP_POSITION}
   gl_PointSize = uPointSize;
   vColor = aColor;
 }`;
@@ -48,25 +57,13 @@ in vec2 aCorner;
 in vec2 aStart;
 in vec2 aEnd;
 in vec4 aColor;
-uniform vec2 uViewport;
-uniform vec2 uXDomain;
-uniform vec2 uXRange;
-uniform vec2 uYDomain;
-uniform vec2 uYRange;
-uniform float uXLogarithmic;
-uniform float uYLogarithmic;
+${AXIS_UNIFORMS}
 uniform float uLineWidth;
 out vec4 vColor;
 ${SCALE_FUNCTION}
 void main() {
-  vec2 first = vec2(
-    chartMap(aStart.x, uXDomain, uXRange, uXLogarithmic),
-    chartMap(aStart.y, uYDomain, uYRange, uYLogarithmic)
-  );
-  vec2 second = vec2(
-    chartMap(aEnd.x, uXDomain, uXRange, uXLogarithmic),
-    chartMap(aEnd.y, uYDomain, uYRange, uYLogarithmic)
-  );
+  vec2 first = ${/* @__PURE__ */ mappedPosition('aStart')};
+  vec2 second = ${/* @__PURE__ */ mappedPosition('aEnd')};
   vec2 delta = second - first;
   float segmentLength = max(length(delta), 0.0001);
   vec2 direction = delta / segmentLength;
@@ -74,8 +71,7 @@ void main() {
   float halfWidth = uLineWidth * 0.5;
   float along = mix(-halfWidth, segmentLength + halfWidth, aCorner.x);
   vec2 position = first + direction * along + normal * mix(-halfWidth, halfWidth, aCorner.y);
-  vec2 clip = vec2((position.x / uViewport.x) * 2.0 - 1.0, 1.0 - (position.y / uViewport.y) * 2.0);
-  gl_Position = vec4(clip, 0.0, 1.0);
+${CLIP_POSITION}
   vColor = aColor;
 }`;
 
@@ -83,27 +79,14 @@ const VERTEX_RECTANGLE = `#version 300 es
 in vec2 aCorner;
 in vec4 aRectangle;
 in vec4 aColor;
-uniform vec2 uViewport;
-uniform vec2 uXDomain;
-uniform vec2 uXRange;
-uniform vec2 uYDomain;
-uniform vec2 uYRange;
-uniform float uXLogarithmic;
-uniform float uYLogarithmic;
+${AXIS_UNIFORMS}
 out vec4 vColor;
 ${SCALE_FUNCTION}
 void main() {
-  vec2 first = vec2(
-    chartMap(aRectangle.x, uXDomain, uXRange, uXLogarithmic),
-    chartMap(aRectangle.y, uYDomain, uYRange, uYLogarithmic)
-  );
-  vec2 second = vec2(
-    chartMap(aRectangle.z, uXDomain, uXRange, uXLogarithmic),
-    chartMap(aRectangle.w, uYDomain, uYRange, uYLogarithmic)
-  );
+  vec2 first = ${/* @__PURE__ */ mappedPosition('aRectangle')};
+  vec2 second = ${/* @__PURE__ */ mappedPosition('aRectangle', 'z', 'w')};
   vec2 position = mix(first, second, aCorner);
-  vec2 clip = vec2((position.x / uViewport.x) * 2.0 - 1.0, 1.0 - (position.y / uViewport.y) * 2.0);
-  gl_Position = vec4(clip, 0.0, 1.0);
+${CLIP_POSITION}
   vColor = aColor;
 }`;
 
@@ -119,8 +102,7 @@ void main() {
   float radius = min(uViewport.x, uViewport.y) * 0.5;
   vec2 center = uViewport * 0.5;
   vec2 position = center + (aCorner * 2.0 - 1.0) * aArc.y * radius;
-  vec2 clip = vec2((position.x / uViewport.x) * 2.0 - 1.0, 1.0 - (position.y / uViewport.y) * 2.0);
-  gl_Position = vec4(clip, 0.0, 1.0);
+${CLIP_POSITION}
   vPosition = position - center;
   vArc = vec4(aArc.xy * radius, aArc.zw);
   vColor = aColor;
@@ -173,19 +155,12 @@ interface RetainedLayer {
   colorBuffer: WebGLBuffer | undefined;
 }
 
-interface AxisUniforms {
-  readonly domain: readonly [number, number];
-  readonly range: readonly [number, number];
-  readonly logarithmic: boolean;
-}
+type AxisUniforms = readonly [minimum: number, maximum: number, start: number, end: number, logarithmic: boolean];
 
-interface WebGLBaseResources {
-  readonly pointProgram: WebGLProgram;
-  readonly lineProgram: WebGLProgram;
-  readonly rectangleProgram: WebGLProgram;
-  readonly arcProgram: WebGLProgram;
-  readonly quadBuffer: WebGLBuffer;
-}
+type WebGLBaseResources = readonly [
+  pointProgram: WebGLProgram, lineProgram: WebGLProgram, rectangleProgram: WebGLProgram,
+  arcProgram: WebGLProgram, quadBuffer: WebGLBuffer,
+];
 
 export class WebGL2ChartRenderer implements ChartRenderer {
   public readonly capabilities: ChartRendererCapabilities;
@@ -310,12 +285,7 @@ export class WebGL2ChartRenderer implements ChartRenderer {
   }
 
   #initialize(): void {
-    const resources = createBaseResources(this.#gl);
-    this.#pointProgram = resources.pointProgram;
-    this.#lineProgram = resources.lineProgram;
-    this.#rectangleProgram = resources.rectangleProgram;
-    this.#arcProgram = resources.arcProgram;
-    this.#quadBuffer = resources.quadBuffer;
+    [this.#pointProgram, this.#lineProgram, this.#rectangleProgram, this.#arcProgram, this.#quadBuffer] = createBaseResources(this.#gl);
     this.#diagnostics = Object.freeze({ mode: 'webgl2', uploadedBytes: 0, drawCalls: 0, liveResources: this.#baseResourceCount() });
   }
 
@@ -410,7 +380,8 @@ export class WebGL2ChartRenderer implements ChartRenderer {
     gl.useProgram(this.#pointProgram);
     bindProjection(gl, this.#pointProgram, projection, x, y);
     gl.uniform1f(gl.getUniformLocation(this.#pointProgram, 'uPointSize'), this.#style.pointRadius * 2 * (projection.viewport.devicePixelRatio ?? 1));
-    bindPositions(gl, this.#pointProgram, layer.buffer, 2);
+    gl.bindBuffer(gl.ARRAY_BUFFER, layer.buffer);
+    bindFloatAttribute(gl, this.#pointProgram, 'aPosition', 2, 0);
     bindColors(gl, this.#pointProgram, layer, this.#style.color, 0);
     gl.drawArrays(gl.POINTS, 0, count);
     return 1;
@@ -449,10 +420,7 @@ export class WebGL2ChartRenderer implements ChartRenderer {
     bindProjection(gl, this.#rectangleProgram, projection, x, y);
     bindCorners(gl, this.#rectangleProgram, this.#quadBuffer);
     gl.bindBuffer(gl.ARRAY_BUFFER, layer.buffer);
-    const rectangle = gl.getAttribLocation(this.#rectangleProgram, 'aRectangle');
-    gl.enableVertexAttribArray(rectangle);
-    gl.vertexAttribPointer(rectangle, 4, gl.FLOAT, false, 16, 0);
-    gl.vertexAttribDivisor(rectangle, 1);
+    bindFloatAttribute(gl, this.#rectangleProgram, 'aRectangle', 4, 1);
     bindColors(gl, this.#rectangleProgram, layer, this.#style.color, 1);
     gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, count);
     return count === 0 ? 0 : 1;
@@ -464,10 +432,7 @@ export class WebGL2ChartRenderer implements ChartRenderer {
     bindViewport(gl, this.#arcProgram, projection);
     bindCorners(gl, this.#arcProgram, this.#quadBuffer);
     gl.bindBuffer(gl.ARRAY_BUFFER, layer.buffer);
-    const arc = gl.getAttribLocation(this.#arcProgram, 'aArc');
-    gl.enableVertexAttribArray(arc);
-    gl.vertexAttribPointer(arc, 4, gl.FLOAT, false, 16, 0);
-    gl.vertexAttribDivisor(arc, 1);
+    bindFloatAttribute(gl, this.#arcProgram, 'aArc', 4, 1);
     bindColors(gl, this.#arcProgram, layer, this.#style.color, 1);
     const count = layer.data.length / 4;
     gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, count);
@@ -527,15 +492,12 @@ function convertScreenBatch(batch: ChartProjectionBatch, projection: ChartProjec
 
 function axisUniforms(axis: ChartAxisLayout): AxisUniforms {
   const descriptor = axis.descriptor;
-  return {
-    domain: [descriptor.geometryDomain.minimum, descriptor.geometryDomain.maximum],
-    range: [descriptor.range.start, descriptor.range.end],
-    logarithmic: descriptor.kind === 'logarithmic',
-  };
+  return [descriptor.geometryDomain.minimum, descriptor.geometryDomain.maximum,
+    descriptor.range.start, descriptor.range.end, descriptor.kind === 'logarithmic'];
 }
 
 function identityAxis(maximum: number): AxisUniforms {
-  return { domain: [0, maximum], range: [0, maximum], logarithmic: false };
+  return [0, maximum, 0, maximum, false];
 }
 
 type UploadArray = Float32Array | Uint8Array;
@@ -580,7 +542,7 @@ function createBaseResources(gl: WebGL2RenderingContext): WebGLBaseResources {
     quadBuffer = requiredBuffer(gl);
     gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, QUAD, gl.STATIC_DRAW);
-    return Object.freeze({ pointProgram, lineProgram, rectangleProgram, arcProgram, quadBuffer });
+    return [pointProgram, lineProgram, rectangleProgram, arcProgram, quadBuffer];
   } catch (error) {
     if (quadBuffer !== undefined) gl.deleteBuffer(quadBuffer);
     if (arcProgram !== undefined) gl.deleteProgram(arcProgram);
@@ -594,12 +556,12 @@ function createBaseResources(gl: WebGL2RenderingContext): WebGLBaseResources {
 function createProgram(gl: WebGL2RenderingContext, vertexSource: string, fragmentSource: string): WebGLProgram {
   let vertex: WebGLShader | undefined;
   let fragment: WebGLShader | undefined;
-  let program: WebGLProgram | undefined;
+  let program: WebGLProgram | null = null;
   try {
     vertex = createShader(gl, gl.VERTEX_SHADER, vertexSource);
     fragment = createShader(gl, gl.FRAGMENT_SHADER, fragmentSource);
-    program = gl.createProgram() ?? undefined;
-    if (program === undefined) throw new Error('WebGL2 chart program allocation failed.');
+    program = gl.createProgram();
+    if (program === null) throw new Error('WebGL2 chart program allocation failed.');
     gl.attachShader(program, vertex);
     gl.attachShader(program, fragment);
     gl.linkProgram(program);
@@ -609,7 +571,7 @@ function createProgram(gl: WebGL2RenderingContext, vertexSource: string, fragmen
     }
     return program;
   } catch (error) {
-    if (program !== undefined) gl.deleteProgram(program);
+    if (program !== null) gl.deleteProgram(program);
     throw error;
   } finally {
     if (fragment !== undefined) gl.deleteShader(fragment);
@@ -648,24 +610,23 @@ function bindProjection(
   y: AxisUniforms,
 ): void {
   bindViewport(gl, program, projection);
-  gl.uniform2f(gl.getUniformLocation(program, 'uXDomain'), x.domain[0], x.domain[1]);
-  gl.uniform2f(gl.getUniformLocation(program, 'uXRange'), x.range[0], x.range[1]);
-  gl.uniform2f(gl.getUniformLocation(program, 'uYDomain'), y.domain[0], y.domain[1]);
-  gl.uniform2f(gl.getUniformLocation(program, 'uYRange'), y.range[0], y.range[1]);
-  gl.uniform1f(gl.getUniformLocation(program, 'uXLogarithmic'), x.logarithmic ? 1 : 0);
-  gl.uniform1f(gl.getUniformLocation(program, 'uYLogarithmic'), y.logarithmic ? 1 : 0);
+  gl.uniform2f(gl.getUniformLocation(program, 'uXDomain'), x[0], x[1]);
+  gl.uniform2f(gl.getUniformLocation(program, 'uXRange'), x[2], x[3]);
+  gl.uniform2f(gl.getUniformLocation(program, 'uYDomain'), y[0], y[1]);
+  gl.uniform2f(gl.getUniformLocation(program, 'uYRange'), y[2], y[3]);
+  gl.uniform1f(gl.getUniformLocation(program, 'uXLogarithmic'), x[4] ? 1 : 0);
+  gl.uniform1f(gl.getUniformLocation(program, 'uYLogarithmic'), y[4] ? 1 : 0);
 }
 
 function bindViewport(gl: WebGL2RenderingContext, program: WebGLProgram, projection: ChartProjection): void {
   gl.uniform2f(gl.getUniformLocation(program, 'uViewport'), projection.viewport.width, projection.viewport.height);
 }
 
-function bindPositions(gl: WebGL2RenderingContext, program: WebGLProgram, buffer: WebGLBuffer, size: number): void {
-  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-  const location = gl.getAttribLocation(program, 'aPosition');
+function bindFloatAttribute(gl: WebGL2RenderingContext, program: WebGLProgram, name: string, size: number, divisor: number, byteOffset = 0): void {
+  const location = gl.getAttribLocation(program, name);
   gl.enableVertexAttribArray(location);
-  gl.vertexAttribPointer(location, size, gl.FLOAT, false, size * 4, 0);
-  gl.vertexAttribDivisor(location, 0);
+  gl.vertexAttribPointer(location, size, gl.FLOAT, false, size * 4, byteOffset);
+  gl.vertexAttribDivisor(location, divisor);
 }
 
 function bindLineEndpoints(
@@ -675,14 +636,8 @@ function bindLineEndpoints(
   start: number,
 ): void {
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-  const first = gl.getAttribLocation(program, 'aStart');
-  gl.enableVertexAttribArray(first);
-  gl.vertexAttribPointer(first, 2, gl.FLOAT, false, 8, start * 8);
-  gl.vertexAttribDivisor(first, 1);
-  const second = gl.getAttribLocation(program, 'aEnd');
-  gl.enableVertexAttribArray(second);
-  gl.vertexAttribPointer(second, 2, gl.FLOAT, false, 8, (start + 1) * 8);
-  gl.vertexAttribDivisor(second, 1);
+  bindFloatAttribute(gl, program, 'aStart', 2, 1, start * 8);
+  bindFloatAttribute(gl, program, 'aEnd', 2, 1, (start + 1) * 8);
 }
 
 function bindColors(
@@ -707,10 +662,7 @@ function bindColors(
 
 function bindCorners(gl: WebGL2RenderingContext, program: WebGLProgram, buffer: WebGLBuffer): void {
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-  const location = gl.getAttribLocation(program, 'aCorner');
-  gl.enableVertexAttribArray(location);
-  gl.vertexAttribPointer(location, 2, gl.FLOAT, false, 8, 0);
-  gl.vertexAttribDivisor(location, 0);
+  bindFloatAttribute(gl, program, 'aCorner', 2, 0);
 }
 
 function resourceCount(layers: ReadonlyMap<number, RetainedLayer>): number {

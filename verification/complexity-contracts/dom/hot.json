@@ -204,6 +204,29 @@
       }
     },
     {
+      "id": "chart.webgl2-bind",
+      "inherits": "linear-v1",
+      "source": "packages/dom/src/internal/chart-webgl2-renderer.ts",
+      "benchmarkIDs": ["VAL-012:dom-chart-webgl2-binding"],
+      "specificationCeiling": "O(l + s)",
+      "contract": {
+        "variables": [
+          { "name": "l", "meaning": "submitted render batches", "ceiling": "Chart batch ceiling" },
+          { "name": "s", "meaning": "polyline spans inspected in those batches", "ceiling": "packed offset count" }
+        ],
+        "time": { "bound": "O(l + s)", "kind": "worst-case", "runtimeState": "connected" },
+        "space": { "auxiliary": "O(1)", "output": "O(1)", "retained": "O(1)" },
+        "resources": { "allocations": "O(l)", "cacheEntries": "0", "listeners": "0", "observers": "0", "timers": "0", "subscriptions": "0" },
+        "assumptions": ["This operation covers uniform/attribute setup, not geometry conversion, upload, GPU execution or the renderer's layer registry.", "Each named five-value axis tuple is local to a batch. Scalar attribute helpers allocate no arrays or closures."],
+        "deterministicWork": ["A point batch with 1, 1000 or 100000 datums uses one float attribute pointer, two attribute lookups and five vec2 uniform writes.", "Disjoint polyline spans use one start/end binding pair per nonempty span; the next point batch resets per-vertex divisors."],
+        "resourceRationale": "Each axis uses one bounded tuple instead of a record with two child arrays. Only two tuples are live per batch; no axis cache or input-sized temporary is added. Fixed shader text is assembled once per module and shared by renderer instances. GPU resource ownership and rollback remain unchanged.",
+        "proof": "bindFloatAttribute performs one location lookup, enable, pointer and divisor call using scalar arguments. bindProjection reads five fixed tuple positions per axis. Draw dispatch invokes these helpers once per batch or nonempty line span, never per datum.",
+        "adversarialWitness": "Linear/log axis combinations, distinct reversed ranges, empty and singleton spans, nonzero vertex/color offsets, retained redraw, large point batches and initialization/restoration failures.",
+        "evidence": ["packages/dom/tests/chart-renderer.test.mjs"],
+        "fullScan": { "allowed": false, "rationale": "Attribute setup does not inspect datum values; line dispatch only inspects the submitted span offsets." }
+      }
+    },
+    {
       "id": "chart.webgl2-render",
       "inherits": "linear-v1",
       "source": "packages/dom/src/internal/chart-webgl2-renderer.ts",

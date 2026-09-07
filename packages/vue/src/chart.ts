@@ -360,7 +360,7 @@ export interface ChartProviderComponent {
   };
 }
 
-const ChartProviderRuntime = defineComponent({
+const ChartProviderRuntime = /* @__PURE__ */ defineComponent({
   name: 'SectileChartProvider',
   props: { controller: { type: Object as PropType<ChartController>, required: true } },
   setup(props, { slots }) {
@@ -444,7 +444,7 @@ function useChartContextSelector<Selected>(
   return selected;
 }
 
-const ChartRootRuntime = defineComponent({
+const ChartRootRuntime = /* @__PURE__ */ defineComponent({
   name: 'SectileChartRoot',
   inheritAttrs: false,
   props: {

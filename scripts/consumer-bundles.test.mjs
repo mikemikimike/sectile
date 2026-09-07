@@ -132,6 +132,19 @@ test('intentional temporal and virtual sibling closures fail', () => {
   ]), /retained sibling DOM/u);
 });
 
+test('passive Chart tick imports exclude controller ownership while root imports retain their own closure', () => {
+  const ticks = {
+    ...fixtureResult('vue:./chart:named', 'named', ['@sectile/vue/dist/chart.js'], 100),
+    source: '@sectile/vue/chart', exportName: 'ChartAxisTicks',
+  };
+  assert.doesNotThrow(() => validateGranularClosures([ticks]));
+  for (const module of ['@sectile/chart/dist/controller.js', '@sectile/dom/dist/internal/chart-webgl2-renderer.js']) {
+    const expanded = { ...ticks, modules: [...ticks.modules, module] };
+    assert.throws(() => validateGranularClosures([expanded]), /passive Chart ticks retained/u);
+    assert.doesNotThrow(() => validateGranularClosures([{ ...expanded, exportName: 'ChartRoot' }]));
+  }
+});
+
 function fixtureResult(id, mode, modules, raw, dependencies = []) {
   return { id, bundler: 'esbuild', mode, modules, raw, gzip: raw, brotli: raw, dependencies };
 }

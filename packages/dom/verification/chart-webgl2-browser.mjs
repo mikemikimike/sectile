@@ -28,6 +28,7 @@ if (!rendererResult.ok) {
 window.__CHART_WEBGL2_BROWSER_RESULT__ = result;
 document.body.dataset.status = result.status;
 output.textContent = JSON.stringify(result, null, 2);
+console.info(`Sectile Chart WebGL2 verification: ${JSON.stringify(result)}`);
 
 async function verify(renderer, canvasElement, detectedCapabilities) {
   const gl = canvasElement.getContext('webgl2');
@@ -82,6 +83,7 @@ async function verify(renderer, canvasElement, detectedCapabilities) {
 
   const canvasFallback = verifyCanvasFallback(projection);
   const domConnection = verifyDOMConnection();
+  const wideLines = verifyWideLines();
 
   const contextLifecycle = await verifyContextLifecycle(
     canvasElement,
@@ -105,6 +107,7 @@ async function verify(renderer, canvasElement, detectedCapabilities) {
       && stressDiagnostics.drawCalls === 1,
     canvas2dFallback: canvasFallback.passed,
     domConnection: domConnection.passed,
+    wideLines: wideLines.passed,
     contextLifecycle: contextLifecycle.supported ? contextLifecycle.passed : true,
     resourceCleanup: disconnectedDiagnostics.liveResources === 0,
   };
@@ -125,9 +128,44 @@ async function verify(renderer, canvasElement, detectedCapabilities) {
     },
     canvasFallback,
     domConnection,
+    wideLines,
     contextLifecycle,
     disconnectedDiagnostics,
     errors: { render: renderError, stress: stressError },
+  };
+}
+
+function verifyWideLines() {
+  const surface = document.createElement('canvas');
+  surface.width = 200;
+  surface.height = 150;
+  const created = tryCreateChartRenderer(surface, { mode: 'webgl2', style: { lineWidth: 6 } });
+  if (!created.ok) return { passed: false, error: created.error };
+  const renderer = created.value;
+  const gl = surface.getContext('webgl2');
+  let pixels, error, diagnostics;
+  try {
+    renderer.render({ ...representativeProjection(), batches: [{
+      type: 'polyline', layerIndex: 0,
+      positions: new Float32Array([20, 40, 60, 40, 100, 40, 140, 40]),
+      offsets: new Uint32Array([0, 2, 4]),
+      identityIndices: new Uint32Array([0, 0, 1, 1]),
+      colors: new Uint8Array([255, 0, 0, 255, 255, 0, 0, 255, 0, 0, 255, 255, 0, 0, 255, 255]),
+    }] });
+    renderer.flush();
+    gl.finish();
+    error = gl.getError();
+    pixels = { redEdge: readPixel(gl, 40, 42), blueEdge: readPixel(gl, 120, 42),
+      gap: readPixel(gl, 80, 40), outside: readPixel(gl, 40, 45) };
+    diagnostics = renderer.getDiagnostics();
+  } finally { renderer.disconnect(); }
+  const cleaned = renderer.getDiagnostics().liveResources === 0;
+  return {
+    passed: error === gl.NO_ERROR && diagnostics.drawCalls === 2 && cleaned
+      && pixels.redEdge[0] > 240 && pixels.redEdge[2] < 8 && pixels.redEdge[3] > 240
+      && pixels.blueEdge[0] < 8 && pixels.blueEdge[2] > 240 && pixels.blueEdge[3] > 240
+      && pixels.gap[3] < 8 && pixels.outside[3] < 8,
+    pixels, error, diagnostics, cleaned,
   };
 }
 

@@ -152,6 +152,58 @@ test('patches revalidate retained IDs when the ID ceiling is lowered', () => {
   assert.equal(result.error.code, 'id-code-unit-ceiling-exceeded');
 });
 
+test('sequence patches enforce effective ceilings before fast paths and preserve metadata', () => {
+  const ids = Array.from({ length: 16 }, (_, index) => `id-${index}`);
+  const sequence = createSequence(ids, { maxItems: 32, maxIDCodeUnits: 32 });
+  const sparseMove = { type: 'move', from: 0, to: 15, count: 1 };
+  const denseMove = { type: 'move', from: 0, to: 12, count: 4 };
+  const noOpMove = { type: 'move', from: 0, to: 0, count: 0 };
+
+  for (const patch of [sparseMove, denseMove, noOpMove]) {
+    const rejected = tryApplySequencePatch(sequence, patch, { maxItems: 15 });
+    assert.equal(rejected.ok, false);
+    assert.equal(rejected.error.code, 'item-ceiling-exceeded');
+  }
+
+  const sparseRoundTrip = applySequencePatch(sequence, sparseMove);
+  const sparseRoundTripAgain = applySequencePatch(sparseRoundTrip, {
+    type: 'move', from: 15, to: 0, count: 1,
+  });
+  const denseRoundTrip = applySequencePatch(sequence, denseMove);
+  const denseRoundTripAgain = applySequencePatch(denseRoundTrip, {
+    type: 'move', from: 12, to: 0, count: 4,
+  });
+  assert.deepEqual(sparseRoundTripAgain.ids, ids);
+  assert.deepEqual(denseRoundTripAgain.ids, ids);
+  for (const view of [sparseRoundTripAgain, denseRoundTripAgain]) {
+    const rejected = tryApplySequencePatch(view, noOpMove, { maxItems: 15 });
+    assert.equal(rejected.ok, false);
+    assert.equal(rejected.error.code, 'item-ceiling-exceeded');
+  }
+
+  const longIDs = createSequence(['a', 'long-id'], { maxItems: 8, maxIDCodeUnits: 32 });
+  for (const patch of [noOpMove, { type: 'move', from: 0, to: 0, count: 1 }]) {
+    const rejected = tryApplySequencePatch(longIDs, patch, { maxIDCodeUnits: 5 });
+    assert.equal(rejected.ok, false);
+    assert.equal(rejected.error.code, 'id-code-unit-ceiling-exceeded');
+  }
+
+  const exactBoundary = tryApplySequencePatch(sequence, noOpMove, { maxItems: 16 });
+  assert.equal(exactBoundary.ok, true);
+  assert.deepEqual(
+    [exactBoundary.value.size, exactBoundary.value.maxItems, exactBoundary.value.maxIDCodeUnits],
+    [16, 16, 32],
+  );
+  const shrinkingSplice = tryApplySequencePatch(sequence, {
+    type: 'splice', index: 0, deleteCount: 2, inserted: [],
+  }, { maxItems: 14 });
+  assert.equal(shrinkingSplice.ok, true);
+  assert.deepEqual(
+    [shrinkingSplice.value.size, shrinkingSplice.value.maxItems],
+    [14, 14],
+  );
+});
+
 test('incremental move patches preserve every valid post-removal destination', () => {
   for (let size = 0; size <= 9; size += 1) {
     const ids = canonicalIDs(size);

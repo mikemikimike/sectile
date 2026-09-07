@@ -30,7 +30,7 @@ export interface GridPartProps { readonly as?: PrimitiveAs; readonly asChild?: b
 interface Context {
   readonly state: ComputedRef<GridRootSlotProps>;
   readonly disabledItems: ComputedRef<ReadonlySet<string>>;
-  registerCell(element: HTMLElement, id: string, disabled: boolean): void;
+  registerCell(element: HTMLElement | undefined, id: string, disabled: boolean): void;
 }
 interface GridConnectionOwner {
   readonly rows: readonly (readonly (string | null)[])[];
@@ -79,7 +79,7 @@ export const GridRoot = defineComponent({
       editMode: props.editMode ?? localEditMode.value, disabled: props.disabled, readonly: props.readonly,
     }));
     const refreshParts = (): void => { if (element.value === undefined || connection.value === undefined) return; element.value.querySelectorAll<HTMLElement>('[data-sectile-grid-cell]').forEach((node) => { const id = node.dataset['sectileGridCell']; if (id !== undefined) connection.value?.setCellAttributes(node, id, { disabled: node.dataset['sectileGridItemDisabled'] !== undefined }); }); };
-    const refresh = (): void => { const snapshot = connection.value?.getSnapshot().state; if (snapshot === undefined) return; localValue.value = snapshot.selection.selected[0] ?? null; localHighlight.value = snapshot.cursor.current; localEditMode.value = snapshot.editMode; refreshParts(); };
+    const refresh = (): void => { const snapshot = connection.value?.getSnapshot().state; if (snapshot === undefined) return; localValue.value = snapshot.selection.selected[0] ?? null; localHighlight.value = snapshot.cursor.current; localEditMode.value = snapshot.editMode; };
     const connect = (): void => {
       const nextOwner = snapshotGridConnectionOwner(props);
       if (
@@ -153,11 +153,24 @@ export const GridCell = defineComponent({
   name: 'SectileGridCell', inheritAttrs: false,
   props: { value: { type: String, required: true }, disabled: { type: Boolean, default: false }, ...partProps },
   slots: Object as SlotsType<{ default: (props: GridCellSlotProps) => VNodeChild }>,
-  setup(props, { attrs, slots }) { const root = useRoot('GridCell'); const state = computed<GridCellSlotProps>(() => ({ ...root.state.value, value: props.value, selected: root.state.value.value === props.value, highlighted: root.state.value.highlightedValue === props.value, disabled: root.state.value.disabled || props.disabled || root.disabledItems.value.has(props.value) })); return (): VNodeChild => h(Primitive, mergeProps(attrs, {
-    as: props.as, asChild: props.asChild, elementRef: (node: unknown) => { if (node instanceof HTMLElement) root.registerCell(node, props.value, props.disabled); },
-    'data-sectile-grid-cell': props.value, 'data-sectile-grid-item-disabled': props.disabled ? '' : undefined, 'data-scope': 'grid', 'data-part': 'cell', 'data-selected': state.value.selected ? '' : undefined,
-    'data-highlighted': state.value.highlighted ? '' : undefined, 'data-disabled': state.value.disabled ? '' : undefined,
-  }), { default: () => slots['default']?.(state.value) }); },
+  setup(props, { attrs, slots }) {
+    const root = useRoot('GridCell');
+    let registeredID = props.value;
+    const register = (node: unknown): void => {
+      if (registeredID !== props.value) {
+        root.registerCell(undefined, registeredID, false);
+        registeredID = props.value;
+      }
+      root.registerCell(node instanceof HTMLElement ? node : undefined, registeredID, props.disabled);
+    };
+    onBeforeUnmount(() => root.registerCell(undefined, registeredID, false));
+    const state = computed<GridCellSlotProps>(() => ({ ...root.state.value, value: props.value, selected: root.state.value.value === props.value, highlighted: root.state.value.highlightedValue === props.value, disabled: root.state.value.disabled || props.disabled || root.disabledItems.value.has(props.value) }));
+    return (): VNodeChild => h(Primitive, mergeProps(attrs, {
+      as: props.as, asChild: props.asChild, elementRef: register,
+      'data-sectile-grid-cell': props.value, 'data-sectile-grid-item-disabled': props.disabled ? '' : undefined, 'data-scope': 'grid', 'data-part': 'cell', 'data-selected': state.value.selected ? '' : undefined,
+      'data-highlighted': state.value.highlighted ? '' : undefined, 'data-disabled': state.value.disabled ? '' : undefined,
+    }), { default: () => slots['default']?.(state.value) });
+  },
 });
 
 function useRoot(part: string): Context { const root = inject<Context>(key); if (root === undefined) throw new TypeError(`${part} must be used inside GridRoot.`); return root; }

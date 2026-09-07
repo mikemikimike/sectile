@@ -21,7 +21,7 @@ const { createApp, h, nextTick, ref } = await import('vue');
 const { CarouselRoot } = await import('../.verification-dist/carousel.js');
 const { CascadeSelectContent, CascadeSelectRoot, CascadeSelectTrigger } = await import('../.verification-dist/cascade-select.js');
 const { FeedRoot } = await import('../.verification-dist/feed.js');
-const { GridRoot } = await import('../.verification-dist/grid.js');
+const { GridCell, GridRoot, GridRow } = await import('../.verification-dist/grid.js');
 const { MenuItem, MenuRoot, MenuSubContent, MenuButtonRoot, MenuButtonTrigger, MenuButtonContent, MenubarRoot, NavigationMenuRoot } = await import('../.verification-dist/menu.js');
 const { PaginationRoot } = await import('../.verification-dist/pagination.js');
 const { SelectContent, SelectRoot, SelectTrigger } = await import('../.verification-dist/select.js');
@@ -52,6 +52,219 @@ test('Vue grid reconciles controlled selection and focus after rows change', asy
   assert.equal(highlighted.value, 'b');
   unmount(app, host);
 });
+
+test('Vue Grid mounts linearly and projects bounded cursor and selection changes at 1k and 4k cells', async () => {
+  for (const size of [1_000, 4_000]) {
+    const ids = Array.from({ length: size }, (_, index) => `grid-${index}`);
+    const rows = Array.from({ length: size / 1_000 }, (_, row) => ids.slice(row * 1_000, (row + 1) * 1_000));
+    const originalSetAttribute = HTMLElement.prototype.setAttribute;
+    const originalRemoveAttribute = HTMLElement.prototype.removeAttribute;
+    let roleWrites = 0;
+    let cellWrites = 0;
+    HTMLElement.prototype.setAttribute = function (name, value) {
+      if (name === 'role' && value === 'gridcell') roleWrites += 1;
+      if (this.hasAttribute('data-sectile-grid-cell')) cellWrites += 1;
+      return originalSetAttribute.call(this, name, value);
+    };
+    HTMLElement.prototype.removeAttribute = function (name) {
+      if (this.hasAttribute('data-sectile-grid-cell')) cellWrites += 1;
+      return originalRemoveAttribute.call(this, name);
+    };
+    let mounted;
+    try {
+      mounted = mount(() => h(GridRoot, { rows, defaultHighlightedValue: ids[0] }, {
+        default: () => rows.map((row, index) => h(GridRow, { key: index }, {
+          default: () => row.map((id) => h(GridCell, { key: id, value: id }, { default: () => id })),
+        })),
+      }));
+      await settle();
+      const root = mounted.host.querySelector('[data-part="root"]');
+      const cells = [...root.querySelectorAll('[data-sectile-grid-cell]')];
+      assert.equal(cells.length, size);
+      assert.equal(roleWrites, size, 'each cell receives one complete registration projection');
+      assert.equal(cells[0].tabIndex, 0);
+      const query = root.querySelectorAll;
+      let discoveries = 0;
+      root.querySelectorAll = function (...args) { discoveries += 1; return query.apply(this, args); };
+      const checkDelta = async (action) => {
+        roleWrites = 0; cellWrites = 0;
+        action();
+        await settle();
+        assert.equal(discoveries, 0, 'ordinary updates do not rediscover mounted cells');
+        assert.equal(roleWrites, 0, 'ordinary updates retain stable registration attributes');
+        assert.ok(cellWrites <= 32, `${size} cells caused ${cellWrites} writes for one semantic delta`);
+      };
+      await checkDelta(() => gridKey(root, 'ArrowRight'));
+      assert.equal(cells[0].tabIndex, -1);
+      assert.equal(cells[1].tabIndex, 0);
+      assert.equal(document.activeElement, cells[1]);
+      await checkDelta(() => gridKey(root, ' '));
+      assert.equal(cells[1].getAttribute('aria-selected'), 'true');
+      await checkDelta(() => cells.at(-1).click());
+      assert.equal(cells[1].getAttribute('aria-selected'), 'false');
+      assert.equal(cells.at(-1).getAttribute('aria-selected'), 'true');
+      assert.equal(cells.at(-1).tabIndex, 0);
+      assert.equal(document.activeElement, cells.at(-1));
+    } finally {
+      HTMLElement.prototype.setAttribute = originalSetAttribute;
+      HTMLElement.prototype.removeAttribute = originalRemoveAttribute;
+      if (mounted !== undefined) unmount(mounted.app, mounted.host);
+    }
+  }
+});
+
+test('Vue Grid cell refs preserve disabled changes, recycled identities, removal and remount', async () => {
+  const rows = [['a', 'b', 'c']];
+  const id = ref('b');
+  const disabled = ref(true);
+  const visible = ref(true);
+  let snapshot;
+  const { app, host } = mount(() => h(GridRoot, { rows, defaultHighlightedValue: 'a' }, {
+    default: (state) => {
+      snapshot = state;
+      return h(GridRow, null, { default: () => [
+        h(GridCell, { key: 'a', value: 'a' }),
+        visible.value ? h(GridCell, { key: 'recycled', value: id.value, disabled: disabled.value }) : null,
+      ] });
+    },
+  }));
+  try {
+    await settle();
+    const root = host.querySelector('[data-part="root"]');
+    const cell = host.querySelector('[data-sectile-grid-cell="b"]');
+    assert.equal(cell.getAttribute('aria-disabled'), 'true');
+    cell.click();
+    await settle();
+    assert.equal(snapshot.value, null);
+    disabled.value = false;
+    await settle();
+    assert.equal(cell.hasAttribute('aria-disabled'), false);
+    cell.click();
+    await settle();
+    assert.equal(snapshot.value, 'b');
+    assert.equal(cell.tabIndex, 0);
+    id.value = 'c';
+    await settle();
+    assert.equal(host.querySelector('[data-sectile-grid-cell="c"]'), cell);
+    assert.equal(cell.getAttribute('aria-colindex'), '3');
+    assert.equal(cell.tabIndex, -1);
+    cell.click();
+    await settle();
+    assert.equal(snapshot.value, 'c');
+    disabled.value = true;
+    await settle();
+    visible.value = false;
+    await settle();
+    assert.equal(cell.tabIndex, -1, 'removed host releases its roving tab stop');
+    let detachedFocus = 0;
+    cell.focus = () => { detachedFocus += 1; };
+    gridKey(root, 'ArrowLeft');
+    await settle();
+    assert.equal(snapshot.highlightedValue, 'b');
+    gridKey(root, 'ArrowRight');
+    await settle();
+    assert.equal(snapshot.highlightedValue, 'c', 'unmounted disabled host releases its local eligibility state');
+    assert.equal(detachedFocus, 0);
+    disabled.value = false;
+    visible.value = true;
+    await settle();
+    const remounted = host.querySelector('[data-sectile-grid-cell="c"]');
+    assert.notEqual(remounted, cell);
+    assert.equal(remounted.tabIndex, 0);
+    assert.equal(remounted.getAttribute('aria-selected'), 'true');
+    assert.equal(remounted.hasAttribute('aria-disabled'), false);
+  } finally { unmount(app, host); }
+});
+
+test('Vue Grid preserves every controlled ownership shape, edit callbacks and unmount cleanup', async () => {
+  for (let mask = 0; mask < 8; mask += 1) {
+    const rows = [['a', 'b']];
+    const value = ref(null);
+    const highlight = ref('a');
+    const mode = ref('navigation');
+    const readonly = ref(false);
+    const disabled = ref(false);
+    const edits = [];
+    let snapshot;
+    let acceptsSelection = true;
+    const { app, host } = mount(() => h(GridRoot, {
+      rows, defaultHighlightedValue: 'a', readonly: readonly.value, disabled: disabled.value,
+      ...(mask & 1 ? { modelValue: value.value } : {}),
+      ...(mask & 2 ? { highlightedValue: highlight.value } : {}),
+      ...(mask & 4 ? { editMode: mode.value } : {}),
+      'onUpdate:modelValue': (next) => { if (acceptsSelection) value.value = next; },
+      'onUpdate:highlightedValue': (next) => { highlight.value = next; },
+      'onUpdate:editMode': (next) => { mode.value = next; },
+      onEditStart: (id) => edits.push(['start', id]),
+      onEditCommit: (id) => edits.push(['commit', id]),
+      onEditCancel: (id) => edits.push(['cancel', id]),
+    }, { default: (state) => {
+      snapshot = state;
+      return h(GridRow, null, { default: () => rows[0].map((id) => h(GridCell, { key: id, value: id })) });
+    } }));
+    let unmounted = false;
+    try {
+      await settle();
+      const root = host.querySelector('[data-part="root"]');
+      const a = host.querySelector('[data-sectile-grid-cell="a"]');
+      const b = host.querySelector('[data-sectile-grid-cell="b"]');
+      gridKey(root, 'ArrowRight');
+      await settle();
+      assert.equal(snapshot.highlightedValue, 'b');
+      assert.equal(b.tabIndex, 0);
+      gridKey(root, ' ');
+      await settle();
+      assert.equal(snapshot.value, 'b');
+      assert.equal(b.getAttribute('aria-selected'), 'true');
+      for (const key of ['F2', 'Enter', 'F2', 'Escape']) {
+        gridKey(root, key);
+        await settle();
+      }
+      assert.deepEqual(edits, [['start', 'b'], ['commit', 'b'], ['start', 'b'], ['cancel', 'b']]);
+      assert.equal(snapshot.editMode, 'navigation');
+      acceptsSelection = false;
+      a.click();
+      await settle();
+      assert.equal(snapshot.value, mask & 1 ? 'b' : 'a');
+      assert.equal(b.getAttribute('aria-selected'), mask & 1 ? 'true' : 'false');
+      readonly.value = true;
+      await settle();
+      const selected = snapshot.value;
+      b.click(); gridKey(root, 'F2');
+      await settle();
+      assert.equal(snapshot.value, selected);
+      assert.equal(edits.length, 4);
+      gridKey(root, 'ArrowRight');
+      await settle();
+      assert.equal(snapshot.highlightedValue, 'b', 'read-only still permits navigation');
+      disabled.value = true;
+      await settle();
+      gridKey(root, 'ArrowLeft');
+      await settle();
+      assert.equal(snapshot.highlightedValue, 'b');
+      disabled.value = false;
+      await settle();
+      let focusCalls = 0;
+      for (const cell of [a, b]) {
+        const focus = cell.focus;
+        cell.focus = function (...args) { focusCalls += 1; return focus.apply(this, args); };
+      }
+      gridKey(root, 'ArrowLeft');
+      const beforeUnmount = focusCalls;
+      unmount(app, host); unmounted = true;
+      await settle();
+      assert.equal(focusCalls, beforeUnmount, 'queued focus is inert after unmount');
+      const editsBefore = edits.length;
+      gridKey(root, 'F2'); b.click();
+      await settle();
+      assert.equal(edits.length, editsBefore, 'detached root has no live edit listeners');
+    } finally { if (!unmounted) unmount(app, host); }
+  }
+});
+
+function gridKey(root, key) {
+  root.dispatchEvent(new browserWindow.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+}
 
 test('Vue tree grid drops stale expansion and reconciles cell state', async () => {
   const rows = ref([

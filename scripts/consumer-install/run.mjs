@@ -107,6 +107,16 @@ async function inspectVueInstall(root, packageManager, tarballs) {
     "if (presence.getPresent() !== false) throw new Error('DOM presence initial state mismatch');",
     "presence.disconnect();",
   ].join(' ')], directory);
+  await run(process.execPath, ['--input-type=module', '-e', [
+    "import assert from 'node:assert/strict';",
+    "const { createGridControl } = await import('@sectile/dom/grid');",
+    "class Cell { attributes = new Map(); tabIndex = -1; setAttribute(k, v) { this.attributes.set(k, v); } removeAttribute(k) { this.attributes.delete(k); } addEventListener() {} removeEventListener() {} focus() {} }",
+    "const root = new Cell(); const a = new Cell(); const b = new Cell();",
+    "const grid = createGridControl({ root, rows: [['a', 'b']], defaultHighlightedValue: 'a' });",
+    "try { grid.setCellAttributes(a, 'a'); grid.setCellAttributes(b, 'b'); grid.send('right'); grid.send('select'); assert.equal(a.tabIndex, -1); assert.equal(b.tabIndex, 0); assert.equal(b.attributes.get('aria-selected'), 'true'); grid.setCellAttributes(b, 'b', { disabled: true }); grid.setCellAttributes(undefined, 'b'); assert.equal(b.tabIndex, -1); assert.equal(grid.handleEvent({ type: 'select', id: 'b' }), true); } finally { grid.destroy(); }",
+    "const { GridRoot, GridRow, GridCell } = await import('@sectile/vue/grid');",
+    "assert.deepEqual([GridRoot.name, GridRow.name, GridCell.name], ['SectileGridRoot', 'SectileGridRow', 'SectileGridCell']);",
+  ].join(' ')], directory);
   const optionalDomains = [
     {
       packageName: 'chart',

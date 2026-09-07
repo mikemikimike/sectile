@@ -22,14 +22,15 @@
       "id": "WI-030:dom-grid-control-closure",
       "change": "signature-changed",
       "before": { "subpath": "./grid" },
-      "symbols": ["GridEditMode", "GridPolicies", "GridState", "GridEvent"],
-      "replacement": { "package": "@sectile/dom", "subpath": "./grid" }
+      "symbols": ["GridEditMode", "GridPolicies", "GridState", "GridEvent", "GridConnection.setCellAttributes"],
+      "replacement": { "package": "@sectile/dom", "subpath": "./grid" },
+      "removalReason": "Grid cell registration accepts undefined to release a host and its per-cell disabled state. Existing HTMLElement registration calls remain valid; see GitHub #13."
     },
     {
       "id": "WI-030:dom-root-grid-control-closure",
       "change": "signature-changed",
       "before": { "subpath": "." },
-      "symbols": ["GridEditMode", "GridPolicies", "GridState", "GridEvent", "TextConnection.handleEvent", "FacadeConnection<TextConnection>.send"],
+      "symbols": ["GridEditMode", "GridPolicies", "GridState", "GridEvent", "TextConnection.handleEvent", "FacadeConnection<TextConnection>.send", "GridConnection.setCellAttributes"],
       "replacement": { "package": "@sectile/dom", "subpath": "." },
       "removalReason": "Programmatic text transitions use handleEvent or send; handleBeforeInput is reserved for observing native beforeinput without cancellation."
     },

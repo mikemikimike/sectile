@@ -42,7 +42,8 @@ export interface GridConnection<ID extends StableID = StableID> {
   readonly grid: Grid<ID>;
   getSnapshot(): RevisionSnapshot<GridState<ID>>;
   syncControlledValues(values: GridControlledValues<ID>): Result<RevisionSnapshot<GridState<ID>>>;
-  setCellAttributes(element: HTMLElement, id: ID, attributes?: GridCellAttributes): void;
+  /** Register or update one cell; pass undefined to release its host and per-cell disabled state. */
+  setCellAttributes(element: HTMLElement | undefined, id: ID, attributes?: GridCellAttributes): void;
   handleEvent(event: GridEvent<ID>): boolean;
   focusCurrent(): void;
   disconnect(): void;
@@ -80,15 +81,21 @@ function tryCreateGridControlConnection<ID extends StableID>(options: GridOption
 
 class DOMGrid<ID extends StableID> implements GridConnection<ID> {
   public readonly grid: Grid<ID>; readonly #options: GridOptions<ID>; readonly #runtime: SemanticController<GridState<ID>, GridEvent<ID>, GridCommand<ID>>; readonly #elements = new Map<ID, HTMLElement>();
+  readonly #elementOwners = new WeakMap<HTMLElement, ID>();
   #active = true;
+  #projectedCurrent: ID | null;
+  #projectedValue: ID | null;
   readonly #disabled: ReadonlySet<ID>; readonly #itemDisabled: Set<ID>; readonly #valueControlled: boolean; readonly #highlightControlled: boolean; readonly #editControlled: boolean;
   readonly #keydown: (event: KeyboardEvent) => void; readonly #click: (event: MouseEvent) => void; readonly #focus: (event: FocusEvent) => void;
   public constructor(options: GridOptions<ID>, grid: Grid<ID>, runtime: SemanticController<GridState<ID>, GridEvent<ID>, GridCommand<ID>>, disabled: ReadonlySet<ID>, itemDisabled: Set<ID>, valueControlled: boolean, highlightControlled: boolean, editControlled: boolean) {
     this.#options = options; this.grid = grid; this.#runtime = runtime;
     this.#disabled = disabled; this.#itemDisabled = itemDisabled; this.#valueControlled = valueControlled; this.#highlightControlled = highlightControlled; this.#editControlled = editControlled;
+    const state = runtime.getSnapshot().state;
+    this.#projectedCurrent = state.cursor.current;
+    this.#projectedValue = state.selection.selected[0] ?? null;
     this.#keydown = (event) => { const semantic = toGridEvent(event, this.getSnapshot().state.editMode); if (semantic !== null && this.handleEvent(semantic)) event.preventDefault(); };
     this.#click = (event) => { const id = this.#findID(event.target); if (id !== null) this.handleEvent({ type: 'select', id }); };
-    this.#focus = (event) => { const id = this.#findID(event.target); if (id === null || id === this.getSnapshot().state.cursor.current) return; const result = this.#runtime.handle({ type: 'focus', id }); if (result.ok) this.#refresh(); queueMicrotask(() => { if (!this.#active) return; this.#options.onUpdate?.(); this.focusCurrent(); }); };
+    this.#focus = (event) => { const id = this.#findID(event.target); if (id === null || id === this.getSnapshot().state.cursor.current) return; const result = this.#runtime.handle({ type: 'focus', id }); if (result.ok) this.#projectTransition(); queueMicrotask(() => { if (!this.#active) return; this.#options.onUpdate?.(); this.focusCurrent(); }); };
     options.root.addEventListener('keydown', this.#keydown); options.root.addEventListener('click', this.#click); options.root.addEventListener('focusin', this.#focus);
     options.root.setAttribute('role', 'grid'); options.root.setAttribute('aria-rowcount', String(grid.rowCount)); options.root.setAttribute('aria-colcount', String(grid.columnCount)); if (options.label !== undefined) options.root.setAttribute('aria-label', options.label);
     setInteractionAttributes(options.root, options, { readOnly: true });
@@ -97,14 +104,85 @@ class DOMGrid<ID extends StableID> implements GridConnection<ID> {
   public syncControlledValues(values: GridControlledValues<ID>): Result<RevisionSnapshot<GridState<ID>>> {
     if (this.#valueControlled !== (values.value !== undefined) || this.#highlightControlled !== (values.highlightedValue !== undefined) || this.#editControlled !== (values.editMode !== undefined)) return { ok: false, error: { class: 'construction', code: 'controlled-shape-mismatch', message: 'Controlled grid values must preserve their construction-time shape.' } };
     const current = this.getSnapshot().state; const selected = values.value === undefined ? current.selection.selected : values.value === null ? [] : [values.value];
-    const result = this.#runtime.replace(tryCreateGridState(this.grid, { current: values.highlightedValue === undefined ? current.cursor.current : values.highlightedValue, selected, anchor: values.value === undefined ? current.selection.anchor : values.value, editMode: values.editMode ?? current.editMode })); if (result.ok) { this.#refresh(); this.#options.onUpdate?.(); this.focusCurrent(); } return result;
+    const result = this.#runtime.replace(tryCreateGridState(this.grid, { current: values.highlightedValue === undefined ? current.cursor.current : values.highlightedValue, selected, anchor: values.value === undefined ? current.selection.anchor : values.value, editMode: values.editMode ?? current.editMode })); if (result.ok) { this.#projectTransition(); this.#options.onUpdate?.(); this.focusCurrent(); } return result;
   }
-  public setCellAttributes(element: HTMLElement, id: ID, attributes: GridCellAttributes = {}): void { if (this.grid.positionOf(id) !== null) { if (attributes.disabled === true) this.#itemDisabled.add(id); else this.#itemDisabled.delete(id); this.#elements.set(id, element); this.#refresh(); } }
-  public handleEvent(event: GridEvent<ID>): boolean { const result = this.#runtime.handle(event); if (result.ok) { for (const command of result.commands) { if (command.type === 'focus') this.#elements.get(command.id)?.focus(); else if (command.type === 'begin-edit') this.#options.onEditStart?.(command.id); else if (command.type === 'commit-edit') this.#options.onEditCommit?.(command.id); else this.#options.onEditCancel?.(command.id); } this.#refresh(); this.#options.onUpdate?.(); this.focusCurrent(); } return result.ok; }
+  public setCellAttributes(element: HTMLElement | undefined, id: ID, attributes?: GridCellAttributes): void {
+    if (!this.#active || this.grid.positionOf(id) === null) return;
+    const current = this.#elements.get(id);
+    const disabled = element !== undefined && attributes?.disabled === true;
+    if (current === element && this.#itemDisabled.has(id) === disabled) return;
+    if (current !== undefined && current !== element) this.#releaseCell(id, current);
+    if (element === undefined) return;
+    const owner = this.#elementOwners.get(element);
+    if (owner !== undefined && owner !== id && this.#elements.get(owner) === element) this.#releaseCell(owner, element);
+    if (disabled) this.#itemDisabled.add(id);
+    else this.#itemDisabled.delete(id);
+    this.#elements.set(id, element);
+    this.#elementOwners.set(element, id);
+    this.#projectCell(id, element);
+  }
+  public handleEvent(event: GridEvent<ID>): boolean { const result = this.#runtime.handle(event); if (result.ok) { for (const command of result.commands) { if (command.type === 'focus') this.#elements.get(command.id)?.focus(); else if (command.type === 'begin-edit') this.#options.onEditStart?.(command.id); else if (command.type === 'commit-edit') this.#options.onEditCommit?.(command.id); else this.#options.onEditCancel?.(command.id); } this.#projectTransition(); this.#options.onUpdate?.(); this.focusCurrent(); } return result.ok; }
   public focusCurrent(): void { queueMicrotask(() => { if (!this.#active) return; const current = this.getSnapshot().state.cursor.current; if (current === null) this.#options.root.focus(); else this.#elements.get(current)?.focus(); }); }
-  public disconnect(): void { this.#active = false; this.#options.root.removeEventListener('keydown', this.#keydown); this.#options.root.removeEventListener('click', this.#click); this.#options.root.removeEventListener('focusin', this.#focus); this.#elements.clear(); }
-  #findID(target: EventTarget | null): ID | null { for (const [id, element] of this.#elements) if (target === element || (target instanceof Node && element.contains(target))) return id; return null; }
-  #refresh(): void { const state = this.getSnapshot().state; for (const [id, element] of this.#elements) { const position = this.grid.positionOf(id); if (position === null) continue; element.setAttribute('role', 'gridcell'); element.setAttribute('aria-rowindex', String(position.row + 1)); element.setAttribute('aria-colindex', String(position.column + 1)); element.setAttribute('aria-selected', String(state.selection.has(id))); if (this.#disabled.has(id) || this.#itemDisabled.has(id)) element.setAttribute('aria-disabled', 'true'); else element.removeAttribute('aria-disabled'); element.tabIndex = state.cursor.current === id ? 0 : -1; } }
+  public disconnect(): void {
+    this.#active = false;
+    this.#options.root.removeEventListener('keydown', this.#keydown);
+    this.#options.root.removeEventListener('click', this.#click);
+    this.#options.root.removeEventListener('focusin', this.#focus);
+    this.#elements.clear();
+    this.#itemDisabled.clear();
+    this.#projectedCurrent = null;
+    this.#projectedValue = null;
+  }
+  #releaseCell(id: ID, element: HTMLElement): void {
+    this.#elements.delete(id);
+    if (this.#elementOwners.get(element) === id) this.#elementOwners.delete(element);
+    this.#itemDisabled.delete(id);
+    element.tabIndex = -1;
+  }
+  #findID(target: EventTarget | null): ID | null {
+    // Follow the light-DOM target ancestry, including text nodes, without a cell scan.
+    let node = target as Node | null;
+    while (node != null) {
+      const element = node as HTMLElement;
+      const id = this.#elementOwners.get(element);
+      if (id !== undefined && this.#elements.get(id) === element) return id;
+      if (node === this.#options.root) break;
+      node = node.parentNode;
+    }
+    return null;
+  }
+  #projectCell(id: ID, element: HTMLElement): void {
+    const position = this.grid.positionOf(id);
+    if (position === null) return;
+    const state = this.getSnapshot().state;
+    element.setAttribute('role', 'gridcell');
+    element.setAttribute('aria-rowindex', String(position.row + 1));
+    element.setAttribute('aria-colindex', String(position.column + 1));
+    element.setAttribute('aria-selected', String(state.selection.has(id)));
+    if (this.#disabled.has(id) || this.#itemDisabled.has(id)) element.setAttribute('aria-disabled', 'true');
+    else element.removeAttribute('aria-disabled');
+    element.tabIndex = state.cursor.current === id ? 0 : -1;
+  }
+  #projectTransition(): void {
+    const state = this.getSnapshot().state;
+    const current = state.cursor.current;
+    // Core's Grid selection is single-valued, including controlled replacements.
+    const value = state.selection.selected[0] ?? null;
+    const previousCurrent = this.#projectedCurrent;
+    const previousValue = this.#projectedValue;
+    this.#projectedCurrent = current;
+    this.#projectedValue = value;
+    if (previousCurrent !== current) {
+      const previous = previousCurrent === null ? undefined : this.#elements.get(previousCurrent);
+      const next = current === null ? undefined : this.#elements.get(current);
+      if (previous !== undefined) previous.tabIndex = -1;
+      if (next !== undefined) next.tabIndex = 0;
+    }
+    if (previousValue !== value) {
+      if (previousValue !== null) this.#elements.get(previousValue)?.setAttribute('aria-selected', 'false');
+      if (value !== null) this.#elements.get(value)?.setAttribute('aria-selected', 'true');
+    }
+  }
 }
 
 function gridIntent<ID extends StableID>(event: GridEvent<ID>): 'navigate' | 'mutate' {

@@ -378,6 +378,65 @@
       }
     },
     {
+      "id": "grid.cell-registration",
+      "inherits": "constant-v1",
+      "source": "packages/dom/src/grid.ts",
+      "benchmarkIDs": ["GH-13:dom-grid-registration-work"],
+      "specificationCeiling": "O(1)",
+      "contract": {
+        "variables": [{ "name": "r", "meaning": "live registered cell hosts", "ceiling": "canonical Grid maxItems; default 100000" }],
+        "time": { "bound": "O(1)", "kind": "expected", "runtimeState": "connected" },
+        "space": { "auxiliary": "O(1)", "output": "O(1)", "retained": "O(r)" },
+        "resources": { "allocations": "O(1)", "cacheEntries": "O(r)", "listeners": "0 new listeners", "observers": "0", "timers": "0", "subscriptions": "0" },
+        "assumptions": ["Canonical Grid position lookup, Map and WeakMap operations have expected constant cost.", "Core owns navigation and eligibility semantics; registration projects host state only."],
+        "deterministicWork": ["At 1000, 10000 and 100000 cells, bulk registration writes exactly r roles and r tabIndex values.", "Re-registering the same host and disabled value performs zero host writes.", "Replacement or identity transfer releases at most two old registrations and projects only the new host."],
+        "resourceRationale": "Each registration performs expected O(1) work and allocations, so registering r independent hosts takes O(r) total work. The forward Map owns live hosts; the WeakMap maps hosts to primitive stable IDs without retaining detached elements. Release deletes forward/reverse ownership and per-cell disabled state. Disconnect clears strong host ownership and local eligibility state and removes the three root listeners.",
+        "proof": "setCellAttributes uses canonical positionOf and direct ownership lookups, returns for unchanged registrations, and calls projectCell for one element. Passing undefined releases one registration and its local disabled state. There is no registered-domain traversal in the per-cell operation.",
+        "adversarialWitness": "Maximum-size registration, numeric 0 versus textual 0, duplicate-host transfer, replacement, disabled toggles, unknown IDs, repeated release, and 32 disconnect cycles with captured callbacks.",
+        "evidence": ["packages/dom/tests/grid-projection.test.mjs", "packages/dom/type-tests/grid.test.ts"],
+        "fullScan": { "allowed": false, "rationale": "One cell registration affects its requested ID and a directly indexed previous owner only." }
+      }
+    },
+    {
+      "id": "grid.event-target",
+      "inherits": "linear-v1",
+      "source": "packages/dom/src/grid.ts",
+      "benchmarkIDs": ["GH-13:dom-grid-target-work"],
+      "specificationCeiling": "O(h) expected",
+      "contract": {
+        "variables": [{ "name": "h", "meaning": "target parentNode ancestry depth up to the listening root", "ceiling": "host tree depth" }],
+        "time": { "bound": "O(h)", "kind": "expected", "runtimeState": "connected" },
+        "space": { "auxiliary": "O(1)", "output": "O(1)", "retained": "O(1)" },
+        "resources": { "allocations": "0 target arrays or per-event indexes", "cacheEntries": "0 new entries", "listeners": "0 new listeners", "observers": "0", "timers": "0", "subscriptions": "0" },
+        "assumptions": ["Host event target ancestry is acyclic; the existing weak reverse index and forward ownership Map are reused.", "The bound describes light-DOM target resolution, separately from Core transitions, focus events and application callbacks."],
+        "deterministicWork": ["Descendant clicks at the last of 1000, 10000 and 100000 registered cells perform zero contains calls.", "Traversal reads each visited parentNode at most once; replaced and released hosts have no live forward owner."],
+        "resourceRationale": "Event routing retains no event target or path and allocates no registry snapshot.",
+        "proof": "findID follows parentNode, probes the WeakMap and confirms the matching forward Map entry, stopping at the first live host or the listening root. It never enumerates registered cells.",
+        "adversarialWitness": "Text-like descendants of late-registered cells, numeric/string IDs, detached replacement targets and stale handlers after disconnect.",
+        "evidence": ["packages/dom/tests/grid-projection.test.mjs"],
+        "fullScan": { "allowed": false, "rationale": "Only target ancestors participate in event routing." }
+      }
+    },
+    {
+      "id": "grid.transition-projection",
+      "inherits": "constant-v1",
+      "source": "packages/dom/src/grid.ts",
+      "benchmarkIDs": ["GH-13:dom-grid-transition-work"],
+      "specificationCeiling": "O(1) expected",
+      "contract": {
+        "time": { "bound": "O(1)", "kind": "expected", "runtimeState": "connected" },
+        "space": { "auxiliary": "O(1)", "output": "O(1)", "retained": "O(1)" },
+        "resources": { "allocations": "0 projection arrays or per-cell snapshots", "cacheEntries": "two primitive projected IDs", "listeners": "0 new listeners", "observers": "0", "timers": "0", "subscriptions": "0" },
+        "assumptions": ["Core Grid selection has at most one selected ID.", "The contract covers host attribute projection; canonical transitions, application callbacks, focus dispatch and Vue rendering retain their separate costs."],
+        "deterministicWork": ["An ordinary cursor move writes at most two tabIndex values; a selection change writes at most two aria-selected attributes.", "Unchanged state writes nothing and no transition rewrites role, row/column indices or disabled attributes.", "All eight controlled ownership shapes project accepted canonical state, including synchronous owner acceptance."],
+        "resourceRationale": "Only the last projected current and selected IDs are retained. No duplicate domain state or per-transition index is built.",
+        "proof": "projectTransition compares two stored scalar IDs with the live Core snapshot and directly updates the previous and next hosts of each changed value. Controlled synchronization and focus events use the same projection owner.",
+        "adversarialWitness": "Maximum domain movement, stopped boundary moves, selection across distant cells, synchronous controlled acceptance, edit callbacks and disconnect with queued focus work.",
+        "evidence": ["packages/dom/tests/grid-projection.test.mjs", "packages/dom/tests/grid.test.mjs"],
+        "fullScan": { "allowed": false, "rationale": "Current and selected IDs completely identify the affected host state." }
+      }
+    },
+    {
       "id": "menu.click-target",
       "inherits": "linear-v1",
       "source": "packages/dom/src/internal/menu-control.ts",

@@ -10,13 +10,13 @@ Every runtime ESM export inherits an explicit package public contract. Hot inter
 |---|---:|---:|---:|
 | core | 380 | 26 | 54 |
 | chart | 80 | 0 | 14 |
-| dom | 424 | 181 | 21 |
+| dom | 424 | 181 | 24 |
 | form | 21 | 0 | 7 |
 | tabular | 33 | 0 | 8 |
 | temporal | 99 | 24 | 2 |
 | terminal | 347 | 177 | 6 |
 | virtual | 114 | 0 | 27 |
-| vue | 740 | 319 | 8 |
+| vue | 740 | 319 | 9 |
 
 ## Variables
 
@@ -105,6 +105,9 @@ Every runtime ESM export inherits an explicit package public contract. Hot inter
 | dom:form.subscribe | connected | `O(1)` expected | `O(1)` | `O(1)` | `O(1)` | forbidden | VAL-016, VAL-017 |
 | dom:form.subscription-dispatch | connected | `O(sForm + uSource + sAffected)` worst-case | `O(sForm + uSource + sAffected)` | `O(1)` | `O(sForm + sField)` | forbidden | VAL-016, VAL-017 |
 | dom:form.unsubscribe | connected | `O(1)` expected | `O(1)` | `O(1)` | `O(1)` | forbidden | VAL-016, VAL-017 |
+| dom:grid.cell-registration | connected | `O(1)` expected | `O(1)` | `O(1)` | `O(r)` | forbidden | packages/dom/tests/grid-projection.test.mjs, packages/dom/type-tests/grid.test.ts |
+| dom:grid.event-target | connected | `O(h)` expected | `O(1)` | `O(1)` | `O(1)` | forbidden | packages/dom/tests/grid-projection.test.mjs |
+| dom:grid.transition-projection | connected | `O(1)` expected | `O(1)` | `O(1)` | `O(1)` | forbidden | packages/dom/tests/grid-projection.test.mjs, packages/dom/tests/grid.test.mjs |
 | dom:menu.click-target | connected | `O(hPath)` expected | `O(hPath)` | `O(1)` | `O(1)` | forbidden | packages/dom/tests/menu.test.mjs, packages/vue/tests/dynamic-collections.dom.test.mjs, packages/vue/tests/browser/popup-presence-focus-fixture.mjs |
 | dom:menu.item-registration | connected | `O(1)` expected | `O(1)` | `O(1)` | `O(nRegistered)` | forbidden | VAL-009 |
 | dom:menu.transition-projection | connected | `O(1 + hPath)` expected | `O(1)` | `O(1)` | `O(hPath)` | forbidden | packages/dom/tests/menu.test.mjs, packages/vue/tests/dynamic-collections.dom.test.mjs, packages/vue/tests/browser/popup-presence-focus-fixture.mjs |
@@ -172,6 +175,7 @@ Every runtime ESM export inherits an explicit package public contract. Hot inter
 | vue:chart.selector-bridge | mounted | `O(sState + sLayer*lLayer + sAxis*aAxis)` worst-case | `O(1)` | `O(1)` | `O(sState + sLayer + sAxis)` | forbidden | VAL-016, VAL-017 |
 | vue:collection.external-reconcile | external | `O(nOption + sSelected + dDisabled)` expected | `O(nOption + sSelected + dDisabled)` | `O(sSelected)` | `O(sSelected)` | allowed | VAL-016, VAL-017 |
 | vue:form.selector-bridge | mounted | `O(sForm + sField)` worst-case | `O(1)` | `O(1)` | `O(1)` | forbidden | VAL-016, VAL-017 |
+| vue:grid.cell-projection | mounted | `O(r + j)` expected | `O(r)` | `O(r)` | `O(r)` | allowed | packages/vue/tests/dynamic-collections.dom.test.mjs, packages/vue/tests/structural-controls.test.mjs |
 | vue:virtual.grid-reconfigure | mounted | `O(nItem)` worst-case | `O(rRepair + cLane)` | `O(rRepair + cLane)` | `O(nItem)` | allowed | VAL-016, VAL-017 |
 | vue:virtual.item-projection | mounted | `O(kPlacement)` worst-case | `O(kPlacement)` | `O(kPlacement)` | `O(nMounted)` | forbidden | VAL-016, VAL-017 |
 | vue:virtual.masonry-reconfigure | mounted | `O(nItem log lLane + jChanged log nItem)` worst-case | `O(nItem + jChanged log nItem)` | `O(nItem)` | `O(nItem)` | allowed | VAL-016, VAL-017 |

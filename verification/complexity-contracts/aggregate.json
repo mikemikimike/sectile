@@ -25553,6 +25553,190 @@
     {
       "package": "dom",
       "surface": "hot",
+      "id": "grid.cell-registration",
+      "source": "packages/dom/src/grid.ts",
+      "benchmarkIDs": [
+        "GH-13:dom-grid-registration-work"
+      ],
+      "specificationCeiling": "O(1)",
+      "reviewedWeakening": null,
+      "contract": {
+        "variables": [
+          {
+            "name": "r",
+            "meaning": "live registered cell hosts",
+            "ceiling": "canonical Grid maxItems; default 100000"
+          }
+        ],
+        "time": {
+          "bound": "O(1)",
+          "kind": "expected",
+          "runtimeState": "connected"
+        },
+        "space": {
+          "auxiliary": "O(1)",
+          "output": "O(1)",
+          "retained": "O(r)"
+        },
+        "resources": {
+          "allocations": "O(1)",
+          "cacheEntries": "O(r)",
+          "listeners": "0 new listeners",
+          "observers": "0",
+          "timers": "0",
+          "subscriptions": "0"
+        },
+        "assumptions": [
+          "Canonical Grid position lookup, Map and WeakMap operations have expected constant cost.",
+          "Core owns navigation and eligibility semantics; registration projects host state only."
+        ],
+        "ceilings": [
+          "safe-integer and package resource ceilings"
+        ],
+        "benchmarkIDs": [
+          "VAL-017:constant-work"
+        ],
+        "deterministicWork": [
+          "At 1000, 10000 and 100000 cells, bulk registration writes exactly r roles and r tabIndex values.",
+          "Re-registering the same host and disabled value performs zero host writes.",
+          "Replacement or identity transfer releases at most two old registrations and projects only the new host."
+        ],
+        "resourceRationale": "Each registration performs expected O(1) work and allocations, so registering r independent hosts takes O(r) total work. The forward Map owns live hosts; the WeakMap maps hosts to primitive stable IDs without retaining detached elements. Release deletes forward/reverse ownership and per-cell disabled state. Disconnect clears strong host ownership and local eligibility state and removes the three root listeners.",
+        "proof": "setCellAttributes uses canonical positionOf and direct ownership lookups, returns for unchanged registrations, and calls projectCell for one element. Passing undefined releases one registration and its local disabled state. There is no registered-domain traversal in the per-cell operation.",
+        "adversarialWitness": "Maximum-size registration, numeric 0 versus textual 0, duplicate-host transfer, replacement, disabled toggles, unknown IDs, repeated release, and 32 disconnect cycles with captured callbacks.",
+        "evidence": [
+          "packages/dom/tests/grid-projection.test.mjs",
+          "packages/dom/type-tests/grid.test.ts"
+        ],
+        "fullScan": {
+          "allowed": false,
+          "rationale": "One cell registration affects its requested ID and a directly indexed previous owner only."
+        }
+      }
+    },
+    {
+      "package": "dom",
+      "surface": "hot",
+      "id": "grid.event-target",
+      "source": "packages/dom/src/grid.ts",
+      "benchmarkIDs": [
+        "GH-13:dom-grid-target-work"
+      ],
+      "specificationCeiling": "O(h) expected",
+      "reviewedWeakening": null,
+      "contract": {
+        "variables": [
+          {
+            "name": "h",
+            "meaning": "target parentNode ancestry depth up to the listening root",
+            "ceiling": "host tree depth"
+          }
+        ],
+        "time": {
+          "bound": "O(h)",
+          "kind": "expected",
+          "runtimeState": "connected"
+        },
+        "space": {
+          "auxiliary": "O(1)",
+          "output": "O(1)",
+          "retained": "O(1)"
+        },
+        "resources": {
+          "allocations": "0 target arrays or per-event indexes",
+          "cacheEntries": "0 new entries",
+          "listeners": "0 new listeners",
+          "observers": "0",
+          "timers": "0",
+          "subscriptions": "0"
+        },
+        "assumptions": [
+          "Host event target ancestry is acyclic; the existing weak reverse index and forward ownership Map are reused.",
+          "The bound describes light-DOM target resolution, separately from Core transitions, focus events and application callbacks."
+        ],
+        "ceilings": [
+          "operation item and output ceilings"
+        ],
+        "benchmarkIDs": [
+          "VAL-017:linear-work"
+        ],
+        "deterministicWork": [
+          "Descendant clicks at the last of 1000, 10000 and 100000 registered cells perform zero contains calls.",
+          "Traversal reads each visited parentNode at most once; replaced and released hosts have no live forward owner."
+        ],
+        "resourceRationale": "Event routing retains no event target or path and allocates no registry snapshot.",
+        "proof": "findID follows parentNode, probes the WeakMap and confirms the matching forward Map entry, stopping at the first live host or the listening root. It never enumerates registered cells.",
+        "adversarialWitness": "Text-like descendants of late-registered cells, numeric/string IDs, detached replacement targets and stale handlers after disconnect.",
+        "evidence": [
+          "packages/dom/tests/grid-projection.test.mjs"
+        ],
+        "fullScan": {
+          "allowed": false,
+          "rationale": "Only target ancestors participate in event routing."
+        }
+      }
+    },
+    {
+      "package": "dom",
+      "surface": "hot",
+      "id": "grid.transition-projection",
+      "source": "packages/dom/src/grid.ts",
+      "benchmarkIDs": [
+        "GH-13:dom-grid-transition-work"
+      ],
+      "specificationCeiling": "O(1) expected",
+      "reviewedWeakening": null,
+      "contract": {
+        "variables": [],
+        "time": {
+          "bound": "O(1)",
+          "kind": "expected",
+          "runtimeState": "connected"
+        },
+        "space": {
+          "auxiliary": "O(1)",
+          "output": "O(1)",
+          "retained": "O(1)"
+        },
+        "resources": {
+          "allocations": "0 projection arrays or per-cell snapshots",
+          "cacheEntries": "two primitive projected IDs",
+          "listeners": "0 new listeners",
+          "observers": "0",
+          "timers": "0",
+          "subscriptions": "0"
+        },
+        "assumptions": [
+          "Core Grid selection has at most one selected ID.",
+          "The contract covers host attribute projection; canonical transitions, application callbacks, focus dispatch and Vue rendering retain their separate costs."
+        ],
+        "ceilings": [
+          "safe-integer and package resource ceilings"
+        ],
+        "benchmarkIDs": [
+          "VAL-017:constant-work"
+        ],
+        "deterministicWork": [
+          "An ordinary cursor move writes at most two tabIndex values; a selection change writes at most two aria-selected attributes.",
+          "Unchanged state writes nothing and no transition rewrites role, row/column indices or disabled attributes.",
+          "All eight controlled ownership shapes project accepted canonical state, including synchronous owner acceptance."
+        ],
+        "resourceRationale": "Only the last projected current and selected IDs are retained. No duplicate domain state or per-transition index is built.",
+        "proof": "projectTransition compares two stored scalar IDs with the live Core snapshot and directly updates the previous and next hosts of each changed value. Controlled synchronization and focus events use the same projection owner.",
+        "adversarialWitness": "Maximum domain movement, stopped boundary moves, selection across distant cells, synchronous controlled acceptance, edit callbacks and disconnect with queued focus work.",
+        "evidence": [
+          "packages/dom/tests/grid-projection.test.mjs",
+          "packages/dom/tests/grid.test.mjs"
+        ],
+        "fullScan": {
+          "allowed": false,
+          "rationale": "Current and selected IDs completely identify the affected host state."
+        }
+      }
+    },
+    {
+      "package": "dom",
+      "surface": "hot",
       "id": "menu.click-target",
       "source": "packages/dom/src/internal/menu-control.ts",
       "benchmarkIDs": [
@@ -30212,6 +30396,76 @@
         "fullScan": {
           "allowed": false,
           "rationale": "The Vue bridge neither scans FormState.fields nor materializes the complete state projection."
+        }
+      }
+    },
+    {
+      "package": "vue",
+      "surface": "hot",
+      "id": "grid.cell-projection",
+      "source": "packages/vue/src/grid.ts",
+      "benchmarkIDs": [
+        "GH-13:vue-grid-registration-and-delta"
+      ],
+      "specificationCeiling": "O(r + j)",
+      "reviewedWeakening": null,
+      "contract": {
+        "variables": [
+          {
+            "name": "r",
+            "meaning": "mounted Grid cell components",
+            "ceiling": "canonical Grid maxItems; default 100000"
+          },
+          {
+            "name": "j",
+            "meaning": "cells whose projected cursor or selection state changes",
+            "ceiling": "at most four distinct IDs for an ordinary transition"
+          }
+        ],
+        "time": {
+          "bound": "O(r + j)",
+          "kind": "expected",
+          "runtimeState": "mounted"
+        },
+        "space": {
+          "auxiliary": "O(r)",
+          "output": "O(r)",
+          "retained": "O(r)"
+        },
+        "resources": {
+          "allocations": "O(r)",
+          "cacheEntries": "one registered primitive ID per cell component",
+          "listeners": "three DOM-owner root listeners",
+          "observers": "0",
+          "timers": "0",
+          "subscriptions": "O(r)"
+        },
+        "assumptions": [
+          "Core and DOM own transitions and host attributes. The rows and root policies are stable during ordinary interaction.",
+          "Framework render work may visit every mounted cell. This contract does not assert constant total Vue rendering cost or bound arbitrary consumer slot code.",
+          "Construction and explicit owner reconfiguration may scan the domain and discover mounted parts once."
+        ],
+        "ceilings": [
+          "operation item and output ceilings"
+        ],
+        "benchmarkIDs": [
+          "VAL-017:linear-work"
+        ],
+        "deterministicWork": [
+          "At 1000 and 4000 mounted cells, initial registration writes exactly r gridcell roles.",
+          "Navigation, selection and a distant click perform zero part-discovery queries and zero static role rewrites; each tested settled transition writes at most 32 cell attributes.",
+          "Per-cell refs register identity and disabled changes, release the old ID on reuse, and release host ownership on unmount."
+        ],
+        "resourceRationale": "Framework render/computed allocations and component-scoped reactive consumers are O(r); each cell registration is O(1), and ordinary host projection is O(j). The bridge retains scalar state and component-local registration IDs, using the existing DOM registry rather than an additional Vue collection index. Unmount releases registrations and disconnects the DOM owner; queued focus checks that owner's active state.",
+        "proof": "GridRoot refresh publishes canonical scalar state without calling refreshParts. Discovery is restricted to connection setup. Stable GridCell ref callbacks feed single-cell registration and release into the DOM owner; unchanged refs perform no host projection.",
+        "adversarialWitness": "Large mounted domains, all eight controlled-state combinations, disabled changes, reused IDs, removal/remount, read-only and disabled gates, edit callbacks and unmount before queued focus drains.",
+        "evidence": [
+          "packages/vue/tests/dynamic-collections.dom.test.mjs",
+          "packages/vue/tests/structural-controls.test.mjs"
+        ],
+        "fullScan": {
+          "allowed": true,
+          "rationale": "Vue may render mounted components after root state publication, and connection setup discovers declarative parts. Ordinary host attribute publication remains bounded by changed cells and never performs repeated full-domain registration scans."
         }
       }
     },
